@@ -1,0 +1,553 @@
+readMap();
+ready = function () {
+    drawCanvas();
+
+    $('canvas').bind('mousewheel', function (e) {
+        e.preventDefault();
+        if (e.originalEvent.wheelDelta / 120 > 0) {
+            BLOCK_SIZE++;
+        } else {
+            BLOCK_SIZE--;
+        }
+        drawCanvas()
+    }).click(function (e) {
+        onClick(Math.floor(e.pageY / BLOCK_SIZE), Math.floor(e.pageX / BLOCK_SIZE));
+    });
+
+    prepareTurn();
+    refreshTable();
+};
+
+var i = -1;
+var civOrders = Object.keys(civs).sort();
+
+var buyClick = null;
+
+buy = function (type, price) {
+    $('#panel').hide();
+    var civName = civOrders[i];
+    var civ = civs[civName];
+    if (civ.money < price) {
+        alert('Not enough money.');
+        drawCanvas();
+        buyClick = null;
+        return;
+    }
+    if (type.defend == types.finance.defend && civ.happiness < 60) {
+        alert('Not enough currency domination.');
+        drawCanvas();
+        buyClick = null;
+        return;
+    }
+
+    drawCanvas(function (row, col) {
+        var land = data[row][col];
+        if (land && land.color != civName && land.color != null) return false;
+        if (land == null) return false;
+        var bool = false;
+        getNeighbors(row, col, function (land) {
+            if (land && land.color == civName) {
+                bool = true;
+            }
+        });
+        return bool;
+    });
+    buyClick = function (row, col) {
+        var land = data[row][col];
+        if (land == null || (land && land.color != civName && land.color != null)) {
+            alert('Land is null or already occupied.');
+        } else {
+            var bool = false;
+            getNeighbors(row, col, function (land) {
+                if (land && land.color == civName) {
+                    bool = true;
+                }
+            });
+            if (!bool) {
+                alert('Land is not adjacent to your territory.')
+            } else {
+                if (type.defend == types.land.defend) {
+                    getNeighbors(row, col, function (l, r, c) {
+                        if (!l.color) {
+                            data[r][c] = {
+                                color: civName,
+                                type: type
+                            };
+                        }
+                    })
+                }
+                data[row][col] = {
+                    color: civName,
+                    type: type
+                };
+                civ.money -= price;
+                buyClick = null;
+                drawCanvas();
+            }
+        }
+        showInfo();
+    }
+};
+
+research = function () {
+    var civName = civOrders[i];
+    var civ = civs[civName];
+
+    var m = 300 + civ.money / 10;
+    var p = 10 + civ.politic / 2;
+
+    if (civ.money < m || civ.politic < p) {
+        alert("Failed. " + m + " money needed, " + p + " PP needed.")
+    } else {
+        civ.money -= m;
+        civ.politic -= p;
+        civ.technology++;
+    }
+
+    showInfo();
+};
+
+battle = function (m1, m2, t1, t2) {
+    t1 = Math.sqrt(t1);
+    t2 = Math.sqrt(t2);
+    var eM1 = m1 * t1;
+    var eM2 = m2 * t2;
+    var factor = eM2 / eM1;
+    m1 = Math.floor((eM1 - eM2 * factor) / t1);
+    m2 = Math.floor((eM2 - eM1 / factor) / t2);
+    return [Math.max(m1, 0), Math.max(m2, 0)];
+};
+
+tryDeclareWar = function () {
+    let c2 = prompt("To who?");
+    if (!c2) return;
+    let ii;
+    for (ii = 0;ii < 1000 && !declareWar(civOrders[i], c2);ii++) ;
+    if (ii < 1000)
+        alert("Successful.");
+    else
+        alert("Failed.");
+};
+
+move = function (cn1, pickedUp, p2, ai) {
+    var row2 = p2[0];
+    var col2 = p2[1];
+
+    var l2 = data[row2][col2];
+    var ddffeend = l2.type.draw.toString();
+
+    var cn2 = l2.color;
+    var c1 = civs[cn1];
+    var c2 = civs[cn2];
+
+    var type = $.extend(true, {}, types.military);
+    type.val = pickedUp.type.val;
+
+    var result = [type.val, 0];
+
+    if (cn1 == cn2) {
+        if (data[row2][col2].type.val)
+            data[row2][col2].type.val += type.val;
+        else
+            data[row2][col2].type = type;
+        if (!ai) drawCanvas();
+        return result;
+    } else if (!c2) {
+        data[row2][col2].type = type;
+        data[row2][col2].color = cn1;
+    } else if (typeof l2.type.val == 'undefined') {
+        result = battle(pickedUp.type.val, l2.type.defend, c1.technology, c2.technology);
+    } else {
+        var m1 = pickedUp.type.val;
+        var m2 = l2.type.val / 2;
+        var t1 = c1.technology;
+        var t2 = c2.technology;
+        var eM1 = m1 * t1;
+        var eM2 = m2 * t2;
+
+        if (eM1 > eM2) {
+            m1 = Math.ceil(pickedUp.type.val / 5);
+            m2 = Math.ceil(l2.type.val / 5);
+            m1s = pickedUp.type.val - m1;
+            m2s = l2.type.val - m2;
+            result = battle(m1, m2, c1.technology, c2.technology);
+            c2.money -= result[0];
+            m1 = m1s + result[0];
+            m2 = m2s + result[1];
+            var broke = false;
+            getNeighbors(row2, col2, function (u, r, c) {
+                if (broke) return;
+                if (u && u.color && u.color == cn2 && u.type.defend == types.land.defend) {
+                    type = $.extend(true, {}, types.military);
+                    type.val = m2;
+                    type.oVal = pickedUp.type.oVal;
+                    data[r][c].type = type;
+                    broke = true;
+                }
+            });
+            type = $.extend(true, {}, types.military);
+            type.val = m1;
+            type.oVal = pickedUp.type.oVal;
+            data[row2][col2].type = type;
+            data[row2][col2].color = cn1;
+            return [m1, m2];
+        } else {
+            result = battle(m1, m2, c1.technology, c2.technology);
+        }
+
+        m1 = Math.floor((eM1 - eM2) / t1);
+        m2 = Math.floor((eM2 - eM1) / t2);
+        // return [Math.max(m1, 0), Math.max(m2, 0)];
+
+    }
+
+    if (result) {
+        if (result[1] == 0) {
+            type.val = result[0];
+            type.oVal = pickedUp.type.oVal;
+
+            if (result[0] == 0) {
+                type = types.land;
+            }
+
+            data[row2][col2].type = type;
+            data[row2][col2].color = cn1;
+        } else if (result[1] > 0) {
+            type.val = result[1];
+            data[row2][col2].type = type;
+        }
+
+        if (c2) {
+            if (result[0]) {
+              c2.money -= result[0] / 4;
+              if (Math.random() < 0.3 && c1 != c2) {
+                  c1.happiness += result[0] / 5;
+              }
+              c2.happiness -= Math.random() < 0.5 ? result[0] / 5 : c2.politic / 20;
+              c2.logistics = c2.logistics ? c2.logistics + result[0] : result[0];
+            }
+            if (((c2.money < -50 || c2.politic < 0) && Math.random() < 0.25
+                && c2.ii < 150 && c2.military < 50) ||
+                (ddffeend == types.capital.draw.toString() && Math.random() < 0.4)) {
+                for (var row = 0; row < data.length; row++) {
+                    var rowData = data[row];
+                    for (var col = 0; col < rowData.length; col++) {
+                        var land = data[row][col];
+                        if (land && land.color == cn2 && Math.random() < 0.9 &&
+                            (land.type.defend != types.city.defend || Math.random() < 0.7)) {
+                            land.color = cn1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+if (!ai) drawCanvas();
+    return result;
+};
+turn = 0;
+averageData = {happiness: 0, logistics: 0, technology: 0, ii: 0, politic: 0, money: 0}
+max_pop = 200000;
+endTurn = function () {
+    turn++;
+    var civName = civOrders[i];
+    var civ = civs[civName];
+    civ.military = 0;
+    civ.years = civ.years ? civ.years + 0.25 : 0.25;
+    civ.technology = Math.max(Math.round(civ.technology), 1);
+    civ.deposit = Math.min((civ.ii * civ.urban), (civ.deposit ? civ.deposit : 1) * 1.10);
+    civ.happiness = !isNaN(civ.happiness) ? civ.happiness + 1 + ((civ.ii ? civ.ii : 1) * 5 / (data.length * data[0].length)) : 60;
+    civ.happiness = Math.round(Math.max(0, Math.min(100, civ.happiness)) * 100) / 100;
+    let oldMoney = civ.money;
+
+    calculateYears(civ,civName);
+
+    var ii = 0;
+    var takeControls = $('#takeControls');
+    takeControls.children().remove();
+
+    civOrders.forEach(function (name) {
+        if (civs[name].ai) {
+            takeControls.append('<button onclick="delete civs.' + name + '.ai">Take control of ' + name + '</button>')
+        }
+    });
+
+    
+    let cityCount = 0;
+    let income = 0;
+    let expense = 0;
+    let oldpop = civ.pop || civ.pop == 0;
+    civ.pop = 0;
+
+    for (var row = 0; row < data.length; row++) {
+        var rowData = data[row];
+        for (var col = 0; col < rowData.length; col++) {
+            var d = rowData[col];
+            if (!d || !d.color || !d.type) continue;
+            if (d.type.draw.toString() == types.capital.draw.toString()
+              && civs[d.color] && !civs[d.color].birth) {
+              civs[d.color].birth = [row, col];
+            }
+            let nextDecline = 0;
+            if (d.color == civName) {
+                d.pop = d.pop || 0;
+                if (!d.pop && d.type.defend) {
+                    d.pop = d.type.defend * 5000 * Math.random();
+                }
+                d.growth = 0.5;
+                if (d && d.type.draw.toString() == types.city.draw.toString()) {
+                    d.growth = 1.004;
+                    cityCount++;
+                } else if (d && d.type.draw.toString() == types.finance.draw.toString()) {
+                    d.growth = 1.008;
+                    cityCount+=2;
+                } else if (d && d.type.draw.toString() == types.capital.draw.toString()) {
+                    d.growth = 1.01;
+                    cityCount+=2;
+                } else if (d && d.type.val > 0) {
+//                     d.pop = Math.max(0, d.pop - d.val * 1000);
+                    nextDecline += d.type.val * 1000 * Math.random();
+                }
+                let decline = nextDecline / 10;
+                nextDecline -= decline;
+                d.pop = Math.min(Math.max(0, Math.round(d.growth * d.pop + 1 - decline)), 500000);
+                civ.pop += d.pop;
+                max_pop = Math.max(max_pop, d.pop);
+                let _oldmoney = civ.money + 0;
+                d.type.income(civ);
+                let change = civ.money - _oldmoney;
+                if (change > 0) {
+                    let nchange = change / 100000 * d.pop;
+                    civ.money -= change - nchange;
+                    income += nchange;
+                } else expense -= change;
+                ii++;
+            }
+            if (d.type.val <= 0) d.type = types.land;
+            if (d.type.val && d.color == civName) {
+                civ.military += d.type.val;
+                if (isNaN(d.type.oVal)) {
+                    d.type.oVal = d.type.val;
+                }
+                if (civ.money > d.type.val / 2
+                    && d.type.oVal >= d.type.val) {
+                    d.type.val += 5;
+                    civ.money -= 0.55;
+                }
+            }
+        }
+    }
+    civ.popchange = Math.round((civ.pop = Math.round(civ.pop)) - oldpop);
+    civ.popchangeperc = Math.round(civ.popchange / civ.pop * 10000) / 100
+//     civ.happiness -= Math.max(Math.round(civ.years / 4.5), 0);
+    civ.politic -= Math.max(Math.round(civ.years / 7), 0);
+
+    if (civ.birth && data[civ.birth[0]][civ.birth[1]].color == civName) {
+        data[civ.birth[0]][civ.birth[1]].type = types.capital;
+    } else
+        civ.politic /= 3;
+
+//     let expense = civ.military / 2.0;
+//     let income = expense - oldMoney + civ.money;
+
+    civ.income = Math.round(income * 100) / 100;
+    civ.expense = Math.round((expense + (ii / 10)) * 100) / 100;
+    civ.oldMoney = Math.round(oldMoney * 100) / 100;
+    civ.ii = ii;
+    civ.urban = Math.round(cityCount / ii * 10000) / 100;
+    civ.cityCount = cityCount;
+    civ.money = Math.round((civ.money - (ii / 10)
+      + (civ.deposit < 0 ? civ.deposit / 10 : 0)) * 100) / 100;
+    civ.spentOnUrban = 0;
+    if (civ.ii > 50 && civ.urban > 55)
+        civ.money -= (civ.spentOnUrban = (civ.urban - 55) * 10)
+    civ.newMoney = civ.money;
+    if (isNaN(civ.money)) civ.money = 0;
+    civ.politic = Math.min(Math.round((civ.politic * (civ.happiness / 100) + 5) * 100) / 100 + civ.money / 250, Math.max(civ.ii / 10, 30));
+    // averageData = {happiness: 0, logistics: 0, technology: 0, ii: 0, politic: 0}
+    averageData.happiness += civ.happiness;
+    averageData.logistics += civ.logistics;
+    averageData.technology += civ.technology;
+    averageData.politic += civ.politic;
+    averageData.money += civ.money;
+    civ.logistics = 0;
+    if (ii <= 2) {
+        civ.years = 0;
+        civ.technology = 0;;
+    }
+    if (ii <= 2 && (Math.random() < 0.004 || (1 + turn) % (88 * 4 * civOrders.length) <= 14) && civ.technology >= 0) {
+        civ.money = 1000;
+        civ.politic = 30;
+        civ.happiness = 100;
+        civ.years=0;
+
+        var sum = 0;
+
+        civOrders.forEach(function (civN) {
+            sum = Math.max(civs[civN].technology, sum);
+        });
+
+        civ.technology = sum + Math.ceil(Math.random() * 20);
+
+        A: for (var row = 0; row < data.length; row++) {
+            var rowData = data[row];
+            for (var col = 0; col < rowData.length; col++) {
+                var d = rowData[col];
+                if (!d || !d.color || !d.type) continue;
+                if (d.color != civName && (civ.birth && Math.random() < 0.2 ? civ.birth[0] == row && civ.birth[1] == col : Math.random() < 0.0005)) {
+                    landLevel = Math.random() * 25;
+                    civ.birth = [row, col];
+                    d.color = civName;
+                    d.type = types.capital;
+
+                    findNearbyCitiesOfLargestCiv([row, col], civName);
+                    d.type = types.capital;
+                    break A;
+                }
+            }
+        }
+    }
+
+
+    prepareTurn();
+
+
+    delete window.pickedUp;
+};
+
+showInfo = function () {
+    var civ = civs[civOrders[i]];
+    var tributeToOthersText = "";
+    var tributeToOther = civ.tributeToOther || {};
+    var tributeToMe = civ.tributeToMe || {};
+    Object.getOwnPropertyNames(tributeToOther).forEach(x => {
+        let out = tributeToOther[x];
+        let inp = tributeToMe[x] || 0;
+        let net = inp - out;
+        tributeToOthersText += ` ${net > 0 ? '+' : '-'} Tribute out ${Math.round(out * 100) / 100} in ${Math.round(inp * 100) / 100} with ${x} (net ${Math.round(net * 100) / 100})\n`;
+    });
+
+//     var tributeToMeText = "";
+    
+//     Object.getOwnPropertyNames(tributeToMe).forEach(x => {
+//         tributeToMeText += ` + Tribute ${Math.round(tributeToMe[x] * 100) / 100} from ${x}\n`;
+//     });
+
+    $('#panel').show().children('div').hide();
+    $('#turn').html('<h2></h2>');
+    $('#turn').show()
+        .find('h2')
+        .text("Player " + civOrders[i] + "'s turn")
+        .css('background', civ.color)
+        .css('color', civ.fontColor)
+        .parent()
+        .append(
+            $('<pre></pre>')
+                .text(
+                    "Money: " + civ.money + "\n" +
+                    "Deposit: " + civ.deposit + "(+10% interest)\n" +
+                    "Technology: " + civ.technology + "\n" +
+                    "Political Powers: " + civ.politic + "\n" +
+                    "Population: " + civ.pop + ` (+${civ.popchange} +${civ.popchangeperc}%)\n` +
+                    "Military(Until last turn): " + civ.military + "\n" +
+                    "Currency Domination: " + civ.happiness + "%\n" +
+                    "Urbanization: " + civ.urban + "% (" + civ.cityCount + ")\n" +
+                    "==Statistics==\n" +
+                    "        " + (civ.oldMoney) + "\n" +
+                    " + Tax  " + civ.income + "\n" +
+                    (civ.spentOnUrban > 0 ? ` - Urban overflow $${Math.round(civ.spentOnUrban)}\n` : "") +
+                    " - Army " + (civ.expense - (civ.ii / 10)) + "  (Logistics " + civ.logistics + ")\n" +
+                    " - Gov  " + (civ.ii / 10) + "  (Government Offices in " + civ.ii + " counties)\n" +
+                    " + Ints " + (civ.deposit / 1.1 / 10) + "  (10% interest from deposit)\n" +
+                    tributeToOthersText +
+//                     tributeToMeText +
+                    " = " + civ.newMoney + ` (net: ${Math.round((civ.newMoney - civ.oldMoney) * 100) / 100})`
+                )
+        ).append(civ.technology == -1 ?
+        'Place the capital and get started.' :
+        'Order your moves.');
+        var takeControls = $('#takeControls');
+    takeControls.children().remove();
+
+
+    civOrders.forEach(function (name) {
+        if (civs[name].ai) {
+            takeControls.append('<button onclick="delete civs.' + name + '.ai">Take control of ' + name + '</button>')
+        }
+    });
+    ;
+};
+
+prepareTurn = function () {
+    buyClick = null;
+    i++;
+    if (i >= civOrders.length) {
+        i = 0;
+        window.average = {
+            happiness: averageData.happiness / civOrders.length,
+            logistics: averageData.logistics / civOrders.length,
+            technology: averageData.technology / civOrders.length,
+            politic: averageData.politic / civOrders.length,
+            money: averageData.money / civOrders.length
+        };
+        console.log(average);
+        averageData = {happiness: 0, logistics: 0, technology: 0, politic: 0, money: 0}
+    }
+  let civ = civs[civOrders[i]];
+  civ.newMoney = civ.money;
+    if (civs[civOrders[i]].ai || (civs[civOrders[i]].ii <= 1 && civs[civOrders[i]].technology > 0)) {
+        AI.think(civs[civOrders[i]], civOrders[i]);
+        AI.think(civs[civOrders[i]], civOrders[i]);
+        $('#panel').hide();
+        setTimeout(endTurn, 150);
+    } else {
+        showInfo();
+    }
+
+    document.getElementById('year').innerText = 'Year: ' + (Math.floor(turn / civOrders.length) / 4);
+
+    if ($('#heatmap').css('display') != 'none') loadheatmap();
+    refreshTable();
+    drawCanvas();
+};
+
+refreshTable = function () {
+    if (!window.tableSetup) {
+        window.tableSetup = new Tablesort($('table')[0]);
+        setTimeout(function () {
+            $('#heatmap').css('display', 'none');
+        }, 1000);
+    }
+    var $table = $('table tbody');
+    $table.html('');
+    civOrders.forEach(function (civName) {
+        let civ = civs[civName];
+        let tr = $('<tr/>');
+        if ((!civ.ai) || civ.ii >= 5)
+            tr.css('background', civ.color).css('color', civ.fontColor);
+        tr.click(function () {
+            civ.highlight = !civ.highlight;
+            refreshTable();
+        });
+        civ.power = Math.sqrt(Math.sqrt(Math.sqrt(civ.deposit)) +
+            civ.income / 10 + civ.politic / 3 + civ.ii / 10 - 3 +
+            civ.technology / 10 + civ.happiness / 10 + civ.pop / 10000) +
+            civ.urban / 20;
+        tr.append(`<td>${civName}</td>`)
+        tr.append(`<td>${Math.round(civ.ii)}</td>`)
+        tr.append(`<td>${Math.round(civ.urban * 100) / 100}/density ${Math.round(civ.pop / civ.ii)}</td>`)
+        tr.append(`<td>${Math.round(civ.deposit)}</td>`)
+        tr.append(`<td>${Math.round(civ.technology)}</td>`)
+        tr.append(`<td>${(civ.years)}</td>`)
+        tr.append(`<td>${Math.round(civ.happiness)}</td>`)
+        tr.append(`<td>${Math.round(civ.pop)}</td>`)
+        tr.append(`<td>${Math.round(civ.military)}</td>`)
+        tr.append(`<td>net ${Math.round(civ.newMoney - civ.oldMoney)}</td>`)
+        tr.append(`<td>${Math.round(civ.income)}</td>`)
+        tr.append(`<td>${Math.round(civ.politic)}</td>`)
+        tr.append(`<td>${Math.round(civ.money)}</td>`);
+        tr.append(`<td>${Math.round(civ.power * 100) / 100}</td>`);
+        $table.append(tr)
+    });
+    window.tableSetup.refresh();
+}

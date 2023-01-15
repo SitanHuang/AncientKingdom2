@@ -1,0 +1,470 @@
+<html>
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+
+    <!--<link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Roboto+Mono">-->
+
+    <script src="jquery.js"></script>
+    <!--<script src="fastclick.js"></script> -->
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js"></script>-->
+    <!--<script src="map.jpg.js"></script>-->
+<!--    <script src="europe.jpg.js"></script> -->
+    <link rel="stylesheet" href="d3_timeseries.min.css">
+    <script charset="utf-8" src="d3.v4.js"></script>
+    <script charset="utf-8" src="d3_timeseries.min.js"></script>
+    <script src="heatmap.min.js"></script>
+    <script src="Europe.jpg.js"></script>
+    <script src="data.js"></script>
+    <script src="map.js"></script>
+    <script src="canvas.js"></script>
+    <script src="ai.js"></script>
+    <script src="relationships.js"></script>
+    <script src="serializer.js"></script>
+    <script src="cheats.js"></script>
+    <script src="msgbox.js"></script>
+    <script src="tablesort.min.js"></script>
+    <script src="tablesort.number.min.js"></script>
+    <meta name="viewport" content="width=device-width">
+    <style>
+        #takeControls {
+            max-width: 100%;
+            height: 42px;
+            overflow: auto;
+        }
+        *:not(svg,g,rect) {
+        transform: translateZ(0);
+        }
+        #panel {
+            display: none;
+            max-width: calc(98vw - 50px);
+            max-height: calc(98vh - 48px);
+            position: fixed;
+            overflow: auto;
+            top: 0;
+            left: 0;
+            background: rgba(255, 255, 255, 0.75);
+            padding: 24px;
+            z-index: 50;
+        }
+        .aux-panel {
+            display: none;
+            width: calc(99vw - 50px);
+            height: calc(100vh - 48px);
+            position: fixed;
+            overflow: auto;
+            top: 0;
+            left: 0;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 24px;
+            z-index: 55;
+        }
+
+        body {
+            margin: 0;
+            text-rendering: optimizespeed;
+            shape-rendering: optimizespeed;
+            color-rendering: optimizespeed;
+        }
+
+        svg {
+          shape-rendering: auto;
+        }
+
+        /*canvas {
+            font-family: 'Roboto Mono', monospace;
+        }*/
+
+        canvas {
+            user-select: none;
+            image-rendering: pixelated;
+            display: block;
+        }
+
+        table {
+            padding: 3em;
+            font-family: monospace;
+        }
+
+        th {
+            cursor: pointer;
+        }
+
+        tr:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        msg {
+            white-space: pre;
+            padding: 1em;
+            display: block;
+            font-family: monospace;
+            width: 56em;
+            height: calc(15em*1.4 + 1em);
+            overflow: auto;
+            background: rgba(255, 255, 255, 0.7);
+            color: rgba(0, 0, 0, 0.6);
+            line-height: 1.4em;
+        }
+
+        msg line {
+            display: block;
+            width: 100%;
+            height: 1px;
+            line-height: 1px;
+            background: #606060;
+        }
+
+        msg b {
+            color: black;
+        }
+    </style>
+</head>
+<body>
+<canvas moz-opaque></canvas>
+<br>
+<button onclick="$('#panel').show();drawCanvas();onClickTemp=null;showInfo()">menu</button>
+<button onclick="endTurn()">end turn</button>
+<div id="panel">
+    <button onclick="$('#panel').hide()">hide menu</button>
+    <button onclick="endTurn()">end turn</button>
+    <div id="turn">
+        <h2></h2>
+    </div>
+    Build:
+    <br>
+    <button onclick="buy(types.land, 200)">land ($200)</button>
+    <button onclick="buy(types.capital, 105)">capital ($105)</button>
+    <button onclick="buy(types.city, 85)">city ($85)</button>
+    <button onclick="buy(types.finance, 105)">finance ($105)</button>
+    <button onclick="buy(types.school, 105)">school ($105)</button>
+    <button onclick="buy(types.town, 35)">town ($35)</button>
+    <button onclick="buy(types.gate, 5)">gate ($5)</button>
+    <button onclick="buy(types.fort, 25)">fort ($25)</button>
+    <button onclick="buy(types.headquarter, 45)">headquarter ($45)</button>
+    <br>
+    <button onclick="
+        val = parseInt(prompt('How many?', '1'));
+        military = $.extend(true, {}, types.military);
+        military.val = val;
+        military.defend = val;
+        if (!isNaN(val)) {
+            let civ = civs[civOrders[i]];
+            civ.military += val;
+            civ.nextDecline = (civ.nextDecline || 0) + Math.max(0, val * 500 * (1 + (civ.ii || 0) / 1000));
+            civ.nextDecline = Math.min(civ.pop * 0.9 || 0, civ.nextDecline);
+            buy(military, val * 2);
+        };
+    ">Recruit ($n * 2)</button>
+    <button onclick="newArmy()">Create Army</button>
+    <button onclick="research()">Research</button>
+    <button onclick="civs[civOrders[i]].ai = true">set AI</button>
+    <button onclick="AI.think(civs[civOrders[i]], civOrders[i]);">AI think</button>
+    <br>
+    <button onclick="tryDeclareWar()">Declare War</button>
+    <button onclick="paintRelationships(civOrders[i])">Relationships</button>
+    <button onclick="promptForAlliance(civOrders[i], prompt('Which nation?'))">Form Alliance</button>
+    <button onclick="promptForPact(civOrders[i], prompt('Which nation?'))">Non-aggression pact</button>
+    <button onclick="giveMoneyTo(civOrders[i], prompt('Which nation?'), parseInt(prompt('How much?', '0')));showInfo()">Send Money To</button>
+    <br>
+    <button onclick="deposit()">Deposit</button>
+    <button onclick="withdraw()">Withdraw</button>
+</div>
+<div id="migrants-panel" class="aux-panel">
+    <button onclick="$('#migrants-panel').hide()">hide menu</button>
+    <br>
+    <br>
+    <button id="outGateBtn" onclick="civs[civOrders[i]].outGate=!civs[civOrders[i]].outGate;manageMigrants();"></button>
+    <table>
+        <tr>
+            <th style="text-align: right">Happiness saved from emigrants</th>
+            <td class="t1"></td>
+        </tr>
+        <tr>
+            <th style="text-align: right">Happiness drop from immigrants</th>
+            <td class="t2"></td>
+        </tr>
+        <tr>
+            <th style="text-align: right">Rebellion % increase from immigrants</th>
+            <td class="t3"></td>
+        </tr>
+    </table>
+    <table id="migrantsTable" style="text-align: right;">
+        <thead>
+        <th>Neighbor</th>
+        <th>Ports</th>
+        <th>To</th>
+        <th>From</th>
+        <th>Net</th>
+        <th>Hap.</th>
+        <th>Atrctv.</th>
+        <th>Reb. %</th>
+        <th>Their Policy</th>
+        <th>Our Policy</th>
+        </thead>
+        <tbody>
+
+        </tbody>
+    </table>
+</div>
+<button onclick="alertCopy(serialize(eval(prompt())))">&gt;_</button>
+<button onclick="showCellBorder = !(lazyDraw = !lazyDraw);">LazyDraw</button>
+<button onclick="lazyDrawCount = Math.max(civOrders.length, (parseInt(prompt('lazyDrawCount=', lazyDrawCount)) | 0) || lazyDrawCount || 10)">lzdrwcnt=</button>
+<button onclick="showBorder = !showBorder">border?</button>
+<button onclick="showStripes = !showStripes">stripes?</button>
+<button onclick="showCellBorder = !showCellBorder">cells?</button>
+<button onclick="BLOCK_SIZE --;drawCanvas()">-</button>
+<button onclick="BLOCK_SIZE ++;drawCanvas()">+</button>
+<div id="takeControls">
+</div>
+<button onclick="download(prompt('File name', 'scenario') + '.json',
+    serialize({data: data, civs: civs}, {space: 0}))">Export</button>
+<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage</button>
+<button onclick="localStorage.back = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS}, {space: 0})">Save to localStorage</button>
+<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back2);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage2</button>
+<button onclick="localStorage.back2 = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS}, {space: 0})">Save to localStorage2</button>
+<input type="file" id="file"><br>
+<button onclick="alert = console.log">quiteMode On</button>
+<button onclick="alert = alertCopy">quiteMode Off</button><br>
+<button onclick="enableGraph = !enableGraph">toggle graphs</button>
+<button onclick="_populationData = [];_incomeData = [];_pwrData = [];">clear graphs</button>
+<script>
+    window.alertCopy = alert;
+    function deposit() {
+        xxx = parseInt(prompt('how much?'));
+        civ = civs[civOrders[i]];
+        if (xxx) {
+            civ.deposit += xxx;
+            civ.money -= xxx;
+            showInfo();
+        }
+    }
+
+    function withdraw() {
+    xxx = parseInt(prompt('how much?'));
+        civ = civs[civOrders[i]];
+        if (civ.deposit < -50) {
+            alert('Your credit is too low.');
+            return;
+        }
+        if (xxx) {
+            civ.deposit -= xxx;
+            civ.money += xxx;
+            showInfo();
+        }
+    }
+
+    function paintRelationships(color) {
+      $('#panel').hide();
+      drawCanvas(null, color);
+      setTimeout(function () {
+        onClickTemp = function (row, col) {
+          var d = data[row][col];
+          if (d && d.color) {
+            color = d.color;
+          }
+          paintRelationships(color);
+        }
+      }, 1);
+    }
+
+    function newArmy() {
+        var base = parseInt(prompt('What is the main force amount?', '23'));
+        var change = parseInt(prompt('What is the diversity of hierarchy?', '6'));
+        var civName = civOrders[i];
+        var civ = civs[civName];
+        var list = [];
+        var sum = 0;
+        for (var ii = base;ii > -10;ii -= change) {
+            var iii = ii > 0 ? ii : 1;
+            sum += iii;
+            list.push(iii);
+        }
+        if (civ.money < sum * 2) {
+            alert('Not enough money!');
+            return;
+        }
+        $('#panel').hide();
+        onClickTemp = function (row, col) {
+            var emptyCells = [];
+            for (var r = 0;r < data.length;r++) {
+                var rowData = data[r];
+                for (var c = 0;c < rowData.length;c++) {
+                    var cell = rowData[c];
+                    if (cell && cell.color == civName && cell.type.defend == types.land.defend) {
+                        var a = c - col;
+                        var b = r - row;
+
+                        var distance = Math.sqrt( a*a + b*b );
+                        emptyCells.push([distance, r, c]);
+                        if (emptyCells.length > list.length) {
+                            emptyCells = emptyCells.sort(function (x,y) {
+                                return x[0] > y[0]
+                            });
+                            emptyCells.pop();
+                        }
+                    }
+                }
+            }
+            if (list.length > emptyCells.length) {
+                alert('Not enough space!');
+                return;
+            }
+
+            for (var ii = 0;ii < list.length;ii++) {
+                var military = $.extend(true, {}, types.military);
+                military.val = list[ii];
+                military.defend = list[ii];
+                data[emptyCells[ii][1]][emptyCells[ii][2]].type = military;
+            }
+            civ.money -= sum * 2;
+            civ.politic += 3;
+            civ.military += sum;
+            drawCanvas();
+        };
+    }
+    function readSingleFile(evt) {
+        //Retrieve the first (and only!) File from the FileList object
+        var f = evt.target.files[0];
+
+        if (f) {
+            var r = new FileReader();
+            r.onload = function (e) {
+                var contents = e.target.result;
+                contents = contents.replace(/Math\.random\(\)/g, 'randn_bm()');
+                var scenario = eval('(' + contents + ')');
+                data = scenario.data;
+                civs = scenario.civs;
+                civOrders = Object.keys(civs).sort();
+                i = 0;
+                drawCanvas();
+                showInfo()
+                scenario = null;
+            };
+            r.readAsText(f);
+          delete window.heatmapdata;
+        } else {
+            alert("Failed to load file");
+        }
+    }
+
+function addheatmapdata(row, col, s) {
+
+}
+
+function stopIntervals() {
+  var interval_id = window.setInterval(() => {}, 9999); // Get a reference to the last
+                                                // interval +1
+  for (var i = 1; i <= interval_id; i++)
+          window.clearInterval(i);
+}
+
+function loadheatmap() {
+//   stopIntervals();
+  // BLOCK_SIZE = 700 / Math.max(data.length, data[0].length);
+//   $('#heatmap').css('position', 'absolute').css('left', '0').css('top', '0')
+//   .css('width', data[0].length * BLOCK_SIZE).css('height', data.length * BLOCK_SIZE).show();
+//   $('#heatmap canvas').css('width', data[0].length * BLOCK_SIZE).css('height', data.length * BLOCK_SIZE)
+//     .css('position', 'static');
+//   heatmap._renderer._width = data[0].length * BLOCK_SIZE;
+//   heatmap._renderer._height = data.length * BLOCK_SIZE;
+//   heatmap.configure({container: $('#heatmap')[0], opacity: 0.6, radius: 20, blur: 0.8});
+
+//   if (turn % civOrders.length != 0) {
+//       heatmap.repaint();
+//       return;
+//   }
+
+//   var max = 0;
+//   var points = [];
+//   for (var y = 0, l = heatmapdata.length; y < l; y++) {
+//     var row = heatmapdata[y];
+//     for (var x = 0, l = row.length; x < l; x++) {
+//       var val = row[x];
+//       if (!val) continue;
+//       max = Math.max(val, max);
+//       points.push({
+//         x: Math.round(x * BLOCK_SIZE),
+//         y: Math.round(y * BLOCK_SIZE),
+//         value: val
+//       })
+//     }
+//   }
+//   heatmap.setData({
+//     min: 0,
+//     max: max,
+//     data: points
+//   });
+//   // heatmap._renderer._minOpacity = 0
+//   // heatmap._renderer._maxOpacity = 75
+}
+
+    $(function () {
+        $('#file').change(readSingleFile);
+      window.heatmap = h337.create({
+        container: $('#heatmap')[0]
+      });
+//       FastClick.attach(document.body);
+    })
+</script>
+<span id="year"></span>
+<span id="tickTime"></span>
+a:
+<span id="aiTime"></span>
+c:
+<span id="canvasTime"></span>
+<button onclick="stopIntervals()">STOP</button>
+<button onclick="TIMEOUT_DELAY = Math.max(25, (parseInt(prompt('delay=', TIMEOUT_DELAY)) | 0) || TIMEOUT_DELAY || 150)">delay=</button>
+<button onclick="AGGRESSIVENESS = (parseFloat(prompt('AGGRESSIVENESS=', AGGRESSIVENESS))) || AGGRESSIVENESS || 0.5">AI aggrs.=</button>
+<div id="heatmap" style="width: 700px;height: 700px">
+</div>
+<button onclick="gp=!gp;drawCanvas()">Population</button>
+<button onclick="ge=!ge;drawCanvas()">Economy</button>
+<button onclick="g_bycountry=!g_bycountry;drawCanvas()">By Country</button>
+<table id="statsTable" style="text-align: right;">
+<thead>
+<th data-sort-method='none'>Name</th>
+<th role="columnheader" data-sort-method=number>Area</th>
+<th role="columnheader" data-sort-method=number>Urb.</th>
+<th role="columnheader" data-sort-method=number>Den.</th>
+<th role="columnheader" data-sort-method=number>GDP/ca.</th>
+<th role="columnheader" data-sort-method=number>Dep.</th>
+<th role="columnheader" data-sort-method=number>Tech.</th>
+<th role="columnheader" data-sort-method=number>Years</th>
+<th role="columnheader" data-sort-method=number>Hap.</th>
+<th role="columnheader" data-sort-method=number>Pop.</th>
+<th role="columnheader" data-sort-method=number>Mil.</th>
+<th role="columnheader" data-sort-method=number>Net $</th>
+<th role="columnheader" data-sort-method=number>Income</th>
+<th role="columnheader" data-sort-method=number>Pol.</th>
+<th role="columnheader" data-sort-method=number>Money</th>
+<th role="columnheader" data-sort-method=number>Reb. %</th>
+<th role="columnheader" data-sort-method=number>Mig. Net</th>
+<th role="columnheader" data-sort-method=number>Power</th>
+</thead>
+<tbody>
+
+</tbody>
+</table>
+<h3>Population:</h3>
+<div id="popGraph" style="width: 800px;height: 600px"></div>
+<div style="clear: both;"><br></div>
+<h3>Income:</h3>
+<div id="incGraph" style="width: 800px;height: 600px"></div>
+<div style="clear: both;"><br></div>
+<h3>Power:</h3>
+<div id="pwrGraph" style="width: 800px;height: 600px"></div>
+<div style="clear: both;"><br></div>
+Build: pre-release, 2023<br>
+Build: Apr 16, 2022<br>
+Build: Aug 3, 2019<br>
+Build: Jan 17, Revision 2208<br>
+Build: Nov 7, 2018, Revision 2331<br>
+Build: Nov 8, 2018, Revision 2341<br>
+Build: Nov 9, 2018, Revision 2351<br>
+Build: Nov 18, 2018, Revision 2371<br>
+<div style="clear: both;"><br></div>
+<script src="index.js"></script>
+</body>
+</html>

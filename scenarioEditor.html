@@ -1,0 +1,109 @@
+<html>
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Roboto+Mono">
+
+    <script src="jquery.js"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js"></script>-->
+    <script src="map.jpg.js"></script>
+    <!--<script src="europe.jpg.js"></script>-->
+    <script src="data.js"></script>
+    <script src="map.js"></script>
+    <script src="canvas.js"></script>
+    <script src="ai.js"></script>
+    <script src="index.js"></script>
+    <script src="serializer.js"></script>
+    <style>
+        #panel {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: rgba(255, 255, 255, 0.75);
+            padding: 24px;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        * {
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        canvas {
+            user-select: none;
+        }
+    </style>
+
+    <script src="scenarioEditor.js"></script>
+    <script src="cheats.js"></script>
+</head>
+<body>
+<canvas></canvas>
+<button onclick="$('#panel').show();showInfo()">menu</button>
+<button onclick="addCiv(prompt('Name?'))">addCiv</button>
+<button onclick="delBlock()">delBlock</button>
+<button onclick="addBlock()">addBlock</button>
+<button onclick="endTurn()">end turn</button>
+<div id="panel">
+    <button onclick="$('#panel').hide()">hide menu</button>
+    <button onclick="endTurn()">end turn</button>
+    <div id="turn">
+        <h2></h2>
+    </div>
+    <button onclick="buy(types.land, 15)">Buy land ($15)</button>
+    <button onclick="buy(types.city, 45)">Build city ($45)</button>
+    <button onclick="buy(types.town, 35)">Build town ($35)</button>
+    <button onclick="buy(types.gate, 25)">Build gate ($25)</button>
+    <button onclick="buy(types.fort, 45)">Build fort ($45)</button>
+    <button onclick="
+        val = parseInt(prompt('How many?', '1'));
+        military = $.extend(true, {}, types.military);
+        military.val = val;
+        military.defend = val;
+        buy(military, val * 2)
+    ">Recruit ($n * 2)</button>
+    <button onclick="research()">Research</button>
+    <button onclick="civs[civOrders[i]].ai = true">set AI</button>
+    <button onclick="AI.think(civs[civOrders[i]], civOrders[i]);">AI think</button>
+</div>
+<div id="takeControls">
+</div>
+<button onclick="download(prompt('File name', 'scenario') + '.json',
+    serialize({data: data, civs: civs}, {space: 0}))">Export(JSON)</button>
+<input type="file" id="file" accept="application/json">
+<script>
+    function readSingleFile(evt) {
+        //Retrieve the first (and only!) File from the FileList object
+        var f = evt.target.files[0];
+
+        if (f) {
+            var r = new FileReader();
+            r.onload = function (e) {
+                var contents = e.target.result;
+                var scenario = eval('(' + contents + ')');
+                data = scenario.data;
+                civs = scenario.civs;
+                endTurn();
+                scenario = null;
+            };
+            r.readAsText(f);
+        } else {
+            alert("Failed to load file");
+        }
+    }
+
+    $(function () {
+        $('#file').change(readSingleFile)
+    })
+</script>
+<button onclick="landLevel = parseInt(prompt())">set land expand level</button>
+<span id="year"></span>
+</body>
+</html>
