@@ -200,6 +200,9 @@ function median(values){
 
 gp=0;
 ge=0;
+gpm=0;
+gem=0;
+gpem=0;
 g_bycountry=0;
 function drawCanvas(compare, relationship, pop) {
     let start = new Date();
@@ -230,6 +233,34 @@ function drawCanvas(compare, relationship, pop) {
             if (d == null) {
                 context.fillStyle = "rgba(80, 100, 125,1)";
                 context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE,  (BLOCK_SIZE + 1),  (BLOCK_SIZE + 1));
+            } else if (gpm) {
+                let p = ((g_bycountry ? civs[d.color]?._avgpm : res_pop_mod(row, col)) - 0.7) || 0;
+                let max = g_bycountry ? max_avg_pm_country - 0.7 : (1.5 - 0.5);
+                context.fillStyle = `rgb(${250 - p / max * 250}, ${250 - p / max * 125}, ${250 - p / max * 250})`;
+                context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                if (!g_bycountry) {
+                    context.font = BLOCK_SIZE / 2 + "px 'Roboto Mono'";
+                    context.fillStyle = 'black';
+                    context.fillText(Math.round(res_pop_mod(row, col) * 10) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
+                }
+                continue;
+            } else if (gem) {
+                let p = ((g_bycountry ? civs[d.color]?._avgem : res_econ_mod(row, col)) - 0.7) || 0;
+                let max = g_bycountry ? max_avg_em_country - 0.7 : (3 - 0.5);
+                context.fillStyle = `rgb(${250 - p / max * 5}, ${250 - p / max * 125}, ${250 - p / max * 250})`;
+                context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                if (!g_bycountry) {
+                    context.font = BLOCK_SIZE / 2 + "px 'Roboto Mono'";
+                    context.fillStyle = 'black';
+                    context.fillText(Math.round(res_econ_mod(row, col) * 10) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
+                }
+                continue;
+            } else if (gpem) {
+                let p = res_econ_mod(row, col) * res_pop_mod(row, col);
+                let max = 5;
+                context.fillStyle = `rgb(${250 - p / max * 5}, ${250 - p / max * 125}, ${250 - p / max * 250})`;
+                context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                continue;
             } else if (d.color && d.type) {
                 if (relationship) {
                     let relation_civ = civs[relationship];
@@ -257,7 +288,7 @@ function drawCanvas(compare, relationship, pop) {
                 } else if (ge) {
                     let p = (g_bycountry ? civs[d.color].income : d._econ) || 0;
                     let max = g_bycountry ? Math.floor(max_econ_country || max_econ) : max_econ;
-                    context.fillStyle = `rgb(${250 - p/max*5}, ${250 - p/max*125}, ${250 - p/max*250})`;
+                    context.fillStyle = `rgb(${250 - p / max * 5}, ${250 - p / max * 125}, ${250 - p / max * 250})`;
                     context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
                     if (!g_bycountry) {
                         context.font = BLOCK_SIZE / 2 + "px 'Roboto Mono'";

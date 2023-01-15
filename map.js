@@ -1,13 +1,24 @@
-function getOrReturn(row, col, callback) {
-    if (data[row] && data[row][col])
+function getOrReturn(row, col, callback, allowNull) {
+    if (data[row] && (data[row][col] || (allowNull && typeof data[row][col] != 'undefined')))
         callback(data[row][col], row, col)
 }
 
-function getNeighbors(row, col, callback) {
-    getOrReturn(row - 1, col, callback);
-    getOrReturn(row + 1, col, callback);
-    getOrReturn(row, col - 1, callback);
-    getOrReturn(row, col + 1, callback);
+function getNeighbors(row, col, callback, allowNull) {
+    getOrReturn(row - 1, col, callback, allowNull);
+    getOrReturn(row + 1, col, callback, allowNull);
+    getOrReturn(row, col - 1, callback, allowNull);
+    getOrReturn(row, col + 1, callback, allowNull);
+}
+
+function getNeighbors8(row, col, callback, allowNull) {
+    getOrReturn(row - 1, col, callback, allowNull);
+    getOrReturn(row + 1, col, callback, allowNull);
+    getOrReturn(row, col - 1, callback, allowNull);
+    getOrReturn(row, col + 1, callback, allowNull);
+    getOrReturn(row + 1, col + 1, callback, allowNull);
+    getOrReturn(row - 1, col - 1, callback, allowNull);
+    getOrReturn(row + 1, col - 1, callback, allowNull);
+    getOrReturn(row - 1, col + 1, callback, allowNull);
 }
 
 function shuffle(a) {

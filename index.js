@@ -342,7 +342,7 @@ endTurn = function () {
 
     civOrders.forEach(function (name) {
         if (civs[name].ai) {
-            takeControls.append('<button onclick="delete civs.' + name + '.ai">Take control of ' + name + '</button>')
+            takeControls.append('<button onclick="delete civs.' + name + '.ai">Play ' + name + '</button>')
         }
     });
 
@@ -352,6 +352,13 @@ endTurn = function () {
     let expense = 0;
     let oldpop = civ.pop || (civ.pop = 0);
     civ.pop = 0;
+
+    civ.pm = 0;
+    civ.em = 0;
+    civ.pmb = 0;
+    civ.emb = 0;
+    let pmbi = 0;
+    let embi = 0;
 
     let maginitude = Math.random() < 0.02 ? 0.2 * Math.random() : (Math.random() < 0.001 ? 0.4 : 0);
     if (maginitude && civ.ii > 2)
@@ -378,6 +385,8 @@ endTurn = function () {
             civs[d.color].birth = [row, col];
         }
         if (d.color == civName) {
+            civ.pm += res_pop_mod(row, col);
+            civ.em += res_econ_mod(row, col);
             /*
              * disabling this so borders only change at war end*/
             if (d._oct) {
@@ -420,8 +429,14 @@ endTurn = function () {
             } else if (d && d.type.val > 0) {
                 // nextDecline += d.type.val * (civ.ii || 100);
             }
+
+            if (d.growth > 1) {
+                civ.pmb += res_pop_mod(row, col);
+                pmbi++;
+            }
+
             if ((!d.pop || d.pop < 1000) && d.growth > 1) {
-                d.pop = d.type.defend * 5000 * Math.random();
+                d.pop = d.type.defend * 5000 * Math.random() * res_pop_mod(row, col);
             }
             let urb = Math.max(1, civ.urban) || 10;
             let decline = d.growth > 1 ? (nextDecline < 0 ? nextDecline / urb * 10 * Math.random() : Math.min(nextDecline, d.pop / 1.5, nextDecline / urb * 10 * Math.random())) : 0;
@@ -433,6 +448,7 @@ endTurn = function () {
             // use carrying capacity equation
             let delta = ((d.growth - 1) * d.pop * (1 - d.pop / 850000));
             if (delta > 0) {
+                delta *= res_pop_mod(row, col);
                 delta *= 1.3 * (Math.random() * 2.25 - 0.2);
                 delta += d.growth > 1 ? 1000 : 0;
             }
@@ -500,10 +516,12 @@ endTurn = function () {
             let change = civ.money - _oldmoney;
             if (change > 0) {
                 if (d.growth >= 1) {
-                    let nchange = change * d.pop / 150000;
+                    let nchange = change * d.pop / 200000 * Math.sqrt(res_econ_mod(row, col));
                     d._econ = nchange;
                     civ.money -= change - nchange;
                     income += nchange;
+                    civ.emb += res_econ_mod(row, col);
+                    embi++;
                 } else {
                     income += change;
                     d._econ = change;
@@ -559,12 +577,22 @@ endTurn = function () {
     civ.politic -= Math.max(Math.round(civ.years / 5), 0);
     civ.neighbors = neighbors;
     civ.totalNeighbors = totalNeighbors;
+    civ._avgpm = Math.round(civ.pm / (civ.ii + 1) * 100) / 100;
+    civ._avgem = Math.round(civ.em / (civ.ii + 1) * 100) / 100;
+    if (pmbi)
+        civ.pmb = Math.round(civ.pmb / (pmbi) * 100) / 100;
+    if (embi)
+        civ.emb = Math.round(civ.emb / (embi) * 100) / 100;
 
     max_pop_country = 0;
     max_econ_country = 0;
+    max_avg_pm_country = 0;
+    max_avg_em_country = 0;
     Object.values(civs).forEach(x => {
       max_pop_country = Math.max(x.pop || 0, max_pop_country);
       max_econ_country = Math.max(x.income || 0, max_econ_country);
+      max_avg_pm_country = Math.max(x._avgpm || 0, max_avg_pm_country);
+      max_avg_em_country = Math.max(x._avgem || 0, max_avg_em_country);
     });
 
     if (civ.birth && data[civ.birth[0]][civ.birth[1]].color == civName) {
@@ -805,7 +833,7 @@ showInfo = function () {
 
     civOrders.forEach(function (name) {
         if (civs[name].ai) {
-            takeControls.append('<button onclick="delete civs.' + name + '.ai">Take control of ' + name + '</button>')
+            takeControls.append('<button onclick="delete civs.' + name + '.ai">Play ' + name + '</button>')
         }
     });
     ;
@@ -1008,22 +1036,26 @@ refreshTable = function () {
         civ._oldpower1 = civ.power;
         tr.append(`<td>${civName}</td>`)
         tr.append(`<td>${Math.round(civ.ii)}</td>`)
-        tr.append(`<td>${Math.round(civ.urban * 100) / 100}</td>`)
-        tr.append(`<td>${Math.round(civ.pop / civ.ii)}</td>`)
-        tr.append(`<td>${Math.round(civ.income / civ.pop * 1e6)}</td>`)
-        tr.append(`<td>${Math.round(civ.deposit)}</td>`)
-        tr.append(`<td>${Math.round(civ.technology * 100) / 100}</td>`)
-        tr.append(`<td>${(civ.years)}</td>`)
-        tr.append(`<td>${Math.round(civ.happiness)}</td>`)
-        tr.append(`<td>${Math.round(civ.pop)}</td>`)
-        tr.append(`<td>${Math.round(civ.military)}</td>`)
-        tr.append(`<td>${Math.round(civ.newMoney - civ.oldMoney)}</td>`)
-        tr.append(`<td>${Math.round(civ.income)}</td>`)
-        tr.append(`<td>${Math.round(civ.politic)}</td>`)
-        tr.append(`<td>${Math.round(civ.money)}</td>`);
-        tr.append(`<td>${Math.round(civ.rchance * 100000) / 1000}</td>`);
-        tr.append(`<td>${Math.round((civ.migrantsIn || civ._migrantsInLast || 0) - (civ.migrantsOutSuccessful || civ._migrantsOutSuccessfulLast || 0))}</td>`);
-        tr.append(`<td>${Math.round(civ.power * 100) / 100}</td>`);
+        tr.append(`<td class="extra">${civ._avgpm || ''}</td>`);
+        tr.append(`<td class="extra">${civ._avgem || ''}</td>`);
+        tr.append(`<td class="extra">${civ.pmb || ''}</td>`);
+        tr.append(`<td class="extra">${civ.emb || ''}</td>`);
+        tr.append(`<td>${Math.round(civ.urban * 100) / 100 || ''}</td>`)
+        tr.append(`<td>${Math.round(civ.pop / civ.ii) || ''}</td>`)
+        tr.append(`<td class="extra">${Math.round(civ.income / civ.pop * 1e6) || ''}</td>`)
+        tr.append(`<td>${Math.round(civ.deposit) || ''}</td>`)
+        tr.append(`<td>${Math.round(civ.technology * 100) / 100 || ''}</td>`)
+        tr.append(`<td>${(civ.years) || ''}</td>`)
+        tr.append(`<td>${Math.round(civ.happiness) || ''}</td>`)
+        tr.append(`<td>${Math.round(civ.pop) || ''}</td>`)
+        tr.append(`<td>${Math.round(civ.military) || ''}</td>`)
+        tr.append(`<td>${Math.round(civ.newMoney - civ.oldMoney) || ''}</td>`)
+        tr.append(`<td>${Math.round(civ.income) || ''}</td>`)
+        tr.append(`<td>${Math.round(civ.politic) || ''}</td>`)
+        tr.append(`<td>${Math.round(civ.money) || ''}</td>`);
+        tr.append(`<td>${Math.round(civ.rchance * 100000) / 1000 || ''}</td>`);
+        tr.append(`<td>${Math.round((civ.migrantsIn || civ._migrantsInLast || 0) - (civ.migrantsOutSuccessful || civ._migrantsOutSuccessfulLast || 0)) || ''}</td>`);
+        tr.append(`<td>${Math.round(civ.power * 100) / 100 || ''}</td>`);
         $table.append(tr)
     });
     window.tableSetup.refresh();

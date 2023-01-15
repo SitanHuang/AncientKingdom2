@@ -18,6 +18,7 @@
     <script src="Europe.jpg.js"></script>
     <script src="data.js"></script>
     <script src="map.js"></script>
+    <script src="resources.js"></script>
     <script src="canvas.js"></script>
     <script src="ai.js"></script>
     <script src="relationships.js"></script>
@@ -28,6 +29,9 @@
     <script src="tablesort.number.min.js"></script>
     <meta name="viewport" content="width=device-width">
     <style>
+        table.hide-extras .extra {
+            display: none;
+        }
         #takeControls {
             max-width: 100%;
             height: 42px;
@@ -419,16 +423,25 @@ c:
 <button onclick="AGGRESSIVENESS = (parseFloat(prompt('AGGRESSIVENESS=', AGGRESSIVENESS))) || AGGRESSIVENESS || 0.5">AI aggrs.=</button>
 <div id="heatmap" style="width: 700px;height: 700px">
 </div>
+<br>
 <button onclick="gp=!gp;drawCanvas()">Population</button>
 <button onclick="ge=!ge;drawCanvas()">Economy</button>
+<button onclick="gpm=!gpm;drawCanvas()">Pop Mod</button>
+<button onclick="gem=!gem;drawCanvas()">Econ Mod</button>
+<button onclick="gpem=!gpem;drawCanvas()">Econ * Pop</button>
 <button onclick="g_bycountry=!g_bycountry;drawCanvas()">By Country</button>
+<button onclick="$('#statsTable').toggleClass('hide-extras')">toggle table size</button>
 <table id="statsTable" style="text-align: right;">
 <thead>
 <th data-sort-method='none'>Name</th>
 <th role="columnheader" data-sort-method=number>Area</th>
+<th role="columnheader" data-sort-method=number class="extra">pm</th>
+<th role="columnheader" data-sort-method=number class="extra">em</th>
+<th role="columnheader" data-sort-method=number class="extra">pmb</th>
+<th role="columnheader" data-sort-method=number class="extra">emb</th>
 <th role="columnheader" data-sort-method=number>Urb.</th>
 <th role="columnheader" data-sort-method=number>Den.</th>
-<th role="columnheader" data-sort-method=number>GDP/ca.</th>
+<th role="columnheader" data-sort-method=number class="extra">GDP/ca.</th>
 <th role="columnheader" data-sort-method=number>Dep.</th>
 <th role="columnheader" data-sort-method=number>Tech.</th>
 <th role="columnheader" data-sort-method=number>Years</th>
@@ -456,7 +469,8 @@ c:
 <h3>Power:</h3>
 <div id="pwrGraph" style="width: 800px;height: 600px"></div>
 <div style="clear: both;"><br></div>
-Build: pre-release, 2023<br>
+Build: Jan, 2023 (econ & pop mod, climate)<br>
+Build: pre-release, 2023 (migrants, AI war ally rework, econ restribution)<br>
 Build: Apr 16, 2022<br>
 Build: Aug 3, 2019<br>
 Build: Jan 17, Revision 2208<br>
