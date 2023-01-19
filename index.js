@@ -446,7 +446,8 @@ endTurn = function () {
 
             d._d = decline;
             // use carrying capacity equation
-            let delta = ((d.growth - 1) * d.pop * (1 - d.pop / 850000));
+            let cap = 600000 * res_pop_mod(row, col);
+            let delta = ((d.growth - 1) * d.pop * (1 - d.pop / cap));
             if (delta > 0) {
                 delta *= res_pop_mod(row, col);
                 delta *= 1.3 * (Math.random() * 2.25 - 0.2);

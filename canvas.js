@@ -235,7 +235,7 @@ function drawCanvas(compare, relationship, pop) {
                 context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE,  (BLOCK_SIZE + 1),  (BLOCK_SIZE + 1));
             } else if (gpm) {
                 let p = ((g_bycountry ? civs[d.color]?._avgpm : res_pop_mod(row, col)) - 0.7) || 0;
-                let max = g_bycountry ? max_avg_pm_country - 0.7 : (1.5 - 0.5);
+                let max = g_bycountry ? max_avg_pm_country - 0.7 : (1.8 - 0.5);
                 context.fillStyle = `rgb(${250 - p / max * 250}, ${250 - p / max * 125}, ${250 - p / max * 250})`;
                 context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
                 if (!g_bycountry) {
