@@ -130,10 +130,13 @@ function res_pop_mod(row, col) {
   if (_res_is_beachfront(row, col))
     mod += 0.1;
 
-  // due to climate (80%: -4%, 90%: -13%, 100%: -40%)
-  mod -= Math.pow(1 - row / data.length - 0.1, 10);
-
   mod = mod + fields * fields / 8 / 8 * 0.3; // up to 1.5 with field
+
+  // due to climate (80%: -4%, 90%: -13%, 100%: -40%)
+  if (mod > 1)
+    mod *= 1 - Math.pow(1 - row / data.length - 0.1, 9);
+  else
+    mod -= Math.pow(1 - row / data.length - 0.1, 9);
 
   ter_set(row, col, 'pm', mod);
   return mod;
