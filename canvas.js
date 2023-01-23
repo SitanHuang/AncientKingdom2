@@ -4,6 +4,7 @@ var BLOCK_SIZE = 20.2;
 
 var count = 0;
 var lazyDraw = false;
+var lazyDraw2 = false;
 var lazyDrawCount = 10;
 
 var showBorder = true;
@@ -208,7 +209,7 @@ function drawCanvas(compare, relationship, pop) {
     let start = new Date();
     if (gp) pop=1;
     count++;
-    if (lazyDraw && count % lazyDrawCount != 0) return;
+    if ((lazyDraw || lazyDraw2) && count % lazyDrawCount != 0) return;
     //BLOCK_SIZE += 0.17;
     if (showCellBorder)
         BLOCK_SIZE = Math.floor(BLOCK_SIZE) + 0.27;

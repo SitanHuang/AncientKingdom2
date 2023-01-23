@@ -214,6 +214,7 @@
 </div>
 <button onclick="alertCopy(serialize(eval(prompt())))">&gt;_</button>
 <button onclick="showCellBorder = !(lazyDraw = !lazyDraw);">LazyDraw</button>
+<button onclick="(lazyDraw2 = !lazyDraw2);">LazyDraw 2</button>
 <button onclick="lazyDrawCount = Math.max(civOrders.length, (parseInt(prompt('lazyDrawCount=', lazyDrawCount)) | 0) || lazyDrawCount || 10)">lzdrwcnt=</button>
 <button onclick="showBorder = !showBorder">border?</button>
 <button onclick="showStripes = !showStripes">stripes?</button>
@@ -469,7 +470,7 @@ c:
 <h3>Power:</h3>
 <div id="pwrGraph" style="width: 800px;height: 600px"></div>
 <div style="clear: both;"><br></div>
-Build: Jan, 2023 (econ & pop mod, climate)<br>
+Build: Jan, 2023 (econ & pop mod, climate, lz2)<br>
 Build: pre-release, 2023 (migrants, AI war ally rework, econ restribution)<br>
 Build: Apr 16, 2022<br>
 Build: Aug 3, 2019<br>
