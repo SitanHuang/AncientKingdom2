@@ -420,7 +420,7 @@ a:
 c:
 <span id="canvasTime"></span>
 <button onclick="stopIntervals()">STOP</button>
-<button onclick="TIMEOUT_DELAY = Math.max(25, (parseInt(prompt('delay=', TIMEOUT_DELAY)) | 0) || TIMEOUT_DELAY || 150)">delay=</button>
+<button onclick="TIMEOUT_DELAY = Math.max(10, (parseInt(prompt('delay=', TIMEOUT_DELAY)) | 0) || TIMEOUT_DELAY || 150)">delay=</button>
 <button onclick="AGGRESSIVENESS = (parseFloat(prompt('AGGRESSIVENESS=', AGGRESSIVENESS))) || AGGRESSIVENESS || 0.5">AI aggrs.=</button>
 <div id="heatmap" style="width: 700px;height: 700px">
 </div>
@@ -470,7 +470,7 @@ c:
 <h3>Power:</h3>
 <div id="pwrGraph" style="width: 800px;height: 600px"></div>
 <div style="clear: both;"><br></div>
-Build: Jan, 2023 (econ & pop mod, climate, lz2)<br>
+Build: Jan, 2023 (econ & pop mod, climate, lz2, retention after building destroyed)<br>
 Build: pre-release, 2023 (migrants, AI war ally rework, econ restribution)<br>
 Build: Apr 16, 2022<br>
 Build: Aug 3, 2019<br>

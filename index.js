@@ -439,28 +439,40 @@ endTurn = function () {
                 d.pop = d.type.defend * 5000 * Math.random() * res_pop_mod(row, col);
             }
             let urb = Math.max(1, civ.urban) || 10;
-            let decline = d.growth > 1 ? (nextDecline < 0 ? nextDecline / urb * 10 * Math.random() : Math.min(nextDecline, d.pop / 1.5, nextDecline / urb * 10 * Math.random())) : 0;
+
+            // use carrying capacity equation
+            let cap = 600000 * res_pop_mod(row, col);
+
+            // distributed growth depends on res_pop_mod
+            let decline = d.growth > 1 ? (nextDecline < 0 ? nextDecline / urb * 10 * Math.random() * res_pop_mod(row, col) : Math.min(nextDecline, d.pop / 1.5, nextDecline / urb * 10 * Math.random())) : 0;
+
+            if (decline < 0 && d.pop > cap)
+              decline /= 20;
+
             decline = Math.min(50000, decline);
 
             nextDecline -= decline;
 
             d._d = decline;
-            // use carrying capacity equation
-            let cap = 600000 * res_pop_mod(row, col);
-            let delta = ((d.growth - 1) * d.pop * (1 - d.pop / cap));
+            // 1/25/23 LMAO growth rate cant be negative, this feature was broke since the beginning
+            let delta = d.growth < 1 ? (d.growth - 1) * d.pop : (Math.max(0, d.growth - 1) * d.pop * (1 - d.pop / cap));
             if (delta > 0) {
                 delta *= res_pop_mod(row, col);
                 delta *= 1.3 * (Math.random() * 2.25 - 0.2);
                 delta += d.growth > 1 ? 1000 : 0;
             }
-            if (delta > 0)
-                nextDecline -= delta / 10;
+            // if (delta > 0)
+            //    nextDecline -= delta / 10;
 
             delta -= decline;
 
             let decline2 = decline;
             if (delta < -50) {
-                let migrants = -(delta * Math.random() * 0.4 | 0);
+                // around 25%
+                let migrants = -(delta * Math.random() * 0.5 | 0);
+                // other 35% move domestically
+                if (d.growth < 1)
+                  nextDecline += (delta * Math.random() * 0.7) | 0;
                 civ.migrantsOutTotal += migrants;
                 if (civ.outGate) {
                     for (let cn2 in civ.neighbors) {
@@ -515,9 +527,16 @@ endTurn = function () {
             d.type.income(civ);
 
             let change = civ.money - _oldmoney;
+
+            // hack
+            if (Math.abs(change) > 10000) {
+              civ.money = _oldmoney;
+              change = 0;
+            }
+
             if (change > 0) {
                 if (d.growth >= 1) {
-                    let nchange = change * d.pop / 200000 * Math.sqrt(res_econ_mod(row, col));
+                    let nchange = change * Math.min(1500000, d.pop) / 200000 * Math.sqrt(res_econ_mod(row, col));
                     d._econ = nchange;
                     civ.money -= change - nchange;
                     income += nchange;
