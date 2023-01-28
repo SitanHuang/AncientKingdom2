@@ -37,10 +37,13 @@ var AI = {
                 civ.money += civ.deposit + 10;
                 civ.deposit = 10;
             }
+            /*
+             1/27/23: no longer need, index.js automatically does this
             if (Math.round(civ.deposit) == Math.round(civ.ii * civ.urban / 10)) {
                 civ.money += civ.deposit * 0.1;
                 civ.deposit *= 0.9;
             }
+            */
             if (civ.politic < 2) {
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 3)), types.city, 85);
                 if (civ.happiness > 70)

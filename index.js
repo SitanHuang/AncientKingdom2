@@ -287,7 +287,8 @@ endTurn = function () {
     civ.military = 0;
     civ.years = civ.years ? civ.years + 0.25 : 0.25;
     civ.technology = Math.max(Math.round(civ.technology * 1000) / 1000, 1);
-    civ.deposit = Math.min((civ.ii * civ.urban / 10), (civ.deposit ? civ.deposit : 1) * 1.10);
+
+
     civ.happiness = !isNaN(civ.happiness) ? civ.happiness + (1.5 - civ.happiness / 100) : 60;
     civ.happiness = Math.round(Math.max(0, Math.min(100, civ.happiness)) * 100) / 100;
     civ.politic = civ.politic || 0;
@@ -330,6 +331,14 @@ endTurn = function () {
     }
 
     let oldMoney = civ.money;
+
+    let depositCap = civ.ii * civ.urban / 10 || 0;
+    civ.deposit = (civ.deposit ? civ.deposit : 1) * (depositCap ? 1.10 : 0.5);
+    if (depositCap > 50 && civ.deposit > depositCap) {
+      let diff = civ.deposit - depositCap;
+      civ.deposit -= diff;
+      civ.money += diff;
+    }
 
     civ._polFromAllies = 0;
     civ._techFromAllies = 0;
