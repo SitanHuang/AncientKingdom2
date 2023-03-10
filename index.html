@@ -18,6 +18,7 @@
     <script src="gov/names.data.js"></script>
     <script src="gov/persons.js"></script>
     <script src="gov/gov.js"></script>
+    <script src="gov/ui.js"></script>
 
     <script src="heatmap.min.js"></script>
     <script src="Europe.jpg.js"></script>
@@ -128,6 +129,15 @@
         msg b {
             color: black;
         }
+
+        #gov-panel tr:not(:last-child) th,
+        #gov-panel tr:not(:last-child) td {
+           border-bottom: 1px solid #8080803d !important;
+        }
+
+        #gov-panel:not(.actionable) .action {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -137,6 +147,7 @@
 <button onclick="endTurn()">end turn</button>
 <div id="panel">
     <button onclick="$('#panel').hide()">hide menu</button>
+    <button onclick="manageGov(civOrders[i], true)">government</button>
     <button onclick="endTurn()">end turn</button>
     <div id="turn">
         <h2></h2>
@@ -173,12 +184,65 @@
     <br>
     <button onclick="tryDeclareWar()">Declare War</button>
     <button onclick="paintRelationships(civOrders[i])">Relationships</button>
+    <button onclick="inspectForeignGov()">Inspect government</button>
     <button onclick="promptForAlliance(civOrders[i], prompt('Which nation?'))">Form Alliance</button>
     <button onclick="promptForPact(civOrders[i], prompt('Which nation?'))">Non-aggression pact</button>
     <button onclick="giveMoneyTo(civOrders[i], prompt('Which nation?'), parseInt(prompt('How much?', '0')));showInfo()">Send Money To</button>
     <br>
     <button onclick="deposit()">Deposit</button>
     <button onclick="withdraw()">Withdraw</button>
+</div>
+<div id="gov-panel" class="aux-panel">
+    <button onclick="$('#gov-panel').hide()">hide menu</button>
+    <br>
+    <br>
+    <table id="govMods"></table>
+    <h3>Leader</h3>
+    <table id="govLeader">
+        <thead>
+            <th>Name</th>
+            <th>Family</th>
+            <th>Age</th>
+            <th>Modifiers</th>
+            <th>Legitimacy</th>
+            <th class="action">Abdicate</th>
+        </thead>
+        <tbody>
+    
+        </tbody>
+    </table>
+    <h3>Advisors</h3>
+    <table id="govAdvisors">
+        <thead>
+            <th>Name</th>
+            <th>Family</th>
+            <th>Age</th>
+            <th>Modifiers</th>
+            <th>Opinion</th>
+            <th>Influence</th>
+            <th>Successor score</th>
+            <th class="action">Demote</th>
+        </thead>
+        <tbody>
+    
+        </tbody>
+    </table>
+    <h3>Bureaucracy</h3>
+    <table id="govBureacrats">
+        <thead>
+            <th>Name</th>
+            <th>Family</th>
+            <th>Age</th>
+            <th>Modifiers</th>
+            <th>Opinion</th>
+            <th>Influence</th>
+            <th>Successor score</th>
+            <th class="action">Promote</th>
+        </thead>
+        <tbody>
+    
+        </tbody>
+    </table>
 </div>
 <div id="migrants-panel" class="aux-panel">
     <button onclick="$('#migrants-panel').hide()">hide menu</button>
@@ -459,7 +523,8 @@ c:
 <th role="columnheader" data-sort-method=number>Pol.</th>
 <th role="columnheader" data-sort-method=number>Money</th>
 <th role="columnheader" data-sort-method=number>Reb. %</th>
-<th role="columnheader" data-sort-method=number>Mig. Net</th>
+<th role="columnheader" data-sort-method=number class="extra">Mig. Net</th>
+<th role="columnheader" data-sort-method=number class="extra">Leg</th>
 <th role="columnheader" data-sort-method=number>Power</th>
 </thead>
 <tbody>
@@ -475,6 +540,7 @@ c:
 <h3>Power:</h3>
 <div id="pwrGraph" style="width: 800px;height: 600px"></div>
 <div style="clear: both;"><br></div>
+Build: pre-release 2024 (gov & persons)<br>
 Build: Jan, 2023 (econ & pop mod, climate, lz2, retention after building destroyed)<br>
 Build: pre-release, 2023 (migrants, AI war ally rework, econ restribution)<br>
 Build: Apr 16, 2022<br>

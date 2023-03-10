@@ -841,6 +841,7 @@ showInfo = function () {
                     "Deposit: " + Math.floor(civ.deposit * 100) / 100 + `/${Math.floor(civ.ii * civ.urban / 10)}(+10% interest)\n` +
                     "Technology: " + civ.technology + (civ._techFromAllies ? ` (${civ._techFromAllies} from allies)\n` : "\n") +
                     "Political Powers: " + civ.politic + (civ._polFromAllies ? ` (${Math.round(civ._polFromAllies * 100) / 100} from allies) \n` : '\n') +
+                    `Legitimacy: ${Math.round(civ.gov?.cohesion * 10000) / 100}\n` +
                     "Population: " + civ.pop + ` (+${civ.popchange} +${civ.popchangeperc}%)\n` +
                     "Military(Until last turn): " + civ.military + "\n" +
                     `Happiness: ${Math.round(civ.happiness * 100) / 100} % (Rebellion chance: ${Math.round(civ.rchance * 100000) / 1000}%; x${Math.round((civ._hapDec) * 100) / 100} from unnatural deaths)\n` +
@@ -1087,7 +1088,8 @@ refreshTable = function () {
         tr.append(`<td>${Math.round(civ.politic) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.money) || ''}</td>`);
         tr.append(`<td>${Math.round(civ.rchance * 100000) / 1000 || ''}</td>`);
-        tr.append(`<td>${Math.round((civ.migrantsIn || civ._migrantsInLast || 0) - (civ.migrantsOutSuccessful || civ._migrantsOutSuccessfulLast || 0)) || ''}</td>`);
+        tr.append(`<td class"extra">${Math.round((civ.migrantsIn || civ._migrantsInLast || 0) - (civ.migrantsOutSuccessful || civ._migrantsOutSuccessfulLast || 0)) || ''}</td>`);
+        tr.append(`<td class"extra">${Math.round(civ.gov?.cohesion * 100) || ''}</td>`);
         tr.append(`<td>${Math.round(civ.power * 100) / 100 || ''}</td>`);
         $table.append(tr)
     });
