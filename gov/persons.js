@@ -147,7 +147,7 @@ function person_disprole(civ, pid) {
 }
 
 function person_death_chance(age) {
-  return Math.exp((age - 300) / 70) / 4;
+  return Math.exp((age - 160) / 50) / 4;
 }
 
 function person_gen(src={}) {
