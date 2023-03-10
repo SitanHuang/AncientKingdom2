@@ -10,13 +10,18 @@ const GOV_POSITIONS = {
 function gov_exec(civ, civName) {
   const gov = civ.gov;
 
+  gov_refresh(civ, civName);
+  
+  _gov_age_spawn_death(civ, civName, gov);
+}
+
+function gov_refresh(civ, civName) {
+  const gov = civ.gov;
   // sum modifiers
   _gov_sum_modifiers(gov);
 
   // calc cohesion
   _gov_calc_cohesion(gov);
-
-  _gov_age_spawn_death(civ, civName, gov);
 }
 
 function gov_init(civ, civName) {
@@ -60,6 +65,7 @@ function _gov_trigger_succession(civ, gov) {
   // TODO: increase rebel chance
 
   // todo: update influence + opinion
+  // todo: if different family -> big change to influence + opinion
 
   let leader = gov.persons[gov.leader];
 
@@ -70,8 +76,37 @@ function _gov_trigger_succession(civ, gov) {
 
   person_remove(civ, gov.leader);
 
+  gov_demote_to_bureaucrat(gov, successor);
+
   successor.pos = GOV_POSITIONS.LEADER;
   gov.leader = successor.id;
+}
+
+function gov_demote_to_bureaucrat(gov, person) {
+  if (!person?.id)
+    person = gov.persons[person];
+
+  person.pos = GOV_POSITIONS.BUREAUCRAT;
+  delete gov.advisors[person.id];
+
+  // TODO: update influence & opinion
+
+  return true;
+}
+
+function gov_promote_to_advisors(gov, person) {
+  if (!person?.id)
+    person = gov.persons[person];
+  
+  if (person.pos != GOV_POSITIONS.BUREAUCRAT)
+    return false;
+  
+  person.pos = GOV_POSITIONS.ADVISOR;
+  gov.advisors[person.id] = 1;
+
+  // TODO: update influence & opinion
+
+  return true;
 }
 
 function _gov_age_spawn_death(civ, civName, gov) {
@@ -92,6 +127,9 @@ function _gov_age_spawn_death(civ, civName, gov) {
   }
 
   Object.values(gov.persons).forEach(p => {
+    // influence naturally increase
+    p.influence += (Math.random() - 0.3) / 100;
+
     if (Math.random() < person_death_chance(p.age += 0.25)) {
       p.pos == GOV_POSITIONS.LEADER ?
         _gov_trigger_succession(civ, gov) :

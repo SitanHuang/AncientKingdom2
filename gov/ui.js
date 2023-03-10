@@ -1,6 +1,9 @@
 manageGov = null;
 refreshGov = null;
 
+promoteGov = null;
+demoteGov = null;
+
 {
   inspectForeignGov = function () {
     let c2 = prompt("Who?");
@@ -131,7 +134,9 @@ refreshGov = null;
         <tr>
         ${ buildPersonCols(p, true, true)  }
         <td>${person_successor_score(leader, p) | 0}
-        <td class="action"><button> Demote </button></td>
+        <td class="action">
+          <button onclick="demoteGov(${p.id})"> Demote </button>
+        </td>
       `;
     });
     $('#govAdvisors tbody').html(html);
@@ -150,10 +155,33 @@ refreshGov = null;
         <tr>
         ${ buildPersonCols(p, true, true)  }
         <td>${person_successor_score(leader, p) | 0}
-        <td class="action"><button> Promote </button></td>
+        <td class="action">
+          <button onclick="promoteGov(${p.id})"> Promote </button>
+        </td>
       `;
     });
     $('#govBureacrats tbody').html(html);
     window.tableSetup4.refresh();
+
+    promoteGov = function(pid) {
+      if (Object.keys(gov.advisors).length >= GOV_ADVISORS_PER_CIV) {
+        alert('Max number of advisors reached!');
+        return false;
+      }
+
+      if (!gov_promote_to_advisors(gov, pid))
+        alert('Failed.');
+
+      gov_refresh(civs[civName], civName);
+      refreshGov();
+    }
+
+    demoteGov = function(pid) {
+      if (!gov_demote_to_bureaucrat(gov, pid))
+        alert('Failed.');
+
+      gov_refresh(civs[civName], civName);
+      refreshGov();
+    }
   };
 }

@@ -12,8 +12,8 @@ const GOV_PERSON_MODS = {
     {
       id: "MUKCT",
       name: "Upkeep cost",
-      min: -0.10,
-      max: 0.03,
+      min: -0.15,
+      max: 0.05,
       ai: 'asc'
     }, {
       id: "MMVCT",
@@ -48,13 +48,25 @@ const GOV_PERSON_MODS = {
       min: -0.14,
       max: -0.02,
       ai: 'asc'
+    }, {
+      id: "PUOFC",
+      name: "Urban overflow cost",
+      min: -0.15,
+      max: 0.05,
+      ai: 'asc'
     },
   ],
   "ECONOMY": [
     {
       id: "EDPIG",
       name: "Deposit interest",
-      min: -0.02,
+      min: -0.05,
+      max: 0.20,
+      ai: 'desc'
+    }, {
+      id: "EDPMX",
+      name: "Deposit cap",
+      min: -0.05,
       max: 0.20,
       ai: 'desc'
     }, {
@@ -87,6 +99,12 @@ const GOV_PERSON_MODS = {
     }, {
       id: "OPPGN",
       name: "Political power gain",
+      min: -0.08,
+      max: 0.16,
+      ai: 'desc'
+    }, {
+      id: "OPPCP",
+      name: "Political power cap",
       min: -0.08,
       max: 0.16,
       ai: 'desc'

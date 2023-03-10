@@ -1,6 +1,7 @@
 AGGRESSIVENESS = 0.4;
 
 var AI = {
+    // TODO: if want leader to be same family, one advisor has to be royal
     think: function(civ, civName) {
         if (civ.ii < 2) return;
 
