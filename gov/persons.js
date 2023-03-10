@@ -70,7 +70,7 @@ const GOV_PERSON_MODS = {
       max: 0.80,
       ai: 'desc'
     }, {
-      id: "EFNPG",
+      id: "EHPGR",
       name: "Happiness growth",
       min: -0.20,
       max: 0.80,
@@ -112,22 +112,42 @@ const GOV_PERSON_MODS = {
   ],
 };
 
+function person_mod_name(id) {
+
+}
+
 const GOV_PERSON_MODS_BY_ID = {};
 Object.values(GOV_PERSON_MODS).flat().forEach(x => GOV_PERSON_MODS_BY_ID[x.id] = x);
 
+const GOV_PERSON_MODS_IDS = Object.keys(GOV_PERSON_MODS_BY_ID);
+
 function person_add(civ, src) {
   let person = person_gen(src);
-  civ.persons[person.id] = person;
+  civ.gov.persons[person.id] = person;
   return person.id;
 }
 
 function person_remove(civ, pid) {
-  delete civ.persons[pid];
-  delete civ.advisors[pid];
+  delete civ.gov.persons[pid];
+  delete civ.gov.advisors[pid];
+}
+
+function person_dispname(civ, pid) {
+  let p = civ;
+  if (pid)
+    p = civ.gov.persons[pid];
+  return p.name + ' of F' + p.family;
+}
+
+function person_disprole(civ, pid) {
+  let p = civ;
+  if (pid)
+    p = civ.gov.persons[pid];
+  return ['Bureaucrat', 'Advisor', 'Leader'][p.pos - 1];
 }
 
 function person_death_chance(age) {
-  return Math.exp((age - 300) / 70);
+  return Math.exp((age - 300) / 70) / 4;
 }
 
 function person_gen(src={}) {
@@ -135,8 +155,8 @@ function person_gen(src={}) {
 
   let person = Object.assign({
     family: Math.random() * GOV_FAMILIES_PER_CIV | 0,
-    name: GOV_PERSONS_NAMES[Math.random() * GOV_PERSONS_NAMES.length | 0] +
-        ' ' + chars[Math.random() * chars.length | 0] + '.',
+    name: GOV_PERSONS_NAMES[Math.random() * GOV_PERSONS_NAMES.length | 0]
+        /* + ' ' + chars[Math.random() * chars.length | 0] + '.'*/,
     influence: Math.random() + 0.5, // 0.5 - 1.5
     opinion: Math.random() + 0.7, // 0.7 - 1.7
     mods: {},
@@ -147,17 +167,20 @@ function person_gen(src={}) {
 
   // "2 modifiers of one area, and 1 mod in another"
   let categories = Object.values(GOV_PERSON_MODS).sort(() => Math.random() - 0.5);
-  [0, 0, 1].forEach(i => {
-    let category = categories[i];
-    let mod = category[Math.random() * category.length | 0];
-    person.mods[mod.id] = _person_gen_mod(mod);
-  });
+  let category = categories[0].sort(() => Math.random() - 0.5);
+  let mod = category[0];
+  person.mods[mod.id] = _person_gen_mod(mod);
+  mod = category[1];
+  person.mods[mod.id] = _person_gen_mod(mod);
+  category = categories[1].sort(() => Math.random() - 0.5);
+  mod = category[0];
+  person.mods[mod.id] = _person_gen_mod(mod);
 
   return person;
 }
 
 function _person_gen_mod(mod) {
-  const range = Math.abs(mod.max - mod.min) + 1;
+  const range = Math.abs(mod.max - mod.min);
   const min = Math.min(mod.max, mod.min);
   return Math.random() * range + min;
 }

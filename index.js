@@ -288,7 +288,6 @@ endTurn = function () {
     civ.years = civ.years ? civ.years + 0.25 : 0.25;
     civ.technology = Math.max(Math.round(civ.technology * 1000) / 1000, 1);
 
-
     civ.happiness = !isNaN(civ.happiness) ? civ.happiness + (1.5 - civ.happiness / 100) : 60;
     civ.happiness = Math.round(Math.max(0, Math.min(100, civ.happiness)) * 100) / 100;
     civ.politic = civ.politic || 0;
@@ -303,6 +302,9 @@ endTurn = function () {
     civ._hapDec = 1;
     civ.inGatesDisallowed = civ.inGatesDisallowed || {};
     civ.outGate = civ.outGate === undefined ? true : civ.outGate;
+
+    if (!civ.gov)
+        gov_init(civ, civName);
 
     civ._migrantInfo = {
         alleviatedFromOut: {happiness: 1},
@@ -656,6 +658,9 @@ endTurn = function () {
     averageData.income += civ.income;
     civ.logistics = 0;
 
+    if (civ.ii > 0)
+        gov_exec(civ, civName);
+
     if (civ.ii >= 2) {
         let rchance = (20 / Math.max(1, civ.happiness) - 0.1);
         rchance *= (1 + rchance);
@@ -707,7 +712,6 @@ endTurn = function () {
             popRebel(civName);
         }
     }
-
 
     document.getElementById('tickTime').innerText = 'Tick: ' + (new Date().getTime() - _startTime).toFixed("0") + 'ms';
     prepareTurn();
