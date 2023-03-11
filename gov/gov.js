@@ -11,6 +11,8 @@ function gov_exec(civ, civName) {
   const gov = civ.gov;
 
   gov_refresh(civ, civName);
+
+  // TODO: cohesion should affect some civ stats
   
   _gov_age_spawn_death(civ, civName, gov);
 }
@@ -62,10 +64,8 @@ function _gov_calc_cohesion(gov) {
 }
 
 function _gov_trigger_succession(civ, gov) {
-  // TODO: increase rebel chance
-
-  // todo: update influence + opinion
-  // todo: if different family -> big change to influence + opinion
+  civ.rchance *= 1.5;
+  civ.rchance += 0.05;
 
   let leader = gov.persons[gov.leader];
 
@@ -78,6 +78,15 @@ function _gov_trigger_succession(civ, gov) {
 
   gov_demote_to_bureaucrat(gov, successor);
 
+  // on top of the demotion debuffs
+  if (successor.family != leader.family) {
+    gov_propagate_opinion(gov, leader, -0.7 * Math.random());
+  }
+
+  // undo the loss from demotion
+  gov_propagate_opinion(gov, successor, 0.25 * Math.random());
+  gov_propagate_influence(gov, successor, 0.1 - Math.random());
+
   successor.pos = GOV_POSITIONS.LEADER;
   gov.leader = successor.id;
 }
@@ -89,7 +98,8 @@ function gov_demote_to_bureaucrat(gov, person) {
   person.pos = GOV_POSITIONS.BUREAUCRAT;
   delete gov.advisors[person.id];
 
-  // TODO: update influence & opinion
+  gov_propagate_opinion(gov, person, -0.25 * Math.random());
+  gov_propagate_influence(gov, person, -0.1 - Math.random());
 
   return true;
 }
@@ -104,9 +114,59 @@ function gov_promote_to_advisors(gov, person) {
   person.pos = GOV_POSITIONS.ADVISOR;
   gov.advisors[person.id] = 1;
 
-  // TODO: update influence & opinion
+  gov_propagate_opinion(gov, person, 0.25 * Math.random());
+  gov_propagate_influence(gov, person, 0.1 + Math.random());
 
   return true;
+}
+
+// influence change of family reflects upon change of individual
+function gov_propagate_influence(gov, person, delta) {
+  person.influence += delta;
+
+  Object.values(gov.persons).forEach(x => {
+    if (x.family == person.family)
+      x.influence += delta / 10;
+  });
+}
+
+// opinion change of family reflects upon change of individual
+function gov_propagate_opinion(gov, person, delta) {
+  if (person.opinion > 1)
+    person.opinion += delta / 3;
+  else
+    person.opinion += delta;
+
+  Object.values(gov.persons).forEach(x => {
+    if (x.family == person.family) {
+      if (x.opinion > 1)
+        x.opinion += delta / 5 * person.influence / 3;
+      else
+        x.opinion += delta / 5 * person.influence;
+    } else {
+      // other families get slightly opposite deltas
+      if (x.opinion > 1)
+        x.opinion -= delta / 10 * person.influence;
+      else
+        x.opinion -= delta / 10 * person.influence / 3;
+    }
+  });
+}
+
+function gov_family_avg_opinion(gov, family) {
+  let coh = 1;
+  let inf = 0;
+
+  Object.values(gov.persons).forEach(p => {
+    if (p.pos == GOV_POSITIONS.LEADER ||
+        p.family != family)
+      return;
+
+    inf += p.influence;
+    coh += p.influence * p.opinion;
+  });
+
+  return Math.min(coh / inf, 2);
 }
 
 function _gov_age_spawn_death(civ, civName, gov) {
@@ -126,9 +186,27 @@ function _gov_age_spawn_death(civ, civName, gov) {
     });
   }
 
+  const familyAvgs = {};
+
   Object.values(gov.persons).forEach(p => {
     // influence naturally increase
-    p.influence += (Math.random() - 0.3) / 100;
+    p.influence += (Math.random() - 0.3) / 50;
+    // opinion naturally fluctuates
+    p.opinion += (Math.random() - 0.5) / 50;
+
+    // opinion increases if in position of power
+    if (p.pos == GOV_POSITIONS.ADVISOR && p.opinion < 1.1)
+      p.opinion += (Math.random()) / 50;
+    
+    // opinion drifts to family average but inverse to own influence
+    let familyAvg = familyAvgs[p.family];
+    if (!familyAvg) {
+      familyAvg = familyAvgs[p.family] = gov_family_avg_opinion(gov, p.family);
+    }
+    if (familyAvg) {
+      const diff = familyAvg - p.opinion;
+      p.opinion += diff / p.influence * Math.random() / 100;
+    }
 
     if (Math.random() < person_death_chance(p.age += 0.25)) {
       p.pos == GOV_POSITIONS.LEADER ?
