@@ -30,6 +30,9 @@ declareWar = function(civName1, civName2, ig, par, addYrs) {
     );
     if ((!civ1.ai || !civ2.ai) && (civOrders[i] == civName1 || civOrders[i] == civName2))
         showInfo();
+    
+    gov_opinion_aggressive_war(civ1, civName1, civ1.gov);
+    gov_refresh(civ1, civName1);
     return true;
 }
 ;
@@ -86,7 +89,7 @@ calculateYears = function(civ, civName) {
                 civ.war[x] += 2;
                 if (civ.war[x] % 1 == 0) {
                     if (civ2.ii > 2) {
-                        var income1 = Math.max(0, civ.income / civsToTribute * 0.5);
+                        var income1 = Math.max(0, (civ.income - civ.govExp) / civsToTribute * 0.333 || 0);
                         // var income2 = Math.max(0, civ2.income / 20);
                         if (civ2.politic > 5) {
                             civ._polFromAllies += civ2.politic / 10 / civsToTribute;

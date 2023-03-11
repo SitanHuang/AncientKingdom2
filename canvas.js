@@ -118,7 +118,8 @@ var newtypes = {
         val: 1,
         income: function (civ) {
             civ.politic += Math.random();
-            civ.money -= this.val / 2;
+            const mukct = 1 + (civ.gov.mods.MUKCT || 0);
+            civ.money -= this.val / 2 * mukct;
         },
         draw: function (x, y) {
             var context = canvas.getContext('2d');
@@ -513,9 +514,11 @@ function onClick(row, col) {
         } else {
             var val = move(civOrders[i], window.pickedUp, [row, col])[0];
 
-            civ.politic -= 0.7;
-            civ.money -= val / 4;
-            civ.logistics += val / 4;
+            const omvpc = 1 + (civ.gov.mods.OMVPC || 0);
+            civ.politic -= 0.7 * omvpc;
+            const mmvct = 1 + (civ.gov.mods.MMVCT || 0);
+            civ.money -= val / 4 * mmvct;
+            civ.logistics += val / 4 * mmvct;
             //alert('Politic - .55, money - ' + val / 2);
             delete window.pickedUp;
             drawCanvas();
