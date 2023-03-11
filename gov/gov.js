@@ -15,6 +15,8 @@ function gov_exec(civ, civName) {
   // TODO: cohesion should affect some civ stats
   
   _gov_age_spawn_death(civ, civName, gov);
+
+  gov_refresh(civ, civName);
 }
 
 function gov_refresh(civ, civName) {

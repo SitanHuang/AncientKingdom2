@@ -342,9 +342,11 @@ endTurn = function () {
     const edpmx = 1 + (civ.gov.mods.EDPMX || 0);
 
     let depositCap = civ.ii * civ.urban * edpmx / 10 || 0;
-    civ.deposit = (civ.deposit ? civ.deposit : 1) * (depositCap ? 1.10 * edpig : 0.5);
+    civ.depRate = 1 + (0.10 * edpig);
+    civ.deposit = (civ.deposit ? civ.deposit : 1) * (depositCap ? civ.depRate : 0.5);
+    civ.incDep = 0;
     if (depositCap > 50 && civ.deposit > depositCap) {
-      let diff = civ.deposit - depositCap;
+      let diff = civ.incDep = civ.deposit - depositCap;
       civ.deposit -= diff;
       civ.money += diff;
     }
@@ -658,12 +660,13 @@ endTurn = function () {
 //     let income = expense - oldMoney + civ.money;
 
     civ.income = Math.round(income * 100) / 100;
-    civ.expense = Math.round((expense + ((((civ.ii / 900 + 0.2) * civ.ii)))) * 100) / 100;
-    civ.expense = Math.round((expense + ((((civ.occupiedII / 400 + 0.3) * civ.occupiedII)))) * 100) / 100;
+    // civ.expense = Math.round((expense + ((((civ.ii / 900 + 0.2) * civ.ii)))) * 100) / 100;
+    civ.expense = Math.round(expense * 100) / 100;
     civ.oldMoney = Math.round(oldMoney * 100) / 100;
     civ.urban = Math.round(cityCount / ii * 10000) / 100;
     civ.cityCount = cityCount;
-    civ.money = Math.round((civ.money - ((((civ.ii / 900 + 0.2) * civ.ii)) - ((civ.occupiedII / 400 + 0.3) * civ.occupiedII))
+    civ.govExp = (civ.ii / 900 + 0.2) * civ.ii + (civ.occupiedII / 400 + 0.3) * civ.occupiedII;
+    civ.money = Math.round((civ.money - (civ.govExp)
       + (civ.deposit < 0 ? civ.deposit / 10 : 0)) * 100) / 100;
     civ.spentOnUrban = 0;
     const puofc = 1 + (civ.gov.mods.PUOFC || 0);
@@ -864,6 +867,9 @@ showInfo = function () {
 
     $('#panel').show().children('div').hide();
     $('#turn').html('<h2></h2>');
+    const edpmx = 1 + (civ.gov?.mods?.EDPMX || 0);
+
+    let depositCap = civ.ii * civ.urban * edpmx / 10 || 0;
     $('#turn').show()
         .find('h2')
         .text("Player " + civOrders[i] + "'s turn")
@@ -874,7 +880,7 @@ showInfo = function () {
             $('<pre></pre>')
                 .html(
                     "Money: " + civ.money + "\n" +
-                    "Deposit: " + Math.floor(civ.deposit * 100) / 100 + `/${Math.floor(civ.ii * civ.urban / 10)}(+10% interest)\n` +
+                    "Deposit: " + Math.floor(civ.deposit * 100) / 100 + `/${Math.floor(depositCap)}(${Math.round((civ.depRate - 1)*100*100)/100}% interest)\n` +
                     "Technology: " + civ.technology + (civ._techFromAllies ? ` (${civ._techFromAllies} from allies)\n` : "\n") +
                     "Political Powers: " + civ.politic + (civ._polFromAllies ? ` (${Math.round(civ._polFromAllies * 100) / 100} from allies) \n` : '\n') +
                     `Legitimacy: ${Math.round(civ.gov?.cohesion * 10000) / 100}\n` +
@@ -887,9 +893,9 @@ showInfo = function () {
                     "        " + (civ.oldMoney) + "\n" +
                     " + Tax  " + civ.income + "\n" +
                     (civ.spentOnUrban > 0 ? ` - Urban overflow $${Math.round(civ.spentOnUrban * 100) / 100}\n` : "") +
-                    " - Expense " + Math.round((civ.expense - ((civ.ii / 900 + 0.2) * civ.ii)) * 100) / 100 + "  (Logistics " + civ.logistics + ")\n" +
-                    " - Gov  " + Math.round(((civ.ii / 900 + 0.2) * civ.ii) * 100) / 100 + "  (Government Offices in " + civ.ii + " counties, " + civ.occupiedII + " are occupied)\n" +
-                    " + Ints " + Math.round(civ.deposit / 1.1 / 10 * 100) / 100 + "  (10% interest from deposit)\n" +
+                    " - Expense " + Math.round((civ.expense) * 100) / 100 + "  (Logistics " + civ.logistics + ")\n" +
+                    " - Gov  " + Math.round(civ.govExp * 100) / 100 + "  (Government Offices in " + civ.ii + " counties, " + civ.occupiedII + " are occupied)\n" +
+                    " + Ints " + Math.round(civ.incDep * 10000) / 10000 + "  (interest overflow from deposit)\n" +
                     tributeToOthersText +
                     " = " + civ.newMoney + ` (net: ${Math.round((civ.newMoney - civ.oldMoney) * 100) / 100})`
                 )
