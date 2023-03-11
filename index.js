@@ -382,8 +382,10 @@ endTurn = function () {
     const dchance1 = 0.02 * pdscr;
     const dchance2 = 0.001 * pdscr;
     let maginitude = Math.random() < dchance1 ? 0.2 * Math.random() : (Math.random() < dchance2 ? 0.4 : 0);
-    if (maginitude && civ.ii > 2)
+    if (maginitude && civ.ii > 2) {
+        gov_opinion_disaster(civ, civName, civ.gov);
         push_msg(`Natural disasters in ${civName} is causing famines killing ${maginitude * 100 | 0}% of population.`, [civName, ...Object.keys(civ.neighbors)]);
+    }
 
     let neighbors = {};
     let totalNeighbors = 0;
@@ -679,6 +681,10 @@ endTurn = function () {
     averageData.money += civ.money;
     averageData.income += civ.income;
     civ.logistics = 0;
+
+    if (civ.money < 0 || civ.deposit < 10) {
+        gov_opinion_bankrupt(civ, civName, civ.gov);
+    }
 
     if (civ.ii > 0)
         gov_exec(civ, civName);

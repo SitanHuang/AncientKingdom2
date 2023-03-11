@@ -30,6 +30,9 @@ declareWar = function(civName1, civName2, ig, par, addYrs) {
     );
     if ((!civ1.ai || !civ2.ai) && (civOrders[i] == civName1 || civOrders[i] == civName2))
         showInfo();
+    
+    gov_opinion_aggressive_war(civ1, civName1, civ1.gov);
+    gov_refresh(civ1, civName1);
     return true;
 }
 ;

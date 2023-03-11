@@ -122,6 +122,23 @@ function gov_promote_to_advisors(gov, person) {
   return true;
 }
 
+// without propagation
+function gov_batch_mod_opinion(gov, cond, delta) {
+  const leader = gov.persons[gov.leader];
+  
+  Object.values(gov.persons).forEach(x => {
+    if (x.pos == GOV_POSITIONS.LEADER)
+      return;
+
+    let d = delta;
+    if (x.family == leader.family && delta < 0)
+      d *= Math.random() / 2;
+    
+    if (cond(x))
+      x.opinion += d * 2 * Math.random();
+  });
+}
+
 // influence change of family reflects upon change of individual
 function gov_propagate_influence(gov, person, delta) {
   person.influence += delta;
