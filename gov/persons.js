@@ -233,7 +233,7 @@ function person_gen(src={}) {
     name: GOV_PERSONS_NAMES[Math.random() * GOV_PERSONS_NAMES.length | 0]
         /* + ' ' + chars[Math.random() * chars.length | 0] + '.'*/,
     influence: Math.random() + 0.5, // 0.5 - 1.5
-    opinion: Math.random() + 0.7, // 0.7 - 1.7
+    opinion: Math.random() + 0.5, // 0.5 - 1.5
     mods: {},
     age: Math.random() * 50 | 0 + 18 + Math.random(), // 18 - 58
     pos: GOV_POSITIONS.BUREAUCRAT,

@@ -442,8 +442,9 @@ endTurn = function () {
                 nextDecline -= (d.pop < 20000 ? 0.004 : 0.00025) * d.pop * 0.10;
                 cityCount++;
             } else if (d && d.type.draw.toString() == types.finance.draw.toString()) {
-                d.growth = d.pop < 20000 ? 1.006 : 1.0005;
+                d.growth = d.pop < 20000 ? 0.006 : 0.0005;
                 d.growth *= 1 + (civ.gov.mods.EFNPG || 0);
+                d.growth += 1;
                 nextDecline -= (d.pop < 20000 ? 0.006 : 0.0005) * d.pop * 0.05;
                 cityCount+=2;
             } else if (d && d.type.draw.toString() == types.capital.draw.toString()) {

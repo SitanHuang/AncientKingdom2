@@ -238,7 +238,8 @@ function _gov_age_spawn_death(civ, civName, gov) {
       return;
     }
 
-    if (p.pos == GOV_POSITIONS.LEADER) {
+    if (p.pos == GOV_POSITIONS.LEADER && gov._abdicate) {
+      delete gov._abdicate;
       _gov_trigger_succession(civ, gov);
       push_msg(person_disprole(p) + ' ' + person_dispname(p) + ' of ' + civName + ' has abdicated at the age of ' + (p.age | 0) + '.', [civName]);
     }

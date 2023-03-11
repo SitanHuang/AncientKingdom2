@@ -41,7 +41,7 @@ function gov_opinion_disaster(civ, civName, gov) {
 
 // deposit/money < 0
 function gov_opinion_bankrupt(civ, civName, gov) {
-  const isAtWar = Object.values(civs.China.war).filter(x => x > 0).length;
+  const isAtWar = Object.values(civ.war || {}).filter(x => x > 0).length;
   if (civ.income < 100 || isAtWar || isNaN(civ.money) || isNaN(civ.deposit))
     return;
   let deficit = Math.min(civ.money, civ.deposit) / civ.income;
