@@ -336,12 +336,20 @@ endTurn = function () {
         }
     }
 
-    let oldMoney = civ.money;
-
     const edpig = 1 + (civ.gov.mods.EDPIG || 0);
     const edpmx = 1 + (civ.gov.mods.EDPMX || 0);
 
     let depositCap = civ.ii * civ.urban * edpmx / 10 || 0;
+
+    // fixes exploit from depositing a ton before endturn
+    if (civ.deposit > depositCap) {
+        let diff = civ.deposit - depositCap;
+        civ.deposit -= diff;
+        civ.money += diff;
+    }
+
+    let oldMoney = civ.money;
+
     civ.depRate = 1 + (0.10 * edpig);
     civ.deposit = (civ.deposit ? civ.deposit : 1) * (depositCap ? civ.depRate : 0.5);
     civ.incDep = 0;
