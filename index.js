@@ -345,7 +345,7 @@ endTurn = function () {
     civ.depRate = 1 + (0.10 * edpig);
     civ.deposit = (civ.deposit ? civ.deposit : 1) * (depositCap ? civ.depRate : 0.5);
     civ.incDep = 0;
-    if (depositCap > 50 && civ.deposit > depositCap) {
+    if (depositCap > 0 && civ.deposit > depositCap) {
       let diff = civ.incDep = civ.deposit - depositCap;
       civ.deposit -= diff;
       civ.money += diff;
