@@ -178,6 +178,7 @@ var AI = {
 
             warChance *= civ.happiness / 100 - 0.3;
             warChance *= 0.8 * AGGRESSIVENESS;
+            warChance *= 1 + (civ2.gov.mods.OFRHS || 0);
 
             // if (((civ.income > civ2.income * 0.7 && civ.technology > civ2.technology + 1 && civ.income > 100 && civ.deposit > civ.income * 2) || civ.income > civ2.income) && civ.happiness >= 95 && Math.random() > 0.8) {
             if (Math.random() < warChance && civ.income > 100 &&
@@ -280,8 +281,10 @@ var AI = {
                             })
                         }
 
-                        civ.politic -= 0.7;
-                        civ.money -= val / 25;
+                        const omvpc = 1 + (civ.gov.mods.OMVPC || 0);
+                        civ.politic -= 0.7 * omvpc;
+                        const mmvct = 1 + (civ.gov.mods.MMVCT || 0);
+                        civ.money -= val / 25 * mmvct;
                     }
                 }
             })

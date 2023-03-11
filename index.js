@@ -166,8 +166,12 @@ move = function (cn1, pickedUp, p2, ai) {
     } else {
         var m1 = pickedUp.type.val;
         var m2 = l2.type.val / 2;
+
         var t1 = c1.technology;
         var t2 = c2.technology;
+
+        t1 *= 1 + (c1.gov.mods.MCCCT || 0);
+        t2 *= 1 + (c2.gov.mods.MCCCT || 0);
 
         if (l2._oldcolor == cn1) // if taking own territory back
             t1 = t1 * 1.50;
@@ -334,8 +338,11 @@ endTurn = function () {
 
     let oldMoney = civ.money;
 
-    let depositCap = civ.ii * civ.urban / 10 || 0;
-    civ.deposit = (civ.deposit ? civ.deposit : 1) * (depositCap ? 1.10 : 0.5);
+    const edpig = 1 + (civ.gov.mods.EDPIG || 0);
+    const edpmx = 1 + (civ.gov.mods.EDPMX || 0);
+
+    let depositCap = civ.ii * civ.urban * edpmx / 10 || 0;
+    civ.deposit = (civ.deposit ? civ.deposit : 1) * (depositCap ? 1.10 * edpig : 0.5);
     if (depositCap > 50 && civ.deposit > depositCap) {
       let diff = civ.deposit - depositCap;
       civ.deposit -= diff;
@@ -371,7 +378,10 @@ endTurn = function () {
     let pmbi = 0;
     let embi = 0;
 
-    let maginitude = Math.random() < 0.02 ? 0.2 * Math.random() : (Math.random() < 0.001 ? 0.4 : 0);
+    const pdscr = 1 + (civ.gov.mods['PDSCR'] || 0);
+    const dchance1 = 0.02 * pdscr;
+    const dchance2 = 0.001 * pdscr;
+    let maginitude = Math.random() < dchance1 ? 0.2 * Math.random() : (Math.random() < dchance2 ? 0.4 : 0);
     if (maginitude && civ.ii > 2)
         push_msg(`Natural disasters in ${civName} is causing famines killing ${maginitude * 100 | 0}% of population.`, [civName, ...Object.keys(civ.neighbors)]);
 
@@ -431,6 +441,7 @@ endTurn = function () {
                 cityCount++;
             } else if (d && d.type.draw.toString() == types.finance.draw.toString()) {
                 d.growth = d.pop < 20000 ? 1.006 : 1.0005;
+                d.growth *= 1 + (civ.gov.mods.EFNPG || 0);
                 nextDecline -= (d.pop < 20000 ? 0.006 : 0.0005) * d.pop * 0.05;
                 cityCount+=2;
             } else if (d && d.type.draw.toString() == types.capital.draw.toString()) {
@@ -444,6 +455,8 @@ endTurn = function () {
             if (d.growth > 1) {
                 civ.pmb += res_pop_mod(row, col);
                 pmbi++;
+
+                d.growth *= 1 + (civ.gov.mods["PPPGR"] || 0);
             }
 
             if ((!d.pop || d.pop < 1000) && d.growth > 1) {
@@ -496,14 +509,16 @@ endTurn = function () {
                             civ2.migrantsIn += _m;
 
                             let pop = Math.min(100000, civ2.pop) || 100000;
-                            civ2.happiness *= (1 - (_m / (pop)) / 2) || 1;
+                            const piwhr = civ2.gov?.mods?.PIMHR || 0;
+                            const hapDrop = (_m / (pop)) / 2 * (1 + piwhr);
+                            civ2.happiness *= (1 - hapDrop) || 1;
                             civ2.rchance *= (1 + (_m / pop * 5)) || 1;
                             civ2.rchance = Math.min(civ2.rchance, 0.35);
                             civ2.nextDecline -= _m;
 
                             if (civ2._migrantInfo) {
-                                civ2._migrantInfo.unrestFromIn.happiness *= (1 - (_m / (pop)) / 2) || 1;
-                                civ2._migrantInfo.unrestFromIn.rchance *= (1 + (_m / pop * 5)) || 1;
+                                civ2._migrantInfo.unrestFromIn.happiness *= (1 - hapDrop) || 1;
+                                civ2._migrantInfo.unrestFromIn.rchance *= (1 + (_m / pop * 5) * (1 + piwhr)) || 1;
                                 civ2._migrantInfo.from[civName] = (civ2._migrantInfo.from[civName] || 0) + _m;
                             }
 
@@ -548,6 +563,7 @@ endTurn = function () {
             if (change > 0) {
                 if (d.growth >= 1) {
                     let nchange = change * Math.min(1500000, d.pop) / 200000 * Math.sqrt(res_econ_mod(row, col));
+                    nchange *= 1 + (civ.gov.mods.EGRVG || 0);
                     d._econ = nchange;
                     civ.money -= change - nchange;
                     income += nchange;
@@ -563,12 +579,14 @@ endTurn = function () {
             change = civ.technology - _oldtech;
             if (change > 0) {
                 let nchange = change * d.pop / 150000;
+                nchange *= 1 + (civ.gov.mods.OSTOI || 0);
                 civ.technology -= change - nchange;
             };
 
             change = civ.happiness - _oldhap;
             if (change > 0) {
                 let nchange = change * d.pop / 150000;
+                nchange *= 1 + (civ.gov.mods.EHPGR || 0);
                 civ.happiness -= change - nchange;
             };
 
@@ -643,11 +661,15 @@ endTurn = function () {
     civ.money = Math.round((civ.money - ((((civ.ii / 900 + 0.2) * civ.ii)) - ((civ.occupiedII / 400 + 0.3) * civ.occupiedII))
       + (civ.deposit < 0 ? civ.deposit / 10 : 0)) * 100) / 100;
     civ.spentOnUrban = 0;
+    const puofc = 1 + (civ.gov.mods.PUOFC || 0);
     if (civ.ii > 50 && civ.urban > 55)
-        civ.money -= (civ.spentOnUrban = (civ.urban - 55) * 10)
+        civ.money -= (civ.spentOnUrban = (civ.urban - 55) * 10 * puofc);
     civ.newMoney = civ.money;
     if (isNaN(civ.money)) civ.money = 0;
-    civ.politic = Math.max(Math.min(Math.round((civ.politic * (civ.happiness / 100) + 5) * 100) / 100 + civ.money / 250, Math.max(civ.ii / 10, 30)), -50);
+    let polCap = Math.max(civ.ii / 10, 30);
+    polCap *= 1 + (civ.gov.mods.OPPCP || 0);
+    const oppgn = 1 + (civ.gov.mods.OPPGN || 0);
+    civ.politic = Math.max(Math.min(Math.round((civ.politic * (civ.happiness / 100) + 5 * oppgn) * 100) / 100 + (civ.money / 250 + (civ.gov.cohesion - 1) * 4) * oppgn, polCap), -50);
     // averageData = {happiness: 0, logistics: 0, technology: 0, ii: 0, politic: 0}
     averageData.population += civ.pop;
     averageData.happiness += civ.happiness;
@@ -679,7 +701,12 @@ endTurn = function () {
             rchance *= 1.4;
         if (civ.happiness < 0)
             rchance *= 1.5;
+        if (civ.gov.cohesion < 1)
+            rchance *= 1.2;
+        if (civ.gov.cohesion < 0.9)
+            rchance *= 1.5;
         civ.rchance = rchance > civ.rchance ? rchance : (civ.rchance || 0) * 0.3 + rchance * 0.7;
+        civ.rchance *= 1 + (civ.gov.mods.ORBRD || 0);
     } else {
         civ.rchance = 0;
         civ.years = 0;
@@ -850,7 +877,7 @@ showInfo = function () {
                     "==Statistics==\n" +
                     "        " + (civ.oldMoney) + "\n" +
                     " + Tax  " + civ.income + "\n" +
-                    (civ.spentOnUrban > 0 ? ` - Urban overflow $${Math.round(civ.spentOnUrban)}\n` : "") +
+                    (civ.spentOnUrban > 0 ? ` - Urban overflow $${Math.round(civ.spentOnUrban * 100) / 100}\n` : "") +
                     " - Expense " + Math.round((civ.expense - ((civ.ii / 900 + 0.2) * civ.ii)) * 100) / 100 + "  (Logistics " + civ.logistics + ")\n" +
                     " - Gov  " + Math.round(((civ.ii / 900 + 0.2) * civ.ii) * 100) / 100 + "  (Government Offices in " + civ.ii + " counties, " + civ.occupiedII + " are occupied)\n" +
                     " + Ints " + Math.round(civ.deposit / 1.1 / 10 * 100) / 100 + "  (10% interest from deposit)\n" +

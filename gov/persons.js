@@ -9,13 +9,13 @@ const GOV_PERSON_MODS_AI_STRATS = {
 // all relative +-%
 const GOV_PERSON_MODS = {
   "MILITARY": [
-    {
+    { // done
       id: "MUKCT",
       name: "Upkeep cost",
       min: -0.15,
       max: 0.05,
       ai: 'asc'
-    }, {
+    }, { // done
       id: "MMVCT",
       name: "Movement cost",
       min: -0.10,
@@ -30,25 +30,25 @@ const GOV_PERSON_MODS = {
     },
   ],
   "POPULATION": [
-    {
+    { // done
       id: "PPPGR",
       name: "Population growth",
       min: -0.02,
       max: 0.05,
       ai: 'desc'
-    }, {
+    }, { // done
       id: "PDSCR",
       name: "Disaster chance",
       min: -0.12,
       max: -0.02,
       ai: 'asc'
-    }, {
+    }, { // done
       id: "PIMHR",
       name: "Unhappiness from immigration",
       min: -0.14,
       max: -0.02,
       ai: 'asc'
-    }, {
+    }, { // done
       id: "PUOFC",
       name: "Urban overflow cost",
       min: -0.15,
@@ -57,31 +57,31 @@ const GOV_PERSON_MODS = {
     },
   ],
   "ECONOMY": [
-    {
+    { // done
       id: "EDPIG",
       name: "Deposit interest",
       min: -0.05,
       max: 0.20,
       ai: 'desc'
-    }, {
+    }, { // done
       id: "EDPMX",
       name: "Deposit cap",
       min: -0.05,
       max: 0.20,
       ai: 'desc'
-    }, {
+    }, { // done
       id: "EGRVG",
       name: "Revenue gain",
       min: -0.08,
-      max: 0.06,
+      max: 0.08,
       ai: 'desc'
-    }, {
+    }, { // done
       id: "EFNPG",
       name: "Finance center growth rate",
       min: 0.02,
       max: 0.16,
       ai: 'desc'
-    }, {
+    }, { // done
       id: "EHPGR",
       name: "Happiness growth",
       min: -0.04,
@@ -90,37 +90,37 @@ const GOV_PERSON_MODS = {
     },
   ],
   "POLITICAL": [
-    {
+    { // done
       id: "OMVPC",
       name: "Movement political cost",
       min: -0.10,
       max: 0.30,
       ai: 'asc'
-    }, {
+    }, { // done
       id: "OPPGN",
       name: "Political power gain",
       min: -0.08,
       max: 0.16,
       ai: 'desc'
-    }, {
+    }, { // done
       id: "OPPCP",
       name: "Political power cap",
       min: -0.08,
       max: 0.16,
       ai: 'desc'
-    }, {
+    }, { // done
       id: "ORBRD",
       name: "Rebel chance per round",
       min: -0.10,
       max: 0.05,
       ai: 'asc'
-    }, {
+    }, { // done
       id: "OFRHS",
       name: "Foreign hostility",
       min: -0.60,
       max: 1.50,
       ai: 'asc'
-    }, {
+    }, { // done
       id: "OSTOI",
       name: "Schools research speed",
       min: -0.10,

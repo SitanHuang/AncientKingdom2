@@ -35,6 +35,8 @@ function gov_init(civ, civName) {
   };
 
   civ.gov.leader = person_add(civ, { pos: GOV_POSITIONS.LEADER });
+
+  gov_refresh(civ, civName);
 }
 
 function _gov_sum_modifiers(gov) {
@@ -192,7 +194,7 @@ function _gov_age_spawn_death(civ, civName, gov) {
     // influence naturally increase
     p.influence += (Math.random() - 0.3) / 50;
     // opinion naturally fluctuates
-    p.opinion += (Math.random() - 0.5) / 50;
+    p.opinion += (Math.random() - 0.65) / 50;
 
     // opinion increases if in position of power
     if (p.pos == GOV_POSITIONS.ADVISOR && p.opinion < 1.1)
