@@ -235,7 +235,11 @@ function _gov_age_spawn_death(civ, civName, gov) {
         person_remove(civ, p.id);
 
       if (p.pos == GOV_POSITIONS.LEADER || (!civ.ai && p.pos == GOV_POSITIONS.ADVISOR))
-        push_msg(person_disprole(p) + ' ' + person_dispname(p) + ' of ' + civName + ' has passed away at the age of ' + (p.age | 0) + '.', [civName]);
+        push_msg(
+          person_disprole(p) + ' ' + person_dispname(p) + ' of ' + civName +
+          ' has passed away at the age of ' + (p.age | 0) + 
+          ' (' + person_dispmods(p, ', ') + ')' + '.', [civName]
+        );
 
       return;
     }

@@ -192,6 +192,24 @@ function person_remove(civ, pid) {
   delete civ.gov.advisors[pid];
 }
 
+function person_dispmods(p, deli) {
+  let mods = Object.keys(p.mods)
+    .sort((a, b) => (
+      person_mod_value(b, p.mods[b]) -
+      person_mod_value(a, p.mods[a])
+    ));
+  
+  let s = [];
+
+  for (const mid of mods) {
+    const val = p.mods[mid];
+    const mod = GOV_PERSON_MODS_BY_ID[mid];
+
+    s.push(`${mod.name}: ${val > 0 ? '+' : ''}${Math.round(val * 1000) / 10}%`);
+  }
+  return s.join(deli);
+}
+
 function person_dispname(civ, pid) {
   let p = civ;
   if (pid)
