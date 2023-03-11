@@ -183,7 +183,8 @@ var types = {
         val: 1,
         income: function (civ) {
             civ.politic += (randn_bm() * this.val / 20) || 0;
-            civ.money -= this.val / 4;
+            const mukct = 1 + (civ.gov.mods.MUKCT || 0);
+            civ.money -= this.val / 4 * mukct;
         },
         draw: function (x, y) {
             var context = canvas.getContext('2d');
