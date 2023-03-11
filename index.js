@@ -459,7 +459,9 @@ endTurn = function () {
                 civ.pmb += res_pop_mod(row, col);
                 pmbi++;
 
+                d.growth -= 1;
                 d.growth *= 1 + (civ.gov.mods["PPPGR"] || 0);
+                d.growth += 1;
             }
 
             if ((!d.pop || d.pop < 1000) && d.growth > 1) {
