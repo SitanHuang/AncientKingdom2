@@ -86,7 +86,7 @@ function _gov_trigger_succession(civ, gov) {
   }
 
   // undo the loss from demotion
-  gov_propagate_opinion(gov, successor, 0.25 * Math.random());
+  gov_propagate_opinion(gov, successor, 0.15 * Math.random());
   gov_propagate_influence(gov, successor, 0.1 - Math.random());
 
   successor.pos = GOV_POSITIONS.LEADER;
@@ -236,6 +236,11 @@ function _gov_age_spawn_death(civ, civName, gov) {
         push_msg(person_disprole(p) + ' ' + person_dispname(p) + ' of ' + civName + ' has passed away at the age of ' + (p.age | 0) + '.', [civName]);
 
       return;
+    }
+
+    if (p.pos == GOV_POSITIONS.LEADER) {
+      _gov_trigger_succession(civ, gov);
+      push_msg(person_disprole(p) + ' ' + person_dispname(p) + ' of ' + civName + ' has abdicated at the age of ' + (p.age | 0) + '.', [civName]);
     }
   });
 }

@@ -3,6 +3,7 @@ refreshGov = null;
 
 promoteGov = null;
 demoteGov = null;
+abdicate = null;
 
 {
   inspectForeignGov = function () {
@@ -119,7 +120,9 @@ demoteGov = null;
         text-align: right;
         color: ${stepColor(gov.cohesion, [[0.9, 'red'], [1.1, '#bd8218'], [2, 'green']])}
       ">${Math.round(gov.cohesion * 10000) / 100}</td>
-      <td class="action"><button> Abdicate </button></td>
+      <td class="action">
+        <button onclick="abdicate()"> Abdicate </button>
+      </td>
       `
     );
 
@@ -182,6 +185,11 @@ demoteGov = null;
 
       gov_refresh(civs[civName], civName);
       refreshGov();
+    }
+
+    abdicate = function() {
+      alert('The leader is set to abdicate at the end of the turn.');
+      gov._abdicate = true;
     }
   };
 }
