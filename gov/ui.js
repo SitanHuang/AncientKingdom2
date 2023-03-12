@@ -12,12 +12,53 @@ abdicate = null;
     manageGov(c2, false);
   };
 
+  function buildFamilyTable(gov) {
+    let html = '';
+
+    const leader = gov.persons[gov.leader];
+
+    let totCount = 0;
+    // [[influence sum, opinion sum, count], ...]
+    let families = Array(GOV_FAMILIES_PER_CIV).fill(1).map(x => [0, 0, 0]);
+    Object.values(gov.persons).forEach(p => {
+      if (p.pos == GOV_POSITIONS.LEADER)
+        return;
+      
+      families[p.family][0] += p.influence;
+      families[p.family][1] += p.influence * p.opinion;
+      families[p.family][2]++;
+      totCount++;
+    });
+    families.forEach((x, i) => {
+      let size = x[2];
+      let avgInf = Math.round(x[0] / (size || NaN) * 100) / 100;
+      // if equally distributed, each family should have wInf=1
+      let wInf = Math.round(x[0] / (totCount || NaN) * GOV_FAMILIES_PER_CIV * 100) / 100;
+      let op = Math.round(Math.min(x[1] / (x[0] || NaN), 2) * 100) / 100;
+
+      html += `
+        <tr>
+        <th style="font-weight: ${leader.family == i ? 'bold' : 'normal'}"> F${i}
+        <td style="text-align: right;"> ${size}
+        <td style="text-align: right;"> (${Math.round(size / totCount * 100)}%)
+        <td style="text-align: right; font-weight: ${avgInf > 1.1 ? 'bold' : ''}"> ${avgInf}
+        <td style="text-align: right; font-weight: ${wInf > 1.5 ? 'bold' : ''}"> ${wInf}
+        <td style="text-align: right; 
+          font-weight: ${op < 1 ? 'bold' : ''};
+          color: ${stepColor(op, [[0.9, 'red'], [1.1, '#bd8218'], [2, 'green']])}
+        ">${Math.round(op * 100) / 100}
+      `;
+    });
+
+    return html;
+  }
+
   function buildPersonCols(p, op, inf) {
     let html = `
       <th>${p.name}</th>
       <td>${p.family}</td>
       <td>${p.age | 0}</td>
-      <td data-sort='${person_tot_mod_value(p)}'
+      <td data-sort="${person_tot_mod_value(p)}"
           style="font-family: sans-serif; font-size: 14px;">
     `;
 
@@ -52,13 +93,15 @@ abdicate = null;
       ">${Math.round(p.opinion * 100) / 100}</td>`;
     if (inf)
       html += `<td style="
-        font-weight: ${p.influence > 1 ? 'bold' : ''};
+        font-weight: ${p.influence > 1.1 ? 'bold' : ''};
       ">${Math.round(p.influence * 100) / 100}</td>`;
 
     return html;
   }
 
   function stepColor(val, steps) {
+    if (isNaN(val))
+      return 'transparent';
     for (let i = 0;i < steps.length - 1;i++) {
       if (val < steps[i][0])
         return steps[i][1];
@@ -165,6 +208,13 @@ abdicate = null;
     });
     $('#govBureacrats tbody').html(html);
     window.tableSetup4.refresh();
+
+    
+    if (!window.tableSetup5) {
+      window.tableSetup5 = new Tablesort($('#govFactions')[0]);
+    }
+    $('#govFactions tbody').html(buildFamilyTable(gov));
+    window.tableSetup5.refresh();
 
     promoteGov = function(pid) {
       if (Object.keys(gov.advisors).length >= GOV_ADVISORS_PER_CIV) {

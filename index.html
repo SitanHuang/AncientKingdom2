@@ -139,6 +139,10 @@
         #gov-panel:not(.actionable) .action {
             display: none;
         }
+
+        #gov-panel h3 {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -220,9 +224,22 @@
             <th>Age</th>
             <th>Modifiers</th>
             <th>Opinion</th>
-            <th>Influence</th>
+            <th aria-sort="descending">Influence</th>
             <th>Successor score</th>
             <th class="action">Demote</th>
+        </thead>
+        <tbody>
+    
+        </tbody>
+    </table>
+    <h3>Factions</h3>
+    <table id="govFactions">
+        <thead>
+            <th>Family</th>
+            <th aria-sort="descending" colspan="2">Size</th>
+            <th>Average<br>Influence</th>
+            <th>Influence<br>Weighted<br>by Size</th>
+            <th>Weighted<br>opinion</th>
         </thead>
         <tbody>
     
@@ -234,7 +251,7 @@
             <th>Name</th>
             <th>Family</th>
             <th>Age</th>
-            <th>Modifiers</th>
+            <th aria-sort="descending">Modifiers</th>
             <th>Opinion</th>
             <th>Influence</th>
             <th>Successor score</th>
