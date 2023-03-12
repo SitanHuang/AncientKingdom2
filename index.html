@@ -15,6 +15,8 @@
     <script charset="utf-8" src="d3.v4.js"></script>
     <script charset="utf-8" src="d3_timeseries.min.js"></script>
 
+    <script src="utils.js"></script>
+
     <script src="gov/names.data.js"></script>
     <script src="gov/persons.js"></script>
     <script src="gov/gov.js"></script>
@@ -61,7 +63,7 @@
         }
         .aux-panel {
             display: none;
-            width: calc(99vw - 50px);
+            width: calc(max(99vw - 50px, 1120px));
             height: calc(100vh - 48px);
             position: fixed;
             overflow: auto;
@@ -142,6 +144,9 @@
 
         #gov-panel h3 {
             margin: 0;
+        }
+        #gov-panel table {
+            padding: 1.5em;
         }
     </style>
 </head>
@@ -530,11 +535,13 @@ c:
 <th role="columnheader" data-sort-method=number>Urb.</th>
 <th role="columnheader" data-sort-method=number>Den.</th>
 <th role="columnheader" data-sort-method=number class="extra">GDP/ca.</th>
+<th role="columnheader" data-sort-method=number class="extra">GDPGR RA</th>
 <th role="columnheader" data-sort-method=number>Dep.</th>
 <th role="columnheader" data-sort-method=number>Tech.</th>
 <th role="columnheader" data-sort-method=number>Years</th>
 <th role="columnheader" data-sort-method=number>Hap.</th>
 <th role="columnheader" data-sort-method=number>Pop.</th>
+<th role="columnheader" data-sort-method=number class="extra">PGRA.</th>
 <th role="columnheader" data-sort-method=number>Mil.</th>
 <th role="columnheader" data-sort-method=number>Net $</th>
 <th role="columnheader" data-sort-method=number>Income</th>
@@ -542,7 +549,7 @@ c:
 <th role="columnheader" data-sort-method=number>Money</th>
 <th role="columnheader" data-sort-method=number>Reb. %</th>
 <th role="columnheader" data-sort-method=number class="extra">Mig. Net</th>
-<th role="columnheader" data-sort-method=number class="extra">Leg</th>
+<th role="columnheader" data-sort-method=number class="extra">Legit.</th>
 <th role="columnheader" data-sort-method=number>Power</th>
 </thead>
 <tbody>
@@ -558,7 +565,7 @@ c:
 <h3>Power:</h3>
 <div id="pwrGraph" style="width: 800px;height: 600px"></div>
 <div style="clear: both;"><br></div>
-Build: pre-release 2024 (gov & persons)<br>
+Build: pre-release 2024 (gov & persons, lot of mechanics bug fixes)<br>
 Build: Jan, 2023 (econ & pop mod, climate, lz2, retention after building destroyed)<br>
 Build: pre-release, 2023 (migrants, AI war ally rework, econ restribution)<br>
 Build: Apr 16, 2022<br>

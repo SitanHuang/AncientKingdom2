@@ -279,7 +279,7 @@ if (!ai) drawCanvas();
     return result;
 };
 turn = 0;
-averageData = {income: 0, happiness: 0, logistics: 0, technology: 0, ii: 0, politic: 0, money: 0, population: 0}
+// averageData = {income: 0, happiness: 0, logistics: 0, technology: 0, ii: 0, politic: 0, money: 0, population: 0}
 max_pop = 200000;
 max_econ = 0;
 max_pop_country = 200000;
@@ -293,6 +293,7 @@ endTurn = function () {
     civ.military = 0;
     civ.years = civ.years ? civ.years + 0.25 : 0.25;
     civ.technology = Math.max(Math.round(civ.technology * 1000) / 1000, 1);
+    let oldtech = civ.technology;
 
     civ.happiness = !isNaN(civ.happiness) ? civ.happiness + (1.5 - civ.happiness / 100) : 60;
     civ.happiness = Math.round(Math.max(0, Math.min(100, civ.happiness)) * 100) / 100;
@@ -477,7 +478,7 @@ endTurn = function () {
             }
 
             if ((!d.pop || d.pop < 1000) && d.growth > 1) {
-                d.pop = d.type.defend * 5000 * Math.random() * res_pop_mod(row, col);
+                d.pop = d.type.defend * 5000 * Math.random() * (res_pop_mod(row, col) + 0.3) * res_pop_mod(row, col);
             }
             let urb = Math.max(1, civ.urban) || 10;
 
@@ -635,8 +636,19 @@ endTurn = function () {
     civ.occupiedII = occupiedII;
     civ.nextDecline = nextDecline || 0;
     civ.popchange = Math.round((civ.pop = Math.round(civ.pop)) - oldpop);
-    civ.popchangeperc = Math.round(civ.popchange / oldpop * 10000) / 100;
+    civ.popchangeperc = Math.round(civ.popchange / (oldpop || Infinity) * 10000) / 100;
+
+    civ.popchangepercs = civ.popchangepercs || [0, 0, 0, 0, 0];
+    civ.popchangepercRA = rollingAverage(civ.popchangepercs, civ.popchangeperc, 5) || 0;
+    civ.popchangepercRA = Math.round(civ.popchangepercRA * 100) / 100;
+
     civ.technology = Math.round(civ.technology * 1000) / 1000;
+    civ.techinc = Math.round((civ.technology - oldtech) * 1000) / 1000;
+
+    civ.techincs = civ.techincs || Array(8).fill(0);
+    civ.techincRA = rollingAverage(civ.techincs, civ.techinc, 8) || 0;
+    civ.techincRA = Math.round(civ.techincRA * 1000) / 1000;
+
     civ.happiness -= Math.max(Math.round(civ.years / 100) - 0.80, 0);
     civ.happiness -= Math.max(Math.round(civ.ii / 300), 0) - 0.55;
     civ.happiness -= Math.max(Math.round(civ.occupiedII / 100), 0);
@@ -670,6 +682,18 @@ endTurn = function () {
 //     let income = expense - oldMoney + civ.money;
 
     civ.income = Math.round(income * 100) / 100;
+
+    civ.incomes = civ.incomes || Array(12).fill(0);
+    civ.incomesRA = rollingAverage(civ.incomes, civ.income, 12) || 0;
+    civ.incomesRA = Math.round(civ.incomesRA * 100) / 100;
+
+    let oldInc = civ.incomes[civ.incomes.length - 2] || Infinity;
+    let incomeRAdiff = Math.round((civ.income - oldInc) / oldInc * 10000) / 100;
+
+    civ.incomeRAdiffs = civ.incomeRAdiffs || Array(12).fill(0);
+    civ.incomeRAdiffsRA = rollingAverage(civ.incomeRAdiffs, incomeRAdiff, 12) || 0;
+    civ.incomeRAdiffsRA = Math.round(civ.incomeRAdiffsRA * 100) / 100;
+
     // civ.expense = Math.round((expense + ((((civ.ii / 900 + 0.2) * civ.ii)))) * 100) / 100;
     civ.expense = Math.round(expense * 100) / 100;
     civ.oldMoney = Math.round(oldMoney * 100) / 100;
@@ -689,13 +713,13 @@ endTurn = function () {
     const oppgn = 1 + (civ.gov.mods.OPPGN || 0);
     civ.politic = Math.max(Math.min(Math.round((civ.politic * (civ.happiness / 100) + 5 * oppgn) * 100) / 100 + (civ.money / 250 + (civ.gov.cohesion - 1) * 5) * oppgn, polCap), -50);
     // averageData = {happiness: 0, logistics: 0, technology: 0, ii: 0, politic: 0}
-    averageData.population += civ.pop;
-    averageData.happiness += civ.happiness;
-    averageData.logistics += civ.logistics;
-    averageData.technology += civ.technology;
-    averageData.politic += civ.politic;
-    averageData.money += civ.money;
-    averageData.income += civ.income;
+    // averageData.population += civ.pop;
+    // averageData.happiness += civ.happiness;
+    // averageData.logistics += civ.logistics;
+    // averageData.technology += civ.technology;
+    // averageData.politic += civ.politic;
+    // averageData.money += civ.money;
+    // averageData.income += civ.income;
     civ.logistics = 0;
 
     if (civ.money < 0 || civ.deposit < 10) {
@@ -891,21 +915,21 @@ showInfo = function () {
                 .html(
                     "Money: " + civ.money + "\n" +
                     "Deposit: " + Math.floor(civ.deposit * 100) / 100 + `/${Math.floor(depositCap)}(${Math.round((civ.depRate - 1)*100*100)/100}% interest)\n` +
-                    "Technology: " + civ.technology + (civ._techFromAllies ? ` (${civ._techFromAllies} from allies)\n` : "\n") +
+                    `Technology: ${civ.technology} (+${civ.techinc}, ${civ._techFromAllies ? `${civ._techFromAllies} from allies, ` : ''}8-turn RA=+${civ.techincRA})\n` +
                     "Political Powers: " + civ.politic + (civ._polFromAllies ? ` (${Math.round(civ._polFromAllies * 100) / 100} from allies) \n` : '\n') +
                     `Legitimacy: ${Math.round(civ.gov?.cohesion * 10000) / 100}\n` +
-                    "Population: " + civ.pop + ` (+${civ.popchange} +${civ.popchangeperc}%)\n` +
+                    "Population: " + civ.pop + ` (+${civ.popchange}, +${civ.popchangeperc}%, 4-turn RA=+${civ.popchangepercRA}%)\n` +
                     "Military(Until last turn): " + civ.military + "\n" +
                     `Happiness: ${Math.round(civ.happiness * 100) / 100} % (Rebellion chance: ${Math.round(civ.rchance * 100000) / 1000}%; x${Math.round((civ._hapDec) * 100) / 100} from unnatural deaths)\n` +
                     "Urbanization: " + civ.urban + "% (" + civ.cityCount + ")\n" +
                     `Migrants: ${civ.migrantsOutTotal} total displaced, ${civ.migrantsOutSuccessful} migrated out, ${civ.migrantsIn} in; net=${civ.migrantsIn - civ.migrantsOutSuccessful} <button onclick="manageMigrants()">Manage</button>\n` +
                     "==Statistics==\n" +
                     "        " + (civ.oldMoney) + "\n" +
-                    " + Tax  " + civ.income + "\n" +
+                    ` + Tax     ${civ.income} (12-turn RA=$${civ.incomesRA}, +${civ.incomeRAdiffsRA}%) \n` +
                     (civ.spentOnUrban > 0 ? ` - Urban overflow $${Math.round(civ.spentOnUrban * 100) / 100}\n` : "") +
                     " - Expense " + Math.round((civ.expense) * 100) / 100 + "  (Logistics " + civ.logistics + ")\n" +
-                    " - Gov  " + Math.round(civ.govExp * 100) / 100 + "  (Government Offices in " + civ.ii + " counties, " + civ.occupiedII + " are occupied)\n" +
-                    " + Ints " + Math.round(civ.incDep * 10000) / 10000 + "  (interest overflow from deposit)\n" +
+                    " - Gov     " + Math.round(civ.govExp * 100) / 100 + "  (Government Offices in " + civ.ii + " counties, " + civ.occupiedII + " are occupied)\n" +
+                    " + Ints    " + Math.round(civ.incDep * 10000) / 10000 + "  (interest overflow from deposit)\n" +
                     tributeToOthersText +
                     " = " + civ.newMoney + ` (net: ${Math.round((civ.newMoney - civ.oldMoney) * 100) / 100})`
                 )
@@ -934,16 +958,16 @@ prepareTurn = function () {
     i++;
     if (i >= civOrders.length) {
         i = 0;
-        window.average = {
-            happiness: averageData.happiness / civOrders.length,
-            logistics: averageData.logistics / civOrders.length,
-            technology: averageData.technology / civOrders.length,
-            politic: averageData.politic / civOrders.length,
-            money: averageData.money / civOrders.length,
-            pop: averageData.population,
-            income: averageData.income
-        };
-        console.log(average);
+        // window.average = {
+        //     happiness: averageData.happiness / civOrders.length,
+        //     logistics: averageData.logistics / civOrders.length,
+        //     technology: averageData.technology / civOrders.length,
+        //     politic: averageData.politic / civOrders.length,
+        //     money: averageData.money / civOrders.length,
+        //     pop: averageData.population,
+        //     income: averageData.income
+        // };
+        // console.log(average);
 
         if (enableGraph) {
             let popObj = {date: new Date(-62167198164000 + 3.154e+10 * Math.floor(turn / civOrders.length) / 4), pop: 0};
@@ -1016,7 +1040,7 @@ prepareTurn = function () {
         }
 
 
-        averageData = {income: 0,happiness: 0, logistics: 0, technology: 0, politic: 0, money: 0, population: 0}
+        // averageData = {income: 0,happiness: 0, logistics: 0, technology: 0, politic: 0, money: 0, population: 0}
     }
     let civ = civs[civOrders[i]];
     civ.newMoney = civ.money;
@@ -1107,6 +1131,7 @@ refreshTable = function () {
             refreshTable();
         });
         let power = Math.min(Math.max(0, Math.sqrt(Math.sqrt(Math.sqrt((civ.deposit + civ.money) / 2)) +
+            Math.min(2, civ.popchangepercRA / 5) + (civ.pmb - 1) * 2 + (civ.emb - 1) * 2 + Math.min(2, civ.incomeRAdiffsRA / 2) +
             civ.income / 10 + civ.politic / 3 + ((civ.ii / 1000 + 0.2) * civ.ii * civ.urban / 100) - 3 +
             civ.technology / 10 + Math.min(130, civ.happiness) / 10 + Math.min(100000000 / 50000, civ.pop / 50000)) +
             - Math.min(0.05, civ.rchance) * 100), 100) || NaN;
@@ -1129,19 +1154,21 @@ refreshTable = function () {
         tr.append(`<td>${Math.round(civ.urban * 100) / 100 || ''}</td>`)
         tr.append(`<td>${Math.round(civ.pop / civ.ii) || ''}</td>`)
         tr.append(`<td class="extra">${Math.round(civ.income / civ.pop * 1e6) || ''}</td>`)
+        tr.append(`<td class="extra">${civ.incomeRAdiffsRA || ''}</td>`)
         tr.append(`<td>${Math.round(civ.deposit) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.technology * 100) / 100 || ''}</td>`)
         tr.append(`<td>${(civ.years) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.happiness) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.pop) || ''}</td>`)
+        tr.append(`<td class="extra">${civ.popchangepercRA || ''}</td>`)
         tr.append(`<td>${Math.round(civ.military) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.newMoney - civ.oldMoney) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.income) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.politic) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.money) || ''}</td>`);
         tr.append(`<td>${Math.round(civ.rchance * 100000) / 1000 || ''}</td>`);
-        tr.append(`<td class"extra">${Math.round((civ.migrantsIn || civ._migrantsInLast || 0) - (civ.migrantsOutSuccessful || civ._migrantsOutSuccessfulLast || 0)) || ''}</td>`);
-        tr.append(`<td class"extra">${Math.round(civ.gov?.cohesion * 100) || ''}</td>`);
+        tr.append(`<td class="extra">${Math.round((civ.migrantsIn || civ._migrantsInLast || 0) - (civ.migrantsOutSuccessful || civ._migrantsOutSuccessfulLast || 0)) || ''}</td>`);
+        tr.append(`<td class="extra">${Math.round(civ.gov?.cohesion * 100) || ''}</td>`);
         tr.append(`<td>${Math.round(civ.power * 100) / 100 || ''}</td>`);
         $table.append(tr)
     });
