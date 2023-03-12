@@ -102,12 +102,14 @@ research = function () {
     var m = 300 + civ.money / 10 + civ.ii / 2 || 0;
     var p = 9 + civ.politic / 2;
 
+    const oprop = 1 + (civ.gov.mods.OPROP || 0);
+
     if (civ.money < m || civ.politic < p) {
         alert("Failed. " + m + " money needed, " + p + " PP needed.")
     } else {
         civ.money -= m;
         civ.politic -= p;
-        civ.technology++;
+        civ.technology += oprop;
     }
 
     showInfo();
@@ -524,16 +526,16 @@ endTurn = function () {
                             civ2.migrantsIn += _m;
 
                             let pop = Math.min(100000, civ2.pop) || 100000;
-                            const piwhr = civ2.gov?.mods?.PIMHR || 0;
-                            const hapDrop = (_m / (pop)) / 2 * (1 + piwhr);
+                            const piwhr = 1 + (civ2.gov?.mods?.PIMHR || 0);
+                            const hapDrop = (_m / (pop)) / 2 * piwhr;
                             civ2.happiness *= (1 - hapDrop) || 1;
-                            civ2.rchance *= (1 + (_m / pop * 5)) || 1;
+                            civ2.rchance *= (1 + (_m / pop * 4 * piwhr)) || 1;
                             civ2.rchance = Math.min(civ2.rchance, 0.35);
                             civ2.nextDecline -= _m;
 
                             if (civ2._migrantInfo) {
                                 civ2._migrantInfo.unrestFromIn.happiness *= (1 - hapDrop) || 1;
-                                civ2._migrantInfo.unrestFromIn.rchance *= (1 + (_m / pop * 5) * (1 + piwhr)) || 1;
+                                civ2._migrantInfo.unrestFromIn.rchance *= (1 + (_m / pop * 4) * piwhr) || 1;
                                 civ2._migrantInfo.from[civName] = (civ2._migrantInfo.from[civName] || 0) + _m;
                             }
 
@@ -685,7 +687,7 @@ endTurn = function () {
     let polCap = Math.max(civ.ii / 10, 30);
     polCap *= 1 + (civ.gov.mods.OPPCP || 0);
     const oppgn = 1 + (civ.gov.mods.OPPGN || 0);
-    civ.politic = Math.max(Math.min(Math.round((civ.politic * (civ.happiness / 100) + 5 * oppgn) * 100) / 100 + (civ.money / 250 + (civ.gov.cohesion - 1) * 4) * oppgn, polCap), -50);
+    civ.politic = Math.max(Math.min(Math.round((civ.politic * (civ.happiness / 100) + 5 * oppgn) * 100) / 100 + (civ.money / 250 + (civ.gov.cohesion - 1) * 5) * oppgn, polCap), -50);
     // averageData = {happiness: 0, logistics: 0, technology: 0, ii: 0, politic: 0}
     averageData.population += civ.pop;
     averageData.happiness += civ.happiness;

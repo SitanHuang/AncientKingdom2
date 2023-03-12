@@ -12,13 +12,13 @@ const GOV_PERSON_MODS = {
     { // done
       id: "MUKCT",
       name: "Upkeep cost",
-      min: -0.15,
+      min: -0.20,
       max: 0.05,
       ai: 'asc'
     }, { // done
       id: "MMVCT",
       name: "Movement cost",
-      min: -0.10,
+      min: -0.20,
       max: 0.03,
       ai: 'asc'
     }, {
@@ -34,24 +34,24 @@ const GOV_PERSON_MODS = {
       id: "PPPGR",
       name: "Population growth",
       min: -0.02,
-      max: 0.05,
+      max: 0.10,
       ai: 'desc'
     }, { // done
       id: "PDSCR",
       name: "Disaster chance",
-      min: -0.12,
+      min: -0.25,
       max: -0.02,
       ai: 'asc'
     }, { // done
       id: "PIMHR",
       name: "Unhappiness from immigration",
-      min: -0.14,
-      max: -0.02,
+      min: -0.50,
+      max: 0.10,
       ai: 'asc'
     }, { // done
       id: "PUOFC",
       name: "Urban overflow cost",
-      min: -0.15,
+      min: -0.25,
       max: 0.05,
       ai: 'asc'
     },
@@ -73,19 +73,19 @@ const GOV_PERSON_MODS = {
       id: "EGRVG",
       name: "Revenue gain",
       min: -0.08,
-      max: 0.08,
+      max: 0.10,
       ai: 'desc'
     }, { // done
       id: "EFNPG",
       name: "Finance center growth rate",
       min: 0.02,
-      max: 0.16,
+      max: 0.50,
       ai: 'desc'
     }, { // done
       id: "EHPGR",
       name: "Happiness growth",
       min: -0.04,
-      max: 0.16,
+      max: 0.20,
       ai: 'desc'
     },
   ],
@@ -93,7 +93,7 @@ const GOV_PERSON_MODS = {
     { // done
       id: "OMVPC",
       name: "Movement political cost",
-      min: -0.10,
+      min: -0.20,
       max: 0.30,
       ai: 'asc'
     }, { // done
@@ -106,12 +106,12 @@ const GOV_PERSON_MODS = {
       id: "OPPCP",
       name: "Political power cap",
       min: -0.08,
-      max: 0.16,
+      max: 0.20,
       ai: 'desc'
     }, { // done
       id: "ORBRD",
       name: "Rebel chance per round",
-      min: -0.10,
+      min: -0.25,
       max: 0.05,
       ai: 'asc'
     }, { // done
@@ -123,6 +123,12 @@ const GOV_PERSON_MODS = {
     }, { // done
       id: "OSTOI",
       name: "Schools research speed",
+      min: -0.10,
+      max: 0.25,
+      ai: 'desc'
+    }, { // done
+      id: "OPROP",
+      name: "Political research output",
       min: -0.10,
       max: 0.25,
       ai: 'desc'
