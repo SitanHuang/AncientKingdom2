@@ -7,8 +7,12 @@ declareWar = function(civName1, civName2, ig, par, addYrs) {
         return false;
     //if (civ1.ii / (data.length * data[0].length) > 0.5 && Math.random() < 0.9) return false;
     //if (civ1.ii / (data.length * data[0].length) > 0.07 && Math.random() < 0.9) return false;
-    civ1.politic = Math.max(1, civ1.politic / 3);
-    civ2.politic = Math.max(1, civ2.politic / 2);
+    const odppc1 = 1 + (civ1.gov.mods.ODPPC || 0);
+    const odppc2 = 1 + (civ2.gov.mods.ODPPC || 0);
+    let diff1 = civ1.politic * 2 / 3 * odppc1;
+    civ1.politic = Math.max(1, civ1.politic - diff1);
+    let diff2 = civ2.politic * 1 / 2 * odppc2;
+    civ2.politic = Math.max(1, civ2.politic - diff2);
     civ1.war = civ1.war ? civ1.war : {};
     civ2.war = civ2.war ? civ2.war : {};
     civ2.war[civName1] = civ1.war[civName2] = 2 * (2 + Math.round(Math.random() * 10)) + 0.5 + (addYrs || 0);
@@ -212,8 +216,10 @@ function promptForAlliance(civName, civName2) {
 
     if (deal) {
         push_msg(`${civName} and ${civName2} formed an alliance for ` + ((civ.war[civName2] = civ2.war[civName] = Math.round(-35 * 4 * Math.random()) - 5) / 4) + ' years', [civName, civName2]);
-        civ.politic -= 5;
-        civ2.politic -= 5;
+        const odppc1 = 1 + (civ.gov.mods.ODPPC || 0);
+        const odppc2 = 1 + (civ2.gov.mods.ODPPC || 0);
+        civ.politic -= 5 * odppc1;
+        civ2.politic -= 5 * odppc2;
         showInfo();
     }
 
@@ -251,8 +257,10 @@ function promptForPact(civName, civName2) {
 
     if (deal) {
         push_msg(`${civName} and ${civName2} signed a non-aggression pact for ` + ((civ.war[civName2] = civ2.war[civName] = Math.round(-35 * 4 * Math.random()) - 6.5) / 4) + ' years', [civName, civName2]);
-        civ.politic -= 5;
-        civ2.politic -= 5;
+        const odppc1 = 1 + (civ.gov.mods.ODPPC || 0);
+        const odppc2 = 1 + (civ2.gov.mods.ODPPC || 0);
+        civ.politic -= 5 * odppc1;
+        civ2.politic -= 5 * odppc2;
         showInfo();
     }
 

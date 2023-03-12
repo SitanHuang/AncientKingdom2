@@ -117,8 +117,14 @@ const GOV_PERSON_MODS = {
     }, { // done
       id: "OFRHS",
       name: "Foreign hostility",
-      min: -0.60,
+      min: -0.40,
       max: 1.50,
+      ai: 'asc'
+    }, { // done
+      id: "ODPPC",
+      name: "Diplomacy political cost",
+      min: -0.25,
+      max: 0.10,
       ai: 'asc'
     }, { // done
       id: "OSTOI",
@@ -132,7 +138,7 @@ const GOV_PERSON_MODS = {
       min: -0.10,
       max: 0.25,
       ai: 'desc'
-    },
+    }
   ],
 };
 
