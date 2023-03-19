@@ -173,8 +173,8 @@ move = function (cn1, pickedUp, p2, ai) {
         var t1 = c1.technology;
         var t2 = c2.technology;
 
-        t1 *= 1 + (c1.gov.mods.MCCCT || 0);
-        t2 *= 1 + (c2.gov.mods.MCCCT || 0);
+        t1 *= 1 + (c1.gov?.mods?.MCCCT || 0);
+        t2 *= 1 + (c2.gov?.mods?.MCCCT || 0);
 
         if (l2._oldcolor == cn1) // if taking own territory back
             t1 = t1 * 1.50;

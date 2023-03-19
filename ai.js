@@ -8,7 +8,7 @@ var AI = {
         civ.war = civ.war || {};
         if ((Math.random() < 0.1 || (civ.urban > 50 && Math.random() < 0.7)) && !Object.values(civ.war).filter(x => x > 0).length)
             this.tryResearch(civ);
-        
+
         if (civ.gov && Object.keys(civ.gov.advisors).length < GOV_ADVISORS_PER_CIV)
             this.handleGov(civ, civName);
 
@@ -63,7 +63,7 @@ var AI = {
                             civ.deposit -= civ.deposit / 2;
                         }
                         this.tryDefend(civ, civName, civ.money / 1.5);
-                        civOrders.forEach((x) => {
+                        [...civOrders].sort(_ => Math.random() - 0.5).forEach((x) => {
                             if (isAtWar(civs[x], k) && !isAtWar(civ, x) && x != civName) {
                                 if (!isPeace(civ, x)) {
                                     if (((civs[x].ii * 0.5 < civ.ii || civs[x].income > civ.income) && Math.random() < 0.9) ||
@@ -178,7 +178,7 @@ var AI = {
 
             warChance *= civ.happiness / 100 - 0.3;
             warChance *= 0.8 * AGGRESSIVENESS;
-            warChance *= 1 + (civ2.gov.mods.OFRHS || 0);
+            warChance *= 1 + (civ2.gov?.mods?.OFRHS || 0);
 
             // if (((civ.income > civ2.income * 0.7 && civ.technology > civ2.technology + 1 && civ.income > 100 && civ.deposit > civ.income * 2) || civ.income > civ2.income) && civ.happiness >= 95 && Math.random() > 0.8) {
             if (Math.random() < warChance && civ.income > 100 &&
@@ -281,9 +281,9 @@ var AI = {
                             })
                         }
 
-                        const omvpc = 1 + (civ.gov.mods.OMVPC || 0);
+                        const omvpc = 1 + (civ.gov?.mods?.OMVPC || 0);
                         civ.politic -= 0.7 * omvpc;
-                        const mmvct = 1 + (civ.gov.mods.MMVCT || 0);
+                        const mmvct = 1 + (civ.gov?.mods?.MMVCT || 0);
                         civ.money -= val / 25 * mmvct;
                     }
                 }
