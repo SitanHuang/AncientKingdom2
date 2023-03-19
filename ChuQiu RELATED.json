@@ -1,0 +1,685 @@
+{"data":[[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null],[{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":16,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null],[{"color":null,"type":null},null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2315,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1815,"growth":0.5},{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1546,"growth":0.5},{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":707,"growth":0.5},{"color":null,"type":null},null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,{"color":null,"type":null},null,null,null,null,null,null,null,{"color":null,"type":null},null,null,null,null,null,null,{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1136,"growth":0.5},null,null,null,null,null,{"color":null,"type":null},null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":965,"growth":0.5},{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1479,"growth":0.5},{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":78462,"growth":1.01},{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2322,"growth":0.5},null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1}},{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1}},{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1673,"growth":0.5},{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":135,"growth":0.5},{"color":"Green","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":144563,"growth":1.01},{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1286,"growth":0.5},{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1516,"growth":0.5},null,null,null,{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1659,"growth":0.5},{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1542,"growth":0.5},{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":639,"growth":0.5},null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":773,"growth":0.5},{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1704,"growth":0.5},{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":394,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Wheat","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1910,"growth":0.5},null,null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":"Green","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1598,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null],[null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,null],[null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,null],[null,null,null,null,null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,{"color":null,"type":null},null,{"color":null,"type":null},null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Yan","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":338,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null],[null,null,null,null,null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,{"color":null,"type":null},null,{"color":null,"type":null},null,null,null,null,{"color":null,"type":null},null,null,{"color":"Black","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1205,"growth":0.5},{"color":"Yan","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":231,"growth":0.5},{"color":"Yan","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1551,"growth":0.5},{"color":"Yan","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1348,"growth":0.5},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":"Yan","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1082,"growth":0.5},{"color":"Yan","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1073,"growth":0.5},{"color":"Yan","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":160102,"growth":1.01},{"color":"Yan","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":199,"growth":0.5},null,null,null,{"color":null,"type":null},null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Black","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":653,"growth":0.5},{"color":"Black","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":578,"growth":0.5},{"color":"Black","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":182291,"growth":1.01},null,null,null,{"color":null,"type":null},null,null,{"color":null,"type":null},null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":"Brown","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":648,"growth":0.5},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Black","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1108,"growth":0.5},{"color":"Black","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":656,"growth":0.5},{"color":"Yellow","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":996,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":"Brown","type":{"defend":25,"income":function (civ) {
+            civ.politic += Math.random() / 4;
+            civ.money += Math.random() * 7;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("市", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        }},"pop":116918,"growth":1.004},{"color":"Brown","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":571,"growth":0.5},{"color":"Brown","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":113469,"growth":1.01},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Jin","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2058,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Yellow","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":880,"growth":0.5},{"color":"Yellow","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2007,"growth":0.5},{"color":"Yellow","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2143,"growth":0.5},{"color":null,"type":null},{"color":"Qi","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1242,"growth":0.5},{"color":"Qi","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":434,"growth":0.5},{"color":"Qi","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2047,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},null,null,null,{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},null,null],[null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Jin","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":380,"growth":0.5},{"color":"Jin","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":118,"growth":0.5},{"color":"Jin","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2103,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},null,{"color":"Yellow","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1191,"growth":0.5},{"color":"Yellow","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":988,"growth":0.5},{"color":"Yellow","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":55729,"growth":1.01},null,{"color":"Qi","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1076,"growth":0.5},{"color":"Qi","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1547,"growth":0.5},{"color":"Qi","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":127995,"growth":1.01},{"color":"Qi","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1691,"growth":0.5},{"color":"Qi","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2415,"growth":0.5},null,null,null,null,null,{"color":null,"type":null},null,null,null,{"color":null,"type":null},null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"China","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":625,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":"Jin","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":989,"growth":0.5},{"color":"Jin","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2236,"growth":0.5},{"color":"Jin","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":169689,"growth":1.01},{"color":"Jin","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2406,"growth":0.5},{"color":"Jin","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2420,"growth":0.5},null,{"color":null,"type":null},{"color":null,"type":null},{"color":"Yellow","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":766,"growth":0.5},null,{"color":null,"type":null},{"color":null,"type":null},{"color":"Qi","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1426,"growth":0.5},{"color":"Qi","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":101,"growth":0.5},{"color":"Qi","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":481,"growth":0.5},{"color":null,"type":null},null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null],[null,null,null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"China","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":596,"growth":0.5},{"color":"China","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1018,"growth":0.5},{"color":"China","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":93,"growth":0.5},{"color":null,"type":null},null,{"color":"Zhou","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":109,"growth":0.5},{"color":"Jin","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2227,"growth":0.5},{"color":"Jin","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":733,"growth":0.5},{"color":null,"type":null},{"color":"Liang","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1582,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":"Song","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":792,"growth":0.5},{"color":"Song","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1010,"growth":0.5},{"color":"Song","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1917,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":"Qi","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":228,"growth":0.5},{"color":"Blue","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":815,"growth":0.5},null,null,null,null,null,null,null,{"color":null,"type":null},null,null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"China","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":725,"growth":0.5},{"color":"China","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":677,"growth":0.5},{"color":"China","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":203080,"growth":1.01},{"color":"China","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":236,"growth":0.5},{"color":"China","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":146,"growth":0.5},null,{"color":"Zhou","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2351,"growth":0.5},{"color":"Zhou","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":20,"growth":0.5},{"color":null,"type":null},null,{"color":"Liang","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":529,"growth":0.5},{"color":"Liang","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2000,"growth":0.5},{"color":"Song","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":523,"growth":0.5},{"color":"Song","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1213,"growth":0.5},{"color":"Song","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":19471,"growth":1.01},{"color":"Song","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1312,"growth":0.5},{"color":"Song","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":653,"growth":0.5},{"color":null,"type":null},{"color":"Blue","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":681,"growth":0.5},{"color":"Blue","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":389,"growth":0.5},null,null,null,null,null,null,null,{"color":null,"type":null},null,null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":"China","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1215,"growth":0.5},{"color":"China","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":23,"growth":0.5},{"color":null,"type":null},null,{"color":"Zhou","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":181120,"growth":1.01},null,null,null,{"color":"Liang","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":137708,"growth":1.01},null,null,null,{"color":"Song","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":438,"growth":0.5},{"color":"Song","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2104,"growth":0.5},null,null,null,{"color":"Blue","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":121606,"growth":1.01},{"color":"Blue","type":{"defend":25,"income":function (civ) {
+            civ.politic += Math.random() / 4;
+            civ.money += Math.random() * 7;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("市", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        }},"pop":80594,"growth":1.004},null,null,null,null,null,null,{"color":null,"type":null},null,null,null,null,null],[null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":"China","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1184,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":"Zhou","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":534,"growth":0.5},{"color":"Zhou","type":{"defend":25,"income":function (civ) {
+            civ.politic += Math.random() / 4;
+            civ.money += Math.random() * 7;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("市", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        }},"pop":115324,"growth":1.004},null,{"color":null,"type":null},{"color":"Liang","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1625,"growth":0.5},{"color":"Liang","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1578,"growth":0.5},{"color":"Liang","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":458,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":"Song","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2230,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":"Blue","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":971,"growth":0.5},{"color":null,"type":null},null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Zhou","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1463,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Liang","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":610,"growth":0.5},{"color":null,"type":null},null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,{"color":null,"type":null},null,null,null,null],[{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":"Chu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1766,"growth":0.5},{"color":null,"type":null},{"color":"Chu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":470,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":"White","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":52203,"growth":1.01},{"color":"White","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1364,"growth":0.5},{"color":"White","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1237,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,{"color":null,"type":null},null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":"Chu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2173,"growth":0.5},{"color":"Chu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1999,"growth":0.5},{"color":"Chu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":119,"growth":0.5},{"color":"Chu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":97,"growth":0.5},{"color":"Chu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1088,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":"White","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2463,"growth":0.5},{"color":"White","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":584,"growth":0.5},{"color":"White","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":399,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Wu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1416,"growth":0.5},null,null,null,{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,{"color":null,"type":null},null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,null,null,{"color":"Chu","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":244968,"growth":1.01},null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"White","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":787,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Wu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1025,"growth":0.5},{"color":"Wu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1423,"growth":0.5},{"color":"Wu","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":74027,"growth":1.01},null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Chu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1247,"growth":0.5},{"color":"Chu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":938,"growth":0.5},{"color":"Chu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1075,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":"Wu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2494,"growth":0.5},{"color":"Wu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1789,"growth":0.5},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Chu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1021,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":"Wu","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":621,"growth":0.5},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null],[{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null],[null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null],[null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null],[null,null,null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null],[null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null],[null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null],[null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null],[null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null],[null,null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Purple","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1498,"growth":0.5},{"color":null,"type":null},null,{"color":null,"type":null},null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null],[null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Purple","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1226,"growth":0.5},{"color":"Purple","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":182,"growth":0.5},{"color":"Purple","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":77,"growth":0.5},null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null],[null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":"Purple","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":2408,"growth":0.5},{"color":"Purple","type":{"income":function (civ) {
+            civ.politic -= Math.random() / 55;
+            civ.money += Math.random() / 2;
+        },"draw":function () {
+        },"defend":1},"pop":1999,"growth":0.5},{"color":"Purple","type":{"income":function (civ) {
+            civ.politic += Math.random() * 10;
+            civ.money += Math.random() * 55;
+        },"draw":function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("京", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        },"defend":55},"pop":114926,"growth":1.01},null,null,null,null,null,null,null,null,{"color":null,"type":null},null,null,null,null,null,null,null,null],[null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"color":null,"type":null},{"color":null,"type":null},{"color":null,"type":null},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]],"civs":{"China":{"color":"#DB4437","fontColor":"#ffffff","money":-177.08,"technology":1,"politic":12.77168,"birth":[18,19],"military":0,"deposit":1.1,"income":58.8,"expense":2.54,"oldMoney":-187.03,"newMoney":-177.08,"cityCount":2,"logistics":0,"politics":-1,"power":6.987290730578276,"ai":true,"years":0.5,"happiness":61.02,"tributeToMe":{},"tributeToOther":{"Brown":9.26,"Yellow":9.26,"Blue":9.26,"Purple":9.26,"Black":9.26},"pop":209618,"popchange":-4501,"popchangeperc":-2.15,"ii":12,"urban":16.67,"spentOnUrban":0,"war":{"Zhou":-65}},"Blue":{"color":"#90caf9","fontColor":"#000000","money":54.16,"technology":1,"politic":15.139600000000002,"military":0,"deposit":1.1,"income":20.18,"expense":1.24,"oldMoney":30.09,"newMoney":44.9,"cityCount":3,"logistics":0,"birth":[19,36],"politics":-1,"power":8.247281707243676,"ai":true,"years":0.5,"happiness":61.01,"pop":205056,"popchange":78518,"popchangeperc":38.29,"ii":6,"urban":50,"spentOnUrban":0,"tributeToOther":{"China":4.136},"tributeToMe":{"China":9.26},"AIprompted":{"Qi":true},"war":{"Zhou":-65}},"Green":{"color":"#52b848","fontColor":"#000000","money":-252.50900000000001,"technology":1,"politic":11.01256,"birth":[4,23],"military":0,"deposit":null,"income":51.81,"expense":null,"oldMoney":50,"newMoney":47.491,"cityCount":2,"logistics":0,"politics":-1,"power":null,"ai":true,"years":0.25,"happiness":60,"tributeToMe":{"Brown":4.351},"tributeToOther":{"Brown":56.348},"pop":157093,"popchange":157093,"popchangeperc":100,"ii":11,"urban":18.18,"spentOnUrban":0},"Black":{"color":"#000000","fontColor":"#ffffff","money":149.84,"technology":1,"politic":14.02232,"military":0,"deposit":1.1,"income":89.33,"expense":2.1,"oldMoney":59.46,"newMoney":140.58,"cityCount":2,"logistics":0,"birth":[12,30],"politics":-1,"ai":true,"years":0.5,"happiness":61.02,"pop":186491,"popchange":-10435,"popchangeperc":-5.6,"ii":6,"urban":33.33,"spentOnUrban":0,"power":7.8080242697355775,"tributeToOther":{"China":6.970000000000001},"tributeToMe":{"China":9.26},"AIprompted":{"Yellow":true,"Yan":true},"war":{"Zhou":-65}},"Yellow":{"color":"#ffe067","fontColor":"#000000","money":50.881,"technology":1,"politic":7.51908,"birth":[15,31],"military":0,"deposit":null,"income":14.92,"expense":null,"oldMoney":50,"newMoney":37.27,"cityCount":2,"logistics":0,"politics":-1,"power":null,"ai":true,"years":0.25,"happiness":60,"tributeToMe":{"Brown":4.351,"China":9.26},"tributeToOther":{"Brown":12.99,"China":12.99},"pop":64700,"popchange":64700,"popchangeperc":100,"ii":8,"urban":25,"spentOnUrban":0,"war":{"Zhou":-65}},"Purple":{"color":"#950095","fontColor":"#ffffff","money":72.8,"technology":1,"politic":6.564159999999999,"birth":[41,32],"military":0,"deposit":null,"income":20.2,"expense":null,"oldMoney":50,"newMoney":63.54,"cityCount":2,"logistics":0,"politics":-1,"power":null,"ai":true,"years":0.25,"happiness":60,"tributeToMe":{"China":9.26},"tributeToOther":{"China":5.211},"pop":122316,"popchange":122316,"popchangeperc":100,"ii":7,"urban":28.57,"spentOnUrban":0},"White":{"color":"#f0f0f0","fontColor":"#000000","money":50.5,"technology":1,"politic":8.491999999999999,"birth":[22,29],"military":0,"deposit":null,"income":1.95,"expense":null,"oldMoney":50,"newMoney":50.5,"cityCount":2,"logistics":0,"politics":-1,"power":null,"ai":true,"years":0.25,"happiness":60,"pop":59037,"popchange":59037,"popchangeperc":100,"ii":7,"urban":28.57,"spentOnUrban":0,"war":{"Zhou":-65}},"Brown":{"color":"brown","fontColor":"#ffffff","money":99.93,"technology":1,"politic":13.75268,"military":0,"deposit":1.1,"income":56.46,"expense":0.82,"oldMoney":48.07,"newMoney":90.67,"cityCount":3,"logistics":0,"birth":[14,15],"politics":-1,"power":9.949349994616462,"ai":true,"years":0.5,"happiness":61.01,"pop":231606,"popchange":116553,"popchangeperc":50.32,"ii":4,"urban":75,"spentOnUrban":0,"tributeToOther":{"China":4.351,"Green":4.351,"Yellow":4.351},"tributeToMe":{"China":9.26}},"Wheat":{"color":"wheat","fontColor":"#000000","money":60.88,"technology":1,"politic":5.75352,"military":0,"deposit":null,"income":13.42,"expense":null,"oldMoney":50,"newMoney":60.88,"cityCount":2,"logistics":0,"birth":[3,44],"politics":-1,"power":null,"ai":true,"years":0.25,"happiness":60,"pop":93062,"popchange":93062,"popchangeperc":100,"ii":12,"urban":16.67,"spentOnUrban":0},"Zhou":{"color":"#5BA26A","fontColor":"#ffffff","money":38.02,"technology":1,"politic":5.19208,"deposit":null,"power":null,"newMoney":38.02,"birth":[19,23],"ai":true,"military":0,"years":0.25,"happiness":60,"pop":300921,"popchange":300921,"popchangeperc":100,"income":34.47,"expense":null,"oldMoney":5,"ii":7,"urban":42.86,"cityCount":3,"spentOnUrban":0,"logistics":0,"war":{"China":-65,"Blue":-65,"Black":-65,"Yellow":-65,"White":-65,"Chu":-65,"Qi":-65,"Song":-65,"Liang":-65,"Jin":-65,"Yan":-65}},"Chu":{"color":"#8B549A","fontColor":"#ffffff","money":-55.65,"technology":1,"politic":17.0674,"deposit":1.1,"power":7.42427742170207,"newMoney":-55.65,"birth":[24,22],"ai":true,"military":0,"years":0.5,"happiness":61.02,"pop":256961,"popchange":2328,"popchangeperc":0.91,"income":52.83,"expense":1.88,"oldMoney":-105.93,"ii":12,"urban":16.67,"cityCount":2,"spentOnUrban":0,"logistics":0,"war":{"Zhou":-65}},"Qi":{"color":"#608EE2","fontColor":"#ffffff","money":92.7,"technology":1,"politic":10.3708,"deposit":null,"power":null,"newMoney":92.7,"birth":[15,35],"ai":true,"military":0,"years":0.25,"happiness":60,"pop":140683,"popchange":140683,"popchangeperc":100,"income":45.25,"expense":null,"oldMoney":50,"ii":12,"urban":16.67,"cityCount":2,"spentOnUrban":0,"logistics":0,"war":{"Zhou":-65}},"Song":{"color":"#A9A483","fontColor":"#000000","money":57.89,"technology":1,"politic":9.95156,"deposit":null,"power":null,"newMoney":57.89,"birth":[18,31],"ai":true,"military":0,"years":0.25,"happiness":60,"pop":31663,"popchange":31663,"popchangeperc":100,"income":10.21,"expense":null,"oldMoney":50,"ii":11,"urban":18.18,"cityCount":2,"spentOnUrban":0,"logistics":0,"war":{"Zhou":-65}},"Liang":{"color":"#73CEA8","fontColor":"#000000","money":66.07,"technology":1,"politic":11.15428,"deposit":null,"power":null,"newMoney":66.07,"birth":[19,27],"ai":true,"military":0,"years":0.25,"happiness":60,"pop":146090,"popchange":146090,"popchangeperc":100,"income":17.74,"expense":null,"oldMoney":50,"ii":8,"urban":25,"cityCount":2,"spentOnUrban":0,"logistics":0,"war":{"Zhou":-65}},"Jin":{"color":"#558EC8","fontColor":"#ffffff","money":52.58,"technology":1,"politic":7.96032,"deposit":null,"power":null,"newMoney":52.58,"birth":[16,24],"ai":true,"military":0,"years":0.25,"happiness":60,"pop":185612,"popchange":185612,"popchangeperc":100,"income":5.35,"expense":null,"oldMoney":50,"ii":13,"urban":15.38,"cityCount":2,"spentOnUrban":0,"logistics":0,"war":{"Zhou":-65}},"Wu":{"color":"#B2B5A0","fontColor":"#000000","money":82.73,"technology":1,"politic":5.38092,"deposit":null,"power":null,"newMoney":82.73,"birth":[24,36],"ai":true,"military":0,"years":0.25,"happiness":60,"pop":82795,"popchange":82795,"popchangeperc":100,"income":34.18,"expense":null,"oldMoney":50,"ii":7,"urban":28.57,"cityCount":2,"spentOnUrban":0,"logistics":0},"Yan":{"color":"#2A9F4C","fontColor":"#ffffff","money":133.03,"technology":1,"politic":9.88212,"deposit":null,"power":null,"newMoney":133.03,"birth":[11,32],"ai":true,"military":0,"years":0.25,"happiness":60,"pop":165924,"popchange":165924,"popchangeperc":100,"income":84.69,"expense":null,"oldMoney":50,"ii":8,"urban":25,"cityCount":2,"spentOnUrban":0,"logistics":0,"war":{"Zhou":-65}}}}
