@@ -20,10 +20,10 @@ function idealTextColor(bgColor) {
    var components = getRGBComponents(bgColor);
    var bgDelta = (components.R * 0.299) + (components.G * 0.587) + (components.B * 0.114);
 
-   return ((255 - bgDelta) < nThreshold) ? "#000000" : "#ffffff";   
+   return ((255 - bgDelta) < nThreshold) ? "#000000" : "#ffffff";
 }
 
-function getRGBComponents(color) {       
+function getRGBComponents(color) {
 
     var r = color.substring(1, 3);
     var g = color.substring(3, 5);
@@ -35,6 +35,66 @@ function getRGBComponents(color) {
        B: parseInt(b, 16)
     };
 }
+
+function blocWar(list1, list2, years, override=false) {
+    !list1.push && (list1 = list1.split(","));
+    !list2.push && (list2 = list2.split(","));
+    list1.forEach(cn => {
+        let civ = civs[cn];
+        civ.war = civ.war || {};
+        list2.filter(x => x != cn).forEach(cn2 => {
+            let civ2 = civs[cn2];
+            civ2.war = civ2.war || {};
+            if (override || (!civ.war[cn2] && !civ2.war[cn]))
+                civ.war[cn2] = civ2.war[cn] = years * 4 + 0.5;
+        });
+    });
+}
+
+function blocUnset(list1, list2, years) {
+    !list1.push && (list1 = list1.split(","));
+    !list2.push && (list2 = list2.split(","));
+    list1.forEach(cn => {
+        let civ = civs[cn];
+        civ.war = civ.war || {};
+        list2.filter(x => x != cn).forEach(cn2 => {
+            let civ2 = civs[cn2];
+            civ2.war = civ2.war || {};
+            delete civ.war[cn2];
+            delete civ2.war[cn];
+        });
+    });
+}
+
+function formPact(list, years, override=false) {
+    !list.push && (list = list.split(","));
+    list.forEach(cn => {
+        let civ = civs[cn];
+        civ.war = civ.war || {};
+        list.filter(x => x != cn).forEach(cn2 => {
+            let civ2 = civs[cn2];
+            civ2.war = civ2.war || {};
+            if (override || (!civ.war[cn2] && !civ2.war[cn]))
+                civ.war[cn2] = civ2.war[cn] = -years * 4 - 6.5;
+        });
+    });
+}
+
+function formAlliance(list, years, override = false) {
+    !list.push && (list = list.split(","));
+    list.forEach(cn => {
+        let civ = civs[cn];
+        civ.war = civ.war || {};
+        list.filter(x => x != cn).forEach(cn2 => {
+            let civ2 = civs[cn2];
+            civ2.war = civ2.war || {};
+            if (override || (!civ.war[cn2] && !civ2.war[cn]))
+                civ.war[cn2] = civ2.war[cn] = -years * 4 - 5;
+        });
+    });
+}
+
+
 addCiv = function (name, ai, color) {
     let c = color || getRandomColor();
     let civ = {
@@ -44,9 +104,9 @@ addCiv = function (name, ai, color) {
         technology: -1,
         politic: -1
     }
-    ai && (civs[name].ai = true);
     civs[name] = civ;
     civOrders = Object.keys(civs).sort();
+    ai && (civs[name].ai = true);
     showInfo();
 }
 

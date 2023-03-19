@@ -1,5 +1,6 @@
 readMap();
 TIMEOUT_DELAY = 150;
+RCHANCEMOD = 1;
 ready = function () {
     drawCanvas();
 
@@ -763,7 +764,7 @@ endTurn = function () {
     civ.rchance = Math.min(0.35, civ.rchance);
 
     // rebel pops: for own civ
-    if (Math.random() < civ.rchance) {
+    if (Math.random() < civ.rchance && Math.random() < RCHANCEMOD) {
         console.log("== triggering rebellion in", civName, "with chance=", civ.rchance);
         push_msg(`Rebellions in ${civName} are attempting an uprising.`, [civName, ...Object.keys(civ.neighbors)]);
         if (popRebel(null, civName))
@@ -773,7 +774,7 @@ endTurn = function () {
     // rebel pops: for perished civs
     if (ii <= 2 && turn >= 10 * 4 * civOrders.length && (Math.random() < 0.001
     // || (1 + turn) % (88 * 4 * civOrders.length) <= 14
-    ) && civ.technology >= 0) {
+    ) && civ.technology >= 0 && Math.random() < RCHANCEMOD) {
        // auto pick target
         console.log("## triggering rebellion for", civName);
         if (Math.random() < 0.7 && civ.birth) {
