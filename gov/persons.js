@@ -33,20 +33,20 @@ const GOV_PERSON_MODS = {
     { // done
       id: "PPPGR",
       name: "Population growth",
-      min: -0.02,
-      max: 0.10,
+      min: -0.04,
+      max: 0.12,
       ai: 'desc'
     }, { // done
       id: "PDSCR",
       name: "Disaster chance",
-      min: -0.25,
-      max: -0.02,
+      min: -0.35,
+      max: 0.05,
       ai: 'asc'
     }, { // done
       id: "PIMHR",
       name: "Unhappiness from immigration",
       min: -0.50,
-      max: 0.10,
+      max: 0.25,
       ai: 'asc'
     }, { // done
       id: "PUOFC",
@@ -72,20 +72,20 @@ const GOV_PERSON_MODS = {
     }, { // done
       id: "EGRVG",
       name: "Revenue gain",
-      min: -0.08,
-      max: 0.10,
+      min: -0.20,
+      max: 0.25,
       ai: 'desc'
     }, { // done
       id: "EFNPG",
       name: "Finance center growth rate",
       min: 0.02,
-      max: 0.50,
+      max: 0.60,
       ai: 'desc'
     }, { // done
       id: "EHPGR",
       name: "Happiness growth",
       min: -0.04,
-      max: 0.20,
+      max: 0.35,
       ai: 'desc'
     },
   ],
@@ -93,25 +93,25 @@ const GOV_PERSON_MODS = {
     { // done
       id: "OMVPC",
       name: "Movement political cost",
-      min: -0.20,
+      min: -0.50,
       max: 0.30,
       ai: 'asc'
     }, { // done
       id: "OPPGN",
       name: "Political power gain",
       min: -0.08,
-      max: 0.16,
+      max: 0.30,
       ai: 'desc'
     }, { // done
       id: "OPPCP",
       name: "Political power cap",
       min: -0.08,
-      max: 0.20,
+      max: 0.25,
       ai: 'desc'
     }, { // done
       id: "ORBRD",
       name: "Rebel chance per round",
-      min: -0.25,
+      min: -0.45,
       max: 0.05,
       ai: 'asc'
     }, { // done
@@ -130,7 +130,7 @@ const GOV_PERSON_MODS = {
       id: "OSTOI",
       name: "Schools research speed",
       min: -0.10,
-      max: 0.25,
+      max: 0.35,
       ai: 'desc'
     }, { // done
       id: "OPROP",
@@ -210,7 +210,7 @@ function person_dispmods(p, deli) {
       person_mod_value(b, p.mods[b]) -
       person_mod_value(a, p.mods[a])
     ));
-  
+
   let s = [];
 
   for (const mid of mods) {
