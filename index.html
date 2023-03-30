@@ -316,11 +316,11 @@
 <div id="takeControls">
 </div>
 <button onclick="download(prompt('File name', 'scenario') + '.json',
-    serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD}, {space: 0}))">Export</button>
-<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage</button>
-<button onclick="localStorage.back = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD}, {space: 0})">Save to localStorage</button>
-<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back2);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage2</button>
-<button onclick="localStorage.back2 = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD}, {space: 0})">Save to localStorage2</button>
+    serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD}, {space: 0}))">Export</button>
+<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage</button>
+<button onclick="localStorage.back = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD}, {space: 0})">Save to localStorage</button>
+<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back2);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage2</button>
+<button onclick="localStorage.back2 = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD}, {space: 0})">Save to localStorage2</button>
 <input type="file" id="file"><br>
 <button onclick="alert = console.log">quiteMode On</button>
 <button onclick="alert = alertCopy">quiteMode Off</button><br>
@@ -435,6 +435,7 @@
                 civs = scenario.civs;
                 RCHANCEMOD = scenario.rmod || RCHANCEMOD;
                 AGGRESSIVENESS = scenario.agr || AGGRESSIVENESS;
+                INCOMEMOD = scenario.imod || INCOMEMOD;
                 civOrders = Object.keys(civs).sort();
                 i = 0;
                 drawCanvas();
@@ -517,6 +518,7 @@ c:
 <button onclick="TIMEOUT_DELAY = Math.max(10, (parseInt(prompt('delay=', TIMEOUT_DELAY)) | 0) || TIMEOUT_DELAY || 150)">delay=</button>
 <button onclick="AGGRESSIVENESS = (parseFloat(prompt('AGGRESSIVENESS=', AGGRESSIVENESS))) || AGGRESSIVENESS || 0.5">AI aggrs.=</button>
 <button onclick="RCHANCEMOD = (parseFloat(prompt('RCHANCEMOD=', RCHANCEMOD))) || RCHANCEMOD || 1">Rebel mod=</button>
+<button onclick="INCOMEMOD = (parseFloat(prompt('INCOMEMOD=', INCOMEMOD))) || INCOMEMOD || 0.3">GDP mod=</button>
 <div id="heatmap" style="width: 700px;height: 700px">
 </div>
 <br>
@@ -537,6 +539,7 @@ c:
 <th role="columnheader" data-sort-method=number class="extra">emb</th>
 <th role="columnheader" data-sort-method=number>Urb.</th>
 <th role="columnheader" data-sort-method=number>Den.</th>
+<th role="columnheader" data-sort-method=number class="extra">imd</th>
 <th role="columnheader" data-sort-method=number class="extra">GDP/ca.</th>
 <th role="columnheader" data-sort-method=number class="extra">GDPGR RA</th>
 <th role="columnheader" data-sort-method=number>Dep.</th>
@@ -568,7 +571,7 @@ c:
 <h3>Power:</h3>
 <div id="pwrGraph" style="width: 800px;height: 600px"></div>
 <div style="clear: both;"><br></div>
-Build: pre-release 2024 (gov & persons, lot of mechanics bug fixes)<br>
+Build: pre-release 2024 (gov & persons, lot of mechanics bug fixes, high reserve penalty, AI trybuild overhaul, advanced stats)<br>
 Build: Jan, 2023 (econ & pop mod, climate, lz2, retention after building destroyed)<br>
 Build: pre-release, 2023 (migrants, AI war ally rework, econ restribution)<br>
 Build: Apr 16, 2022<br>

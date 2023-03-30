@@ -93,17 +93,17 @@ var AI = {
                 }
             if (!(civ.politic < 2 || civ.money < 50)) {
                 this.tryDefend(civ, civName, civ.money / (Math.ceil(Math.random() * 2)));
-                this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 7)), types.town, 35);
-                this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 5)), types.city, 85);
+                // this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 7)), types.town, 35);
+                this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 5)), types.city, 85, 0.1, 1);
                 if (civ.happiness > 60 && civ.income > Math.max(60, civ.ii * 2, (civ.expense) / 0.30)) // max 30% of budget
-                    this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 4)), types.school, 105);
-                this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 20)), types.fort, 25);
-                this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 5)), types.city, 85);
-                if (civ.happiness > 70)
-                    this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 3)), types.finance, 105);
+                    this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 4)), types.school, 105, -0.1, 2, Math.random() > 0.7);
+                this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 20)), types.fort, 25, -1, -1);
+                this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 5)), types.city, 85, 0.1, 1);
+                if (civ.happiness > 70 && (civ.urban < 65 || civ.ii < 70))
+                    this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 2)), types.finance, 105, 5, 1, true);
                 if (civ.ii < 100)
                     this.tryBuildLand(civ, civName, civ.money / (Math.floor(Math.random() * 9)));
-                this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 100)), types.gate, 5);
+                this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 100)), types.gate, 5, -1, -1);
                 this.tryDefend(civ, civName, civ.money / (Math.ceil(Math.random() * 2)));
                 if (civ.money > 0 && civ.deposit < civ.ii * civ.urban / 10) {
                     let maxdiff = Math.min(civ.ii * civ.urban / 10 - civ.deposit, civ.money / 2);
@@ -295,18 +295,25 @@ var AI = {
         }
 
     },
-    tryBuild: function(civ, civName, maxMoney, type, price) {
+    tryBuild: function(civ, civName, maxMoney, type, price, econMod=1, popMod=1, cityOveride=false) {
         var moneySpent = price;
+        let buildList = []; // [[row, col], ...]
         iterateMathRandom(function(row, col) {
-            if (Math.random() < 0.4)
+            if (Math.random() < 0.2)
                 return;
 
             var land = data[row][col];
 
-            if (moneySpent > maxMoney || price > civ.money || civ.money < 0)
-                return;
+            // if (moneySpent > maxMoney || price > civ.money || civ.money < 0)
+            //     return;
 
-            if (land && (!land.color || (land.type && land.color == civName && land.type.defend != types.capital.defend && land.type.defend != types.school.defend && land.type.defend != types.finance.defend && land.type.defend != types.city.defend))) {
+            if (land &&
+                (!land.color ||
+                    (land.type && land.color == civName
+                        && land.type.defend != types.capital.defend
+                        && land.type.defend != types.school.defend
+                        && land.type.defend != types.finance.defend
+                        && (cityOveride || land.type.defend != types.city.defend)))) {
                 if (land.type && land.color == civName && land.type.defend == types.fort.defend)
                     return;
                 var bool = false;
@@ -315,49 +322,70 @@ var AI = {
                 var neighbor = false;
                 getNeighbors(row, col, function(l2, r, c) {
                     getNeighbors(r, c, function(l) {
-                        if (Math.random() < 0.5)
+                        if (Math.random() < 0.8)
                             return;
                         if (l && l.color != civName)
                             built = true;
                         if (l && l.type && l.type.defend == types.land.defend && Math.random() > 0.70)
                             built = built;
-                        else if (l && l.type && l.type.defend != types.land.defend && l.type.defend != types.capital.defend && l.type.defend != types.finance.defend)
-                            built = civ.urban < 30 ? true : (civ.urban < 50 && (type == types.finance || (Math.random() > 0.6 && type == types.school)) ? Math.random() > 0.6 : true);
-                        if (l && l.type && l.type.defend == types.capital.defend)
-                            capital = true;
+                        else if (l?.type &&
+                            l.type.defend != types.land.defend &&
+                            l.type.defend != types.capital.defend &&
+                            l.type.defend != types.school.defend &&
+                            l.type.defend != types.finance.defend &&
+                            l.type.defend != types.fort.defend &&
+                            l.type.defend != types.gate.defend)
+                            built = civ.urban < 30 ?
+                                        true :
+                                        (civ.urban < 50 &&
+                                    (type == types.finance || (Math.random() > 0.6 && type == types.school) || l.type.defend == types.capital.defend) ?
+                                            Math.random() > 0.6 : true);
                     });
                     if (l2 && l2.color == civName) {
+                        if (l2 && l2.type && l2.type.defend == types.capital.defend)
+                            capital = built = true;
                         bool = true;
-                        if (l2.type && l2.type.defend != types.land.defend && l2.type.defend != types.capital.defend && l2.type.defend != types.school.defend)
-                            built = true;
+                        if (l2.type &&
+                            l2.type.defend != types.land.defend &&
+                            l2.type.defend != types.capital.defend &&
+                            l2.type.defend != types.school.defend)
+                            built = l2.type.defend == types.city.defend && cityOveride ? built : true;
                     } else if (l2 && l2.color != civName) {
                         neighbor = true;
                     }
                 });
                 if (neighbor && land.color == civName && type.defend == types.fort.defend && Math.random() > 0.6) {
-                    data[row][col] = {
-                        color: civName,
-                        type: type
-                    };
-                    if (land._oldcolor)
-                        data[row][col]._oldcolor = land._oldcolor;
-                    if (land._oct)
-                        data[row][col]._oct = land._oct;
-                    civ.money -= price;
-                    moneySpent += price;
+                    buildList.push([row, col]);
                 } else if (bool && !built && !capital) {
-                    data[row][col] = {
-                        color: civName,
-                        type: type
-                    };
-                    if (land._oldcolor)
-                        data[row][col]._oldcolor = land._oldcolor;
-                    if (land._oct)
-                        data[row][col]._oct = land._oct;
-                    civ.money -= price;
-                    moneySpent += price;
+                    buildList.push([row, col]);
                 }
             }
+        });
+
+        buildList.sort((a, b) =>
+            ((res_pop_mod(b[0], b[1]) * popMod) + (res_econ_mod(b[0], b[1]) * econMod) + Math.random() * 0.1) -
+            ((res_pop_mod(a[0], a[1]) * popMod) + (res_econ_mod(a[0], a[1]) * econMod) + Math.random() * 0.1)
+        ).forEach((x) => {
+            let currentUrban = civ._aicitycount / civ.ii * 100;
+            if (moneySpent > maxMoney || price > civ.money || civ.money < 0 ||
+                (Math.min(civ.incomesRA, civ.income) / 3 < (currentUrban - 55) * 10)) // max 30% to urban overflow
+                return;
+            civ._aicitycount++;
+
+            [row, col] = x;
+
+            const land = data[row][col];
+
+            data[row][col] = {
+                color: civName,
+                type: type
+            };
+            if (land._oldcolor)
+                data[row][col]._oldcolor = land._oldcolor;
+            if (land._oct)
+                data[row][col]._oct = land._oct;
+            civ.money -= price;
+            moneySpent += price;
         });
     },
     tryBuildLand: function(civ, civName, maxMoney) {
