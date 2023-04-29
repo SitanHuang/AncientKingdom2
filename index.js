@@ -741,7 +741,7 @@ endTurn = function () {
     if (civ.ii >= 2) {
         let rchance = (20 / Math.max(1, civ.happiness) - 0.1);
         rchance *= (1 + rchance);
-        rchance *= 0.0001 * (1 + civ.ii / data.length / data[0].length * 10) * (1 + civ.years / 100);
+        rchance *= 0.0001 * (1 + civ.ii / data.length / data[0].length * 10) * (1 + civ.years / 75);
         if (civ.ii < 200)
             rchance /= 10;
         if (civ.popchangeperc < 0)
@@ -759,6 +759,8 @@ endTurn = function () {
         if (civ.gov.cohesion < 1)
             rchance *= 1.2;
         if (civ.gov.cohesion < 0.9)
+            rchance *= 1.5;
+        if (civ.gov.cohesion < 0.85)
             rchance *= 1.5;
         civ.rchance = rchance > civ.rchance ? rchance : (civ.rchance || 0) * 0.3 + rchance * 0.7;
         civ.rchance *= 1 + (civ.gov.mods.ORBRD || 0);
@@ -787,8 +789,8 @@ endTurn = function () {
         console.log("## triggering rebellion for", civName);
         if (Math.random() < 0.7 && civ.birth) {
             let targetCiv = data[civ.birth[0]][civ.birth[1]].color;
-            push_msg(`Descendants of ${civName} are attempting an uprising in ${targetCiv}.`, [civName, targetCiv]);
-            popRebel(civName, targetCiv, civ.birth);
+            if (popRebel(civName, targetCiv, civ.birth))
+              push_msg(`Descendants of ${civName} are attempting an uprising in ${targetCiv}.`, [civName, targetCiv]);
         } else {
             delete civ.birth;
             popRebel(civName);
@@ -820,6 +822,12 @@ popRebel = function (civName, target, source) {
             if (++i >= choices.length)
                 i = 0;
         }
+    }
+    // really shouldn't be popping rebels due to descendants when rchance < 0.1%
+    // this allows for actual peace periods instead of non stop wars
+    // a good balance between 1 civ domination and multi
+    if (Math.random() >= civs[target].rchance * 1000) {
+      return false;
     }
     if (!source) {
         // find target city
