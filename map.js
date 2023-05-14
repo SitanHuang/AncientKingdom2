@@ -112,11 +112,9 @@ function findNearbyCitiesOfLargestCiv(source, color, target) {
                 }
         }
     }
-    let limit = Math.floor(cities.length * (Math.random() * 0.4 + 0.1));
-    if (civs[color].happiness < 80)
-      limit *= 1.1;
-    else if (civs[color].happiness < 50)
-      limit *= 1.1;
+    let limit = Math.floor(cities.length * (Math.random() * 0.2 + 0.1));
+    if (civs[color].happiness)
+      limit *= 1 + (1 - civs[color].happiness / 100) * 2;
     let count = 0;
     let capitals = [];
     cities.sort((x, y) => {

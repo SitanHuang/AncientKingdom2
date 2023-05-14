@@ -15,6 +15,8 @@
     <script charset="utf-8" src="d3.v4.js"></script>
     <script charset="utf-8" src="d3_timeseries.min.js"></script>
 
+    <script charset="utf-8" src="history_chart.js"></script>
+
     <script src="utils.js"></script>
 
     <script src="gov/names.data.js"></script>
@@ -28,6 +30,7 @@
     <script src="data.js"></script>
     <script src="map.js"></script>
     <script src="resources.js"></script>
+    <script src="dynasty.js"></script>
     <script src="canvas.js"></script>
     <script src="ai.js"></script>
     <script src="relationships.js"></script>
@@ -316,16 +319,16 @@
 <div id="takeControls">
 </div>
 <button onclick="download(prompt('File name', 'scenario') + '.json',
-    serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD}, {space: 0}))">Export</button>
-<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage</button>
-<button onclick="localStorage.back = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD}, {space: 0})">Save to localStorage</button>
-<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back2);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage2</button>
-<button onclick="localStorage.back2 = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD}, {space: 0})">Save to localStorage2</button>
+    serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0}))">Export</button>
+<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage</button>
+<button onclick="localStorage.back = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage</button>
+<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back2);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage2</button>
+<button onclick="localStorage.back2 = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage2</button>
 <input type="file" id="file"><br>
 <button onclick="alert = console.log">quiteMode On</button>
 <button onclick="alert = alertCopy">quiteMode Off</button><br>
 <button onclick="enableGraph = !enableGraph">toggle graphs</button>
-<button onclick="_populationData = [];_incomeData = [];_pwrData = [];">clear graphs</button>
+<button onclick="_populationData = [];_incomeData = [];_pwrData = [];_dynastyData = [[null, 0]];">clear graphs</button>
 <script>
     window.alertCopy = alert;
     function deposit() {
@@ -436,6 +439,7 @@
                 RCHANCEMOD = scenario.rmod || RCHANCEMOD;
                 AGGRESSIVENESS = scenario.agr || AGGRESSIVENESS;
                 INCOMEMOD = scenario.imod || INCOMEMOD;
+                MANDATE_THRESHOLD = scenario.mthre || MANDATE_THRESHOLD;
                 civOrders = Object.keys(civs).sort();
                 i = 0;
                 drawCanvas();
@@ -519,6 +523,7 @@ c:
 <button onclick="AGGRESSIVENESS = (parseFloat(prompt('AGGRESSIVENESS=', AGGRESSIVENESS))) || AGGRESSIVENESS || 0.5">AI aggrs.=</button>
 <button onclick="RCHANCEMOD = (parseFloat(prompt('RCHANCEMOD=', RCHANCEMOD))) || RCHANCEMOD || 1">Rebel mod=</button>
 <button onclick="INCOMEMOD = (parseFloat(prompt('INCOMEMOD=', INCOMEMOD))) || INCOMEMOD || 0.3">GDP mod=</button>
+<button onclick="MANDATE_THRESHOLD = (parseFloat(prompt('MANDATE_THRESHOLD=', MANDATE_THRESHOLD))) || MANDATE_THRESHOLD || 0.45">dyn. thre=</button>
 <div id="heatmap" style="width: 700px;height: 700px">
 </div>
 <br>
@@ -564,14 +569,12 @@ c:
 </table>
 <h3>Population:</h3>
 <div id="popGraph" style="width: 800px;height: 600px"></div>
-<div style="clear: both;"><br></div>
+<div id="hisGraph" style="width: 761px;height: 50px;margin-left: 30px;"></div>
 <h3>Income:</h3>
 <div id="incGraph" style="width: 800px;height: 600px"></div>
-<div style="clear: both;"><br></div>
 <h3>Power:</h3>
 <div id="pwrGraph" style="width: 800px;height: 600px"></div>
-<div style="clear: both;"><br></div>
-Build: pre-release 2024 (gov & persons, lot of mechanics bug fixes, high reserve penalty, AI trybuild overhaul, advanced stats)<br>
+Build: pre-release 2024 (gov & persons, lot of mechanics bug fixes, high reserve penalty, AI trybuild overhaul, advanced stats, dynasty mechanic, rebel size happiness relation)<br>
 Build: Jan, 2023 (econ & pop mod, climate, lz2, retention after building destroyed)<br>
 Build: pre-release, 2023 (migrants, AI war ally rework, econ restribution)<br>
 Build: Apr 16, 2022<br>

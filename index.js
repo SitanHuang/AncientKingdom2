@@ -731,6 +731,8 @@ endTurn = function () {
     averageData.income += civ.income;
     civ.logistics = 0;
 
+    dynasty_assign_candidate();
+
     if (civ.money < 0 || civ.deposit < 10) {
         gov_opinion_bankrupt(civ, civName, civ.gov);
     }
@@ -888,6 +890,8 @@ popRebel = function (civName, target, source) {
 
     civ.technology = Math.max(1, sum * (Math.random() * 0.4 + 0.5));
 
+    if (!civ.birth) return true;
+
     let b = civ.birth;
     b = data[b[0]][b[1]];
     if (b.color == civName && b.type.draw.toString() != types.capital.draw.toString()) {
@@ -970,6 +974,9 @@ let _populationData = [];
 let _incomeData = [];
 let _pwrData = [];
 let enableGraph = true;
+
+let hisChart = new HistoryChart('#hisGraph', 761, 25);
+
 prepareTurn = function () {
     buyClick = null;
     i++;
@@ -987,7 +994,12 @@ prepareTurn = function () {
         // console.log(average);
 
         if (enableGraph) {
-            let popObj = {date: new Date(-62167198164000 + 3.154e+10 * Math.floor(turn / civOrders.length) / 4), pop: 0};
+            const currentYear = Math.floor(turn / civOrders.length) / 4;
+            const timeFormat = (date) => {
+                return date.valueOf().toString();
+            };
+
+            let popObj = {date: currentYear, pop: 0};
             civOrders.forEach(x => {
                 let last = 0;
                 if (_populationData.length > 4)
@@ -1003,14 +1015,22 @@ prepareTurn = function () {
             $('#popGraph').html('');
             var pChart = d3_timeseries()
                 .width(800)
-                .height(600);
-            pChart = pChart.addSerie(_populationData,{x:'date',y:'pop'},{interpolate:'monotone', color: 'grey'});
+                .height(600)
+                .addSerie(_populationData, { x: 'date', y: 'pop' }, { interpolate: 'linear', color: 'grey' });
+            pChart.xscale.tickFormat(timeFormat);
             civOrders.forEach(x => {
-                pChart = pChart.addSerie(_populationData,{x:'date',y: x},{interpolate:'monotone', color: civs[x].color, width: 1});
+                pChart = pChart.addSerie(_populationData,{x:'date',y: x},{interpolate:'linear', color: civs[x].color, width: 1});
             });
             pChart('#popGraph');
 
-            let incObj = {date: new Date(-62167198164000 + 3.154e+10 * Math.floor(turn / civOrders.length) / 4), inc: 0};
+            let bbox = document.querySelector('#popGraph > svg > g').getBoundingClientRect();
+
+            hisChart.width = bbox.width;
+            document.querySelector('#hisGraph').style.marginLeft = bbox.x;
+            document.querySelector('#hisGraph').style.width = bbox.width;
+            hisChart.draw(_dynastyData, turn, _populationData[0].date * civOrders.length * 4);
+
+            let incObj = { date: currentYear, inc: 0};
             civOrders.forEach(x => {
                 let last = 0;
                 if (_incomeData.length > 10)
@@ -1026,14 +1046,15 @@ prepareTurn = function () {
             $('#incGraph').html('');
             var iChart = d3_timeseries()
                 .width(800)
-                .height(600);
-            iChart = iChart.addSerie(_incomeData,{x:'date',y:'inc'},{interpolate:'monotone', color: 'grey'});
+                .height(600)
+                .addSerie(_incomeData,{x:'date',y:'inc'},{interpolate:'linear', color: 'grey'});
+            iChart.xscale.tickFormat(timeFormat); 
             civOrders.forEach(x => {
-                iChart = iChart.addSerie(_incomeData,{x:'date',y: x},{interpolate:'monotone', color: civs[x].color, width: 1});
+                iChart = iChart.addSerie(_incomeData,{x:'date',y: x},{interpolate:'linear', color: civs[x].color, width: 1});
             });
             iChart('#incGraph');
 
-            let pwrObj = {date: new Date(-62167198164000 + 3.154e+10 * Math.floor(turn / civOrders.length) / 4), pwr: 0};
+            let pwrObj = { date: currentYear, pwr: 0};
             civOrders.forEach(x => {
                 let last = 0;
                 if (_pwrData.length > 10)
@@ -1050,8 +1071,9 @@ prepareTurn = function () {
             var wChart = d3_timeseries()
                 .width(800)
                 .height(600);
+            wChart.xscale.tickFormat(timeFormat); 
             civOrders.forEach(x => {
-                wChart = wChart.addSerie(_pwrData,{x:'date',y: x},{interpolate:'monotone', color: civs[x].color, width: 1});
+                wChart = wChart.addSerie(_pwrData,{x:'date',y: x},{interpolate:'linear', color: civs[x].color, width: 1});
             });
             wChart('#pwrGraph');
         }
@@ -1076,7 +1098,11 @@ prepareTurn = function () {
         drawCanvas();
     }
 
-    document.getElementById('year').innerText = 'Population: ' + (window.average && window.average.pop || 0) + `, GDP: ${Math.floor(window.average?.income)}M (${Math.floor(1000 * 1e6 * window.average?.income / window.average?.pop) / 1000} per capita)`  + ', Year: ' + (Math.floor(turn / civOrders.length) / 4);
+    document.getElementById('year').innerText =
+        'Population: ' + (window.average && window.average.pop || 0) +
+        `, GDP: ${Math.floor(window.average?.income)}M (${Math.floor(1000 * 1e6 * window.average?.income / window.average?.pop) / 1000} per capita)` +
+        ', Year: ' + (Math.floor(turn / civOrders.length) / 4) + 
+        ', Dynasty: ' + dynasty_get_mandate();
 
     if ($('#heatmap').css('display') != 'none') loadheatmap();
 };
@@ -1162,8 +1188,10 @@ refreshTable = function () {
 
         civ._oldpower2 = civ._oldpower1;
         civ._oldpower1 = civ.power;
-        tr.append(`<td>${civName}</td>`)
-        tr.append(`<td>${Math.round(civ.ii)}</td>`)
+        if (civ.mandate)
+            tr.css("font-weight", "bold");
+        tr.append(`<td>${civName}</td>`);
+        tr.append(`<td>${Math.round(civ.ii)}</td>`);
         tr.append(`<td class="extra">${civ._avgpm || ''}</td>`);
         tr.append(`<td class="extra">${civ._avgem || ''}</td>`);
         tr.append(`<td class="extra">${civ.pmb || ''}</td>`);
