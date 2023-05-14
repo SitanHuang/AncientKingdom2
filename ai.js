@@ -180,6 +180,9 @@ var AI = {
             warChance *= 0.8 * AGGRESSIVENESS;
             warChance *= 1 + (civ2.gov?.mods?.OFRHS || 0);
 
+            if (civ.mandate)
+                warChance *= 0.2;
+
             // if (((civ.income > civ2.income * 0.7 && civ.technology > civ2.technology + 1 && civ.income > 100 && civ.deposit > civ.income * 2) || civ.income > civ2.income) && civ.happiness >= 95 && Math.random() > 0.8) {
             if (Math.random() < warChance && civ.income > 100 &&
                 Math.random() < (Math.max(0.1, 1 - civ.ii / 700))) {
