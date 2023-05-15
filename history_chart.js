@@ -20,6 +20,7 @@ class HistoryChart {
       .style("background-color", "white")
       .style("border", "1px solid grey")
       .style("border-radius", "5px")
+      .style("white-space", "nowrap")
       .style("padding", "2px");
 
     let mouseover = function () {
@@ -29,7 +30,7 @@ class HistoryChart {
     let mousemove = function (text) {
       return function () {
         Tooltip
-          .text(text)
+          .html(text)
           .style("left", (d3.mouse(this)[0] + 15) + "px")
           .style("top", (d3.mouse(this)[1]) + "px")
       }
@@ -69,9 +70,12 @@ class HistoryChart {
                     .attr('fill', civs[y]?.color || 'white')
                     .attr('height', this.height);
       if (civs[y]) {
+        let y1 = Math.floor((x0 + min) / 4 / civOrders.length);
+        let y2 = Math.floor((x1 + min) / 4 / civOrders.length);
+        let label = `${y} <br> ${y1} - ${y2}, <br> ${y2 - y1} years`;
         rect
           .on("mouseover", mouseover)
-          .on("mousemove", mousemove(y))
+          .on("mousemove", mousemove(label))
           .on("mouseleave", mouseleave);
       }
     }
