@@ -5,7 +5,7 @@ INCOMEMOD = 0.3;
 ready = function () {
     drawCanvas();
 
-    $('canvas').bind('mousewheel', function (e) {
+    $('canvas').bind('wheel', function (e) {
         e.preventDefault();
         if (e.originalEvent.wheelDelta / 120 > 0) {
             BLOCK_SIZE++;
@@ -1048,7 +1048,7 @@ prepareTurn = function () {
                 .width(800)
                 .height(600)
                 .addSerie(_incomeData,{x:'date',y:'inc'},{interpolate:'linear', color: 'grey'});
-            iChart.xscale.tickFormat(timeFormat); 
+            iChart.xscale.tickFormat(timeFormat);
             civOrders.forEach(x => {
                 iChart = iChart.addSerie(_incomeData,{x:'date',y: x},{interpolate:'linear', color: civs[x].color, width: 1});
             });
@@ -1071,7 +1071,7 @@ prepareTurn = function () {
             var wChart = d3_timeseries()
                 .width(800)
                 .height(600);
-            wChart.xscale.tickFormat(timeFormat); 
+            wChart.xscale.tickFormat(timeFormat);
             civOrders.forEach(x => {
                 wChart = wChart.addSerie(_pwrData,{x:'date',y: x},{interpolate:'linear', color: civs[x].color, width: 1});
             });
@@ -1101,7 +1101,7 @@ prepareTurn = function () {
     document.getElementById('year').innerText =
         'Population: ' + (window.average && window.average.pop || 0) +
         `, GDP: ${Math.floor(window.average?.income)}M (${Math.floor(1000 * 1e6 * window.average?.income / window.average?.pop) / 1000} per capita)` +
-        ', Year: ' + (Math.floor(turn / civOrders.length) / 4) + 
+        ', Year: ' + (Math.floor(turn / civOrders.length) / 4) +
         ', Dynasty: ' + dynasty_get_mandate();
 
     if ($('#heatmap').css('display') != 'none') loadheatmap();
