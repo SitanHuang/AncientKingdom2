@@ -365,6 +365,7 @@ var AI = {
             }
         });
 
+        // TODO: should rebuild fallen cities to preserve population
         buildList.sort((a, b) =>
             ((res_pop_mod(b[0], b[1]) * popMod) + (res_econ_mod(b[0], b[1]) * econMod) + Math.random() * 0.1) -
             ((res_pop_mod(a[0], a[1]) * popMod) + (res_econ_mod(a[0], a[1]) * econMod) + Math.random() * 0.1)
@@ -381,8 +382,10 @@ var AI = {
 
             data[row][col] = {
                 color: civName,
-                type: type
+                type: type,
             };
+            if (land.pop > 10000)
+                data[row][col].pop = land.pop;
             if (land._oldcolor)
                 data[row][col]._oldcolor = land._oldcolor;
             if (land._oct)

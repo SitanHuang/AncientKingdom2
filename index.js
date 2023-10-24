@@ -82,8 +82,10 @@ buy = function (type, price) {
                 }
                 data[row][col] = {
                     color: civName,
-                    type: type
+                    type: type,
                 };
+                if (land.pop > 10000)
+                    data[row][col].pop = land.pop;
                 if (land._oldcolor)
                     data[row][col]._oldcolor = land._oldcolor;
                 if (land._oct)
