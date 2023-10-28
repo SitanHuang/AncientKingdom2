@@ -27,6 +27,8 @@ var AI = {
                     civ.inGatesDisallowed[cn] = (c2.nextDecline > civ.pop * 0.1) || (c2.pop > civ.pop * 2 && Math.random() > civ.happiness / 100);
                 } else if (civ.rchance > 0.05 / 100) {
                     civ.inGatesDisallowed[cn] = Math.random() > civ.happiness / 80;
+                } else if (civ.mandate && Math.random() < 0.9) {
+                    civ.inGatesDisallowed[cn] = true;
                 } else {
                     delete civ.inGatesDisallowed[cn];
                 }
