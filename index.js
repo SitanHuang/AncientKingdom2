@@ -710,7 +710,7 @@ endTurn = function () {
     civ.urban = Math.round(cityCount / ii * 10000) / 100;
     civ._aicitycount = cityCount;
     civ.cityCount = cityCount;
-    civ.govExp = (civ.ii / 900 + 0.2) * civ.ii + (civ.occupiedII / 400 + 0.3) * civ.occupiedII;
+    civ.govExp = (civ.ii / 700 + 0.2) * civ.ii + (civ.occupiedII / 50 + 0.5) * civ.occupiedII;
     civ.money = Math.round((civ.money - (civ.govExp)
       + (civ.deposit < 0 ? civ.deposit / 10 : 0)) * 100) / 100;
     civ.spentOnUrban = 0;
