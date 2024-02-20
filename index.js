@@ -1117,6 +1117,34 @@ prepareTurn = function () {
     if ($('#heatmap').css('display') != 'none') loadheatmap();
 };
 
+inspectWarRecs = function () {
+    $('#warchance-panel').show();
+
+    let civ = civs[civOrders[i]];
+    let civName = civOrders[i];
+
+    AI.calculateWarChances(civ, civName);
+
+    if (!window.tableSetup3) {
+        window.tableSetup3 = new Tablesort($('#warchanceTable')[0]);
+    }
+
+    var $table = $('#warchanceTable tbody');
+    $table.html('');
+    Object.keys(civ.neighbors)
+        .sort((a, b) => civ.neighbors[b] - civ.neighbors[a])
+        .forEach(function (civName) {
+            let civ2 = civs[civName];
+            let tr = $('<tr/>');
+            tr.css('background', civ2.color).css('color', civ2.fontColor);
+            tr.append(`<td>${civName}</td>`);
+            tr.append(`<td>${civ.neighbors[civName]}</td>`);
+            tr.append(`<td>${(civ._warChances[civName] * 100).toFixed(2)}</td>`);
+            $table.append(tr)
+        });
+    window.tableSetup3.refresh();
+};
+
 manageMigrants = function () {
     $('#migrants-panel').show();
     if (!window.tableSetup2) {

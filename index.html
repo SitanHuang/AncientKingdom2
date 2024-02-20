@@ -199,6 +199,7 @@
     <button onclick="tryDeclareWar()">Declare War</button>
     <button onclick="paintRelationships(civOrders[i])">Relationships</button>
     <button onclick="inspectForeignGov()">Inspect government</button>
+    <button onclick="inspectWarRecs()">War Recs</button>
     <button onclick="promptForAlliance(civOrders[i], prompt('Which nation?'))">Form Alliance</button>
     <button onclick="promptForPact(civOrders[i], prompt('Which nation?'))">Non-aggression pact</button>
     <button onclick="giveMoneyTo(civOrders[i], prompt('Which nation?'), parseInt(prompt('How much?', '0')));showInfo()">Send Money To</button>
@@ -265,6 +266,19 @@
             <th>Influence</th>
             <th>Successor score</th>
             <th class="action">Promote</th>
+        </thead>
+        <tbody>
+
+        </tbody>
+    </table>
+</div>
+<div id="warchance-panel" class="aux-panel">
+    <button onclick="$('#warchance-panel').hide()">hide menu</button>
+    <table id="warchanceTable">
+        <thead>
+        <th>Neighbor</th>
+        <th>Ports</th>
+        <th>War Recommendation</th>
         </thead>
         <tbody>
 

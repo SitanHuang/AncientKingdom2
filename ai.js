@@ -1,7 +1,6 @@
 AGGRESSIVENESS = 0.4;
 
 var AI = {
-    // TODO: if want leader to be same family, one advisor has to be royal
     think: function(civ, civName) {
         if (civ.ii < 2) return;
 
@@ -154,13 +153,8 @@ var AI = {
             research();
         }
     },
-    tryDefend: function(civ, civName, maxMoney) {
-        if (civ.ii / (data.length * data[0].length) > 0.5 && Math.random() < 0.9) {
-            return;
-        }
-        if (civ.ii / (data.length * data[0].length) > 0.07 && Math.random() < 0.5) {
-            return;
-        }
+    calculateWarChances: function(civ, civName) {
+        civ._warChances = {};
 
         for (let cn in civ.neighbors) {
             var civ2 = civs[cn];
@@ -195,6 +189,55 @@ var AI = {
 
             if (civ.mandate)
                 warChance *= 0.2;
+
+            civ._warChances[cn] = warChance;
+        }
+    },
+    tryDefend: function(civ, civName, maxMoney) {
+        if (civ.ii / (data.length * data[0].length) > 0.5 && Math.random() < 0.9) {
+            return;
+        }
+        if (civ.ii / (data.length * data[0].length) > 0.07 && Math.random() < 0.5) {
+            return;
+        }
+
+        civ._warChances = {};
+
+        for (let cn in civ.neighbors) {
+            var civ2 = civs[cn];
+            var alliance = false;
+
+            let warChance = 0;
+            if (civ.income > civ2.income)
+                warChance += Math.min(0.25, Math.max(0, civ.income / civ2.income / 10)) || 0;
+            if (civ.technology > civ2.technology)
+                warChance += Math.min(0.25, (civ.technology - civ2.technology) / civ2.technology) || 0;
+            if (civ.ii > civ2.ii)
+                warChance += Math.min(0.25, Math.max(0, civ.ii / civ2.ii / 10)) || 0;
+            if (civ.pop > civ2.pop)
+                warChance += Math.min(0.25, Math.max(0, civ.pop / civ2.pop / 10)) || 0;
+
+            if (warChance > 0.25) {
+                if (civ.em / civ.ii > civ2.em / civ2.ii)
+                    warChance *= 0.85;
+                else
+                    warChance *= 1.1;
+                if (civ.pm / civ.ii > civ2.pm / civ2.ii)
+                    warChance *= 0.85;
+                else
+                    warChance *= 1.1;
+            }
+
+            warChance *= Math.min(5, Math.max(0, (civ.deposit + civ.money) / (civ.ii * civ.urban / 10 * 2)));
+
+            warChance *= civ.happiness / 100 - 0.2;
+            warChance *= AGGRESSIVENESS;
+            warChance *= 1 + (civ2.gov?.mods?.OFRHS || 0);
+
+            if (civ.mandate)
+                warChance *= 0.2;
+
+            civ._warChances[cn] = warChance;
 
             // if (((civ.income > civ2.income * 0.7 && civ.technology > civ2.technology + 1 && civ.income > 100 && civ.deposit > civ.income * 2) || civ.income > civ2.income) && civ.happiness >= 95 && Math.random() > 0.8) {
             if (Math.random() < warChance && civ.income > 100 &&
