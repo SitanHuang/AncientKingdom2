@@ -297,6 +297,7 @@ endTurn = function () {
     civ.military = 0;
     civ.years = civ.years ? civ.years + 0.25 : 0.25;
     civ.technology = Math.max(Math.round(civ.technology * 1000) / 1000, 1);
+    civ.money = !Number.isFinite(civ.money) || Number.isNaN(civ.money) ? 0 : civ.money;
     let oldtech = civ.technology;
 
     const oldRealInc = (civ.income + 10) / (1 - (civ.imodDueToReserve || 0));
@@ -461,18 +462,18 @@ endTurn = function () {
                         d.type.draw.toString() == types.town.draw.toString() ||
                         d.type.draw.toString() == types.school.draw.toString() ||
                         d.type.draw.toString() == types.headquarter.draw.toString())) {
-                d.growth = d.pop < 20000 ? 1.004 : 1.00025;
-                nextDecline -= (d.pop < 20000 ? 0.004 : 0.00025) * d.pop * 0.10;
+                d.growth = d.pop < 50000 ? 1.015 : 1.0020;
+                nextDecline -= (d.pop < 50000 ? 0.015 : 0.0020) * d.pop * 0.10;
                 cityCount++;
             } else if (d && d.type.draw.toString() == types.finance.draw.toString()) {
-                d.growth = d.pop < 20000 ? 0.006 : 0.0005;
+                d.growth = d.pop < 50000 ? 0.025 : 0.0040;
                 d.growth *= 1 + (civ.gov.mods.EFNPG || 0);
                 d.growth += 1;
-                nextDecline -= (d.pop < 20000 ? 0.006 : 0.0005) * d.pop * 0.05;
+                nextDecline -= (d.pop < 50000 ? 0.025 : 0.0040) * d.pop * 0.05;
                 cityCount+=2;
             } else if (d && d.type.draw.toString() == types.capital.draw.toString()) {
-                d.growth = d.pop < 20000 ? 1.012 : 1.001;
-                nextDecline -= (d.pop < 20000 ? 0.012 : 0.0001) * d.pop * 0.01;
+                d.growth = d.pop < 50000 ? 1.030 : 1.005;
+                nextDecline -= (d.pop < 50000 ? 0.030 : 0.005) * d.pop * 0.01;
                 cityCount+=2;
             } else if (d && d.type.val > 0) {
                 // nextDecline += d.type.val * (civ.ii || 100);
@@ -488,7 +489,11 @@ endTurn = function () {
             }
 
             if ((!d.pop || d.pop < 1000) && d.growth > 1) {
-                d.pop = d.type.defend * 5000 * Math.random() * (res_pop_mod(row, col) + 0.3) * res_pop_mod(row, col);
+                // assign normal population on start of game
+                if (turn <= civOrders.length * 2)
+                    d.pop = d.type.defend * 5000 * Math.random() * (res_pop_mod(row, col) + 0.3) * res_pop_mod(row, col);
+                else
+                    d.pop = d.type.defend * 2500 * Math.random() * Math.pow(res_pop_mod(row, col), 2);
             }
             let urb = Math.max(1, civ.urban) || 10;
 
@@ -510,8 +515,10 @@ endTurn = function () {
             let delta = d.growth < 1 ? (d.growth - 1) * d.pop : (Math.max(0, d.growth - 1) * d.pop * (1 - d.pop / cap));
             if (delta > 0) {
                 delta *= res_pop_mod(row, col);
-                delta *= 1.3 * (Math.random() * 2.25 - 0.2);
-                delta += d.growth > 1 ? 1000 : 0;
+                delta *= Math.random() * 1.2 - 0.2;
+                delta += (d.growth > 1 ? 100 : 0) * res_pop_mod(row, col);
+            } else {
+                delta /= res_pop_mod(row, col);
             }
             // if (delta > 0)
             //    nextDecline -= delta / 10;
@@ -591,7 +598,8 @@ endTurn = function () {
             if (change > 0) {
                 if (d.growth >= 1) {
                     let nchange = change * Math.min(1500000, d.pop) / 200000 * Math.sqrt(res_econ_mod(row, col));
-                    nchange *= 1 + (civ.gov.mods.EGRVG || 0) - INCOMEMOD - imodDTR; // econ reduction factor
+                    // 2/20/24, adjusting for lower population, hence the 0.10
+                    nchange *= 1 + (civ.gov.mods.EGRVG || 0) - INCOMEMOD - imodDTR + 0.15; // econ reduction factor
                     d._econ = nchange;
                     civ.money -= change - nchange;
                     income += nchange;
@@ -710,7 +718,7 @@ endTurn = function () {
     civ.urban = Math.round(cityCount / ii * 10000) / 100;
     civ._aicitycount = cityCount;
     civ.cityCount = cityCount;
-    civ.govExp = (civ.ii / 700 + 0.2) * civ.ii + (civ.occupiedII / 50 + 0.5) * civ.occupiedII;
+    civ.govExp = (civ.ii / 850 + 0.17) * civ.ii + (civ.occupiedII / 50 + 0.5) * civ.occupiedII;
     civ.money = Math.round((civ.money - (civ.govExp)
       + (civ.deposit < 0 ? civ.deposit / 10 : 0)) * 100) / 100;
     civ.spentOnUrban = 0;

@@ -176,10 +176,21 @@ var AI = {
             if (civ.pop > civ2.pop)
                 warChance += Math.min(0.25, Math.max(0, civ.pop / civ2.pop / 10)) || 0;
 
+            if (warChance > 0.25) {
+                if (civ.em / civ.ii > civ2.em / civ2.ii)
+                    warChance *= 0.85;
+                else
+                    warChance *= 1.1;
+                if (civ.pm / civ.ii > civ2.pm / civ2.ii)
+                    warChance *= 0.85;
+                else
+                    warChance *= 1.1;
+            }
+
             warChance *= Math.min(5, Math.max(0, (civ.deposit + civ.money) / (civ.ii * civ.urban / 10 * 2)));
 
-            warChance *= civ.happiness / 100 - 0.3;
-            warChance *= 0.8 * AGGRESSIVENESS;
+            warChance *= civ.happiness / 100 - 0.2;
+            warChance *= AGGRESSIVENESS;
             warChance *= 1 + (civ2.gov?.mods?.OFRHS || 0);
 
             if (civ.mandate)
@@ -268,7 +279,7 @@ var AI = {
                         }
                         civ.logistics += m / 4;
                         civ.money -= m * 2;
-                        civ.nextDecline = (civ.nextDecline || 0) + Math.max(0, m * 500 * (1 + (civ.ii || 0) / 1000));
+                        civ.nextDecline = (civ.nextDecline || 0) + Math.max(0, m * 400 * (1 + (civ.ii || 0) / 1000));
                         civ.nextDecline = Math.min(civ.pop * 0.9 || 0, civ.nextDecline);
                         var result = move(civOrders[i], {
                             civ: civName,
