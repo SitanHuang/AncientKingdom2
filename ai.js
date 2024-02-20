@@ -27,7 +27,7 @@ var AI = {
                     civ.inGatesDisallowed[cn] = (c2.nextDecline > civ.pop * 0.1) || (c2.pop > civ.pop * 2 && Math.random() > civ.happiness / 100);
                 } else if (civ.rchance > 0.05 / 100) {
                     civ.inGatesDisallowed[cn] = Math.random() > civ.happiness / 80;
-                } else if (civ.mandate && Math.random() < 0.9) {
+                } else if (civ.mandate && Math.random() < 0.95) {
                     civ.inGatesDisallowed[cn] = true;
                 } else {
                     delete civ.inGatesDisallowed[cn];
@@ -69,7 +69,7 @@ var AI = {
                             if (isAtWar(civs[x], k) && !isAtWar(civ, x) && x != civName) {
                                 if (!isPeace(civ, x)) {
                                     if (((civs[x].ii * 0.5 < civ.ii || civs[x].income > civ.income) && Math.random() < 0.9) ||
-                                        Math.random() < 0.2)
+                                        Math.random() < 0.3)
                                         promptForAlliance(civName, x) || promptForPact(civName, x);
                                     else
                                         promptForPact(civName, x);
