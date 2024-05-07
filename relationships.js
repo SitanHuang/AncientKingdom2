@@ -1,4 +1,4 @@
-declareWar = function(civName1, civName2, ig, par, addYrs) {
+declareWar = function(civName1, civName2, ig, par, majorWar) {
     let civ1 = civs[civName1];
     let civ2 = civs[civName2];
     if ((civ1.war && civ1.war[civName2]) || (civ2.war && civ2.war[civName1]) || (ig ? false : Math.random() < 0.8))
@@ -15,26 +15,37 @@ declareWar = function(civName1, civName2, ig, par, addYrs) {
     civ2.politic = Math.max(1, civ2.politic - diff2);
     civ1.war = civ1.war ? civ1.war : {};
     civ2.war = civ2.war ? civ2.war : {};
-    civ2.war[civName1] = civ1.war[civName2] = 2 * (2 + Math.round(Math.random() * 10)) + 0.5 + (addYrs || 0);
+
+    // 10 politic = max 14 moves per turn; minor war = 10%, major war=80%
+
+    let maxII = Math.max(civ1.ii, civ2.ii) || 50;
+    let turnsForFullII = maxII / 10;
+
+    let turns = 1 + Math.round(Math.random() * 2) +
+        (Math.ceil(randn_bm() * turnsForFullII * 0.1)) +
+        Math.ceil((majorWar || 0) * (randn_bm() * turnsForFullII * 0.8));
+
+    civ2.war[civName1] = civ1.war[civName2] = turns + 0.5;
+
     if (!civ1.ai || !civ2.ai)
-        msg_alert(civName1 + " declared war on " + (civName2 + "(" + civ1.war[civName2] / 4) + " years) " + (par || ''), [civName1, civName2]);
+        msg_alert(civName1 + " declared " + (majorWar ? "major " : "") + "war on " + (civName2 + "(" + civ1.war[civName2] / 4) + " years) " + (par || ''), [civName1, civName2]);
     else
-        push_msg(civName1 + " declared war on " + (civName2 + "(" + civ1.war[civName2] / 4) + " years) " + (par || ''), [civName1, civName2]);
+        push_msg(civName1 + " declared " + (majorWar ? "major " : "") + "war on " + (civName2 + "(" + civ1.war[civName2] / 4) + " years) " + (par || ''), [civName1, civName2]);
     Object.getOwnPropertyNames(civ2.war).forEach(x=>{
         if (civ2.war[x] <= -4 && civs[x].ii > 0 && civ2.war[x] % 1 == 0) {
-            declareWar(civName1, x, true, par || `As a result between ${civName1} - ${civName2} war`);
+            declareWar(civName1, x, true, par || `As a result between ${civName1} - ${civName2} war`, majorWar);
         }
     }
     );
     Object.getOwnPropertyNames(civ1.war).forEach(x=>{
         if (civ1.war[x] <= -4 && civs[x].ii > 0 && civ1.war[x] % 1 == 0) {
-            declareWar(civName2, x, true, par || `As a result between ${civName1} - ${civName2} war`);
+            declareWar(civName2, x, true, par || `As a result between ${civName1} - ${civName2} war`, majorWar);
         }
     }
     );
     if ((!civ1.ai || !civ2.ai) && (civOrders[i] == civName1 || civOrders[i] == civName2))
         showInfo();
-    
+
     gov_opinion_aggressive_war(civ1, civName1, civ1.gov);
     gov_refresh(civ1, civName1);
     return true;
@@ -67,7 +78,7 @@ calculateYears = function(civ, civName) {
             //                 alert(`${civName} - ${x} War ended.`);
             //             }
             if (civ.war[x] >= -0.5 && (civ.war[x] <= 1 || civ.ii <= 2 || civ2.ii <= 2)) {
-                civ.war[x] = Math.round(-30 * 4 * Math.random()) - 5.5;
+                civ.war[x] = Math.round(-20 * 4 * Math.random()) - 5.5;
                 if (civ2 && civ2.war)
                     civ2.war[civName] = civ.war[x];
                 civ.rchance *= 0.8;
@@ -215,7 +226,7 @@ function promptForAlliance(civName, civName2) {
     }
 
     if (deal) {
-        push_msg(`${civName} and ${civName2} formed an alliance for ` + ((civ.war[civName2] = civ2.war[civName] = Math.round(-35 * 4 * Math.random()) - 5) / 4) + ' years', [civName, civName2]);
+        push_msg(`${civName} and ${civName2} formed an alliance for ` + ((civ.war[civName2] = civ2.war[civName] = Math.round(-20 * 4 * Math.random()) - 5) / 4) + ' years', [civName, civName2]);
         const odppc1 = 1 + (civ.gov?.mods?.ODPPC || 0);
         const odppc2 = 1 + (civ2.gov?.mods?.ODPPC || 0);
         civ.politic -= 5 * odppc1;
@@ -256,7 +267,7 @@ function promptForPact(civName, civName2) {
     }
 
     if (deal) {
-        push_msg(`${civName} and ${civName2} signed a non-aggression pact for ` + ((civ.war[civName2] = civ2.war[civName] = Math.round(-35 * 4 * Math.random()) - 6.5) / 4) + ' years', [civName, civName2]);
+        push_msg(`${civName} and ${civName2} signed a non-aggression pact for ` + ((civ.war[civName2] = civ2.war[civName] = Math.round(-20 * 4 * Math.random()) - 6.5) / 4) + ' years', [civName, civName2]);
         const odppc1 = 1 + (civ.gov?.mods?.ODPPC || 0);
         const odppc2 = 1 + (civ2.gov?.mods?.ODPPC || 0);
         civ.politic -= 5 * odppc1;

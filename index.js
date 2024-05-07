@@ -79,6 +79,9 @@ buy = function (type, price) {
                             };
                         }
                     })
+                } else if (!land.color) {
+                    alert('Land is not your territory.');
+                    return;
                 }
                 data[row][col] = {
                     color: civName,
@@ -135,6 +138,16 @@ tryDeclareWar = function () {
     if (!c2) return;
     let ii;
     for (ii = 0;ii < 1000 && !declareWar(civOrders[i], c2);ii++) ;
+    if (ii < 1000)
+        alert("Successful.");
+    else
+        alert("Failed.");
+};
+tryDeclareMajWar = function () {
+    let c2 = prompt("To who?");
+    if (!c2) return;
+    let ii;
+    for (ii = 0; ii < 1000 && !declareWar(civOrders[i], c2, undefined, undefined, 1.1); ii++);
     if (ii < 1000)
         alert("Successful.");
     else
@@ -892,7 +905,7 @@ popRebel = function (civName, target, source) {
     var sum = 0;
 
     if (Math.random() < 0.8)
-      declareWar(target, civName, true, `as a result of the ${civName} rebellion.`, 9)
+        declareWar(target, civName, true, `as a result of the ${civName} rebellion.`, 3 + 5*(civs[target].rchance || 0))
 
     civOrders.forEach(function (civN) {
         sum = Math.max(civs[civN].technology, sum);

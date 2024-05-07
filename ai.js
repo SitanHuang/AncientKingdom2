@@ -16,7 +16,7 @@ var AI = {
         if (civ.inGatesDisallowed && civ.neighbors) {
             for (let cn in civ.neighbors) {
                 let c2 = civs[cn];
-                if (civ.rchance > 1.25 / 100 || civ.happiness < 40) {
+                if (civ.rchance > 1.25 / 100 || civ.happiness < 40 || (civ.mandate && Math.random() < 0.90)) {
                     civ.inGatesDisallowed[cn] = true;
                 } else if (civ.rchance > 0.75 / 100 || civ.happiness < 50) {
                     civ.inGatesDisallowed[cn] = (c2.nextDecline > civ.pop * 0.005) || (c2.pop > civ.pop * 0.1 && Math.random() > civ.happiness / 100 / 4);
@@ -26,8 +26,6 @@ var AI = {
                     civ.inGatesDisallowed[cn] = (c2.nextDecline > civ.pop * 0.1) || (c2.pop > civ.pop * 2 && Math.random() > civ.happiness / 100);
                 } else if (civ.rchance > 0.05 / 100) {
                     civ.inGatesDisallowed[cn] = Math.random() > civ.happiness / 80;
-                } else if (civ.mandate && Math.random() < 0.95) {
-                    civ.inGatesDisallowed[cn] = true;
                 } else {
                     delete civ.inGatesDisallowed[cn];
                 }
@@ -235,14 +233,14 @@ var AI = {
             warChance *= 1 + (civ2.gov?.mods?.OFRHS || 0);
 
             if (civ.mandate)
-                warChance *= 0.2;
+                warChance *= 0.15;
 
             civ._warChances[cn] = warChance;
 
             // if (((civ.income > civ2.income * 0.7 && civ.technology > civ2.technology + 1 && civ.income > 100 && civ.deposit > civ.income * 2) || civ.income > civ2.income) && civ.happiness >= 95 && Math.random() > 0.8) {
             if (Math.random() < warChance && civ.income > 100 &&
                 Math.random() < (Math.max(0.1, 1 - civ.ii / 700))) {
-                if (!declareWar(civName, cn))
+                if (!declareWar(civName, cn, undefined, undefined, Math.random() < Math.sqrt(warChance) ? (1 + warChance) : 0))
                     return;
             } else if ((civ2.ii * 0.5 < civ.ii || civ2.income > civ.income) && Math.random() > 0.6)
                 alliance = true;
@@ -367,7 +365,7 @@ var AI = {
             //     return;
 
             if (land &&
-                (!land.color ||
+                (// !land.color || <- disallow building on unowned land
                     (land.type && land.color == civName
                         && land.type.defend != types.capital.defend
                         && land.type.defend != types.school.defend

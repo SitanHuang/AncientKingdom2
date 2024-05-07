@@ -196,13 +196,14 @@
     <button onclick="civs[civOrders[i]].ai = true">set AI</button>
     <button onclick="AI.think(civs[civOrders[i]], civOrders[i]);">AI think</button>
     <br>
-    <button onclick="tryDeclareWar()">Declare War</button>
+    <button onclick="tryDeclareWar()">War</button>
+    <button onclick="tryDeclareMajWar()">Major War</button>
     <button onclick="paintRelationships(civOrders[i])">Relationships</button>
     <button onclick="inspectForeignGov()">Inspect government</button>
     <button onclick="inspectWarRecs()">War Recs</button>
-    <button onclick="promptForAlliance(civOrders[i], prompt('Which nation?'))">Form Alliance</button>
+    <button onclick="promptForAlliance(civOrders[i], prompt('Which nation?'))">Alliance</button>
     <button onclick="promptForPact(civOrders[i], prompt('Which nation?'))">Non-aggression pact</button>
-    <button onclick="giveMoneyTo(civOrders[i], prompt('Which nation?'), parseInt(prompt('How much?', '0')));showInfo()">Send Money To</button>
+    <button onclick="giveMoneyTo(civOrders[i], prompt('Which nation?'), parseInt(prompt('How much?', '0')));showInfo()">Send Money</button>
     <br>
     <button onclick="deposit()">Deposit</button>
     <button onclick="withdraw()">Withdraw</button>
