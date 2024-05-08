@@ -333,6 +333,7 @@ endTurn = function () {
     civ._hapDec = 1;
     civ.inGatesDisallowed = civ.inGatesDisallowed || {};
     civ.outGate = civ.outGate === undefined ? true : civ.outGate;
+    civ._perished = 0;
 
     if (!civ.gov)
         gov_init(civ, civName);
@@ -793,6 +794,16 @@ endTurn = function () {
         civ.rchance = 0;
         civ.years = 0;
         civ.technology = 0;
+
+        if (civ.birth) {
+            let occupier = data[civ.birth[0]][civ.birth[1]]?.color;
+
+            if (occupier = civs[occupier]) {
+                // eternal unrest for perished civs
+                occupier.rchance = occupier.rchance * 1.05 + 0.0025;
+                occupier._perished++;
+            }
+        }
     }
 
     civ.rchance *= 1 + civ.rchance;
@@ -807,13 +818,14 @@ endTurn = function () {
     }
 
     // rebel pops: for perished civs
-    if (ii <= 2 && turn >= 10 * 4 * civOrders.length && (Math.random() < 0.001
+    if (ii <= 2 && turn >= 10 * 4 * civOrders.length && (Math.random() < 0.002
     // || (1 + turn) % (88 * 4 * civOrders.length) <= 14
     ) && civ.technology >= 0 && Math.random() < RCHANCEMOD) {
        // auto pick target
         console.log("## triggering rebellion for", civName);
         if (Math.random() < 0.7 && civ.birth) {
             let targetCiv = data[civ.birth[0]][civ.birth[1]].color;
+            targetCiv.rchance *= 100; // cause a cascade
             if (popRebel(civName, targetCiv, civ.birth))
               push_msg(`Descendants of ${civName} are attempting an uprising in ${targetCiv}.`, [civName, targetCiv]);
         } else {
@@ -832,19 +844,38 @@ endTurn = function () {
 // if civ doesnt have birth, will assign birth
 popRebel = function (civName, target, source) {
     if (!civName) {
-        if (!(civName = civOrders.filter(x => civs[x].ii <= 2 && civs[x].technology >= 0)[0]))
+        // need to find a rebel
+        let candidates = civOrders.filter(x => civs[x].ii <= 2 && civs[x].technology >= 0).sort(() => Math.random() - 0.5);
+
+        // find a perished civ inside target
+        for (let cn of candidates) {
+            if (civs[cn].birth && data[civs[cn].birth[0]][civs[cn].birth[1]]?.color == target) {
+                civName = cn;
+                break;
+            }
+        }
+
+        if (!civName && !(civName = candidates[0]))
             return false;
     }
     let civ = civs[civName];
     if (!target) {
         let choices = civOrders.filter(x => civs[x].ii >= 2).sort((a, b) => civs[b].ii - civs[a].ii);
+
+        let totChances = choices.reduce((prev, x) => prev + civs[x].rchance, 0);
+
+        let adjusted = choices.map(x => [x, Math.sqrt(civs[x].rchance / totChances)]);
+
+        if (!adjusted.length)
+            return false;
+
         let i = 0;
         while (!target) {
-            let chance = (20 / Math.max(1, civs[choices[i]].happiness) - 0.1);
-            console.log('Rebel ->', choices[i], chance);
+            let chance = adjusted[i][1];
+            console.log('Rebel ->', adjusted[i][0], chance);
             if (Math.random() < chance)
-                target = choices[i];
-            if (++i >= choices.length)
+                target = adjusted[i][0];
+            if (++i >= adjusted.length)
                 i = 0;
         }
     }
@@ -878,6 +909,13 @@ popRebel = function (civName, target, source) {
 
     // circle method (old)
     findNearbyCitiesOfLargestCiv(source, civName, target);
+
+    let targetBirth = civs[target].birth;
+
+    // old civ's birth is inside new nation -> need to remove birth so it
+    // doesn't cause eternal unrest in new nation
+    if (targetBirth && data[targetBirth[0]][targetBirth[1]]?.color == civName)
+        delete civs[target].birth;
 
     civs[target].happiness *= 0.6;
     civs[target].politic *= 0.4;

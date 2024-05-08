@@ -168,16 +168,16 @@ var AI = {
             if (civ.pop > civ2.pop)
                 warChance += Math.min(0.25, Math.max(0, civ.pop / civ2.pop / 10)) || 0;
 
-            if (warChance > 0.25) {
-                if (civ.em / civ.ii > civ2.em / civ2.ii)
-                    warChance *= 0.85;
-                else
-                    warChance *= 1.1;
-                if (civ.pm / civ.ii > civ2.pm / civ2.ii)
-                    warChance *= 0.85;
-                else
-                    warChance *= 1.1;
-            }
+            // if (warChance > 0.25) {
+            if (civ.em / civ.ii > civ2.em / civ2.ii)
+                warChance *= 0.80;
+            else
+                warChance *= 1.2;
+            if (civ.pm / civ.ii > civ2.pm / civ2.ii)
+                warChance *= 0.35;
+            else
+                warChance *= 1.5;
+            // }
 
             warChance *= Math.min(5, Math.max(0, (civ.deposit + civ.money) / (civ.ii * civ.urban / 10 * 2)));
 
@@ -215,16 +215,16 @@ var AI = {
             if (civ.pop > civ2.pop)
                 warChance += Math.min(0.25, Math.max(0, civ.pop / civ2.pop / 10)) || 0;
 
-            if (warChance > 0.25) {
-                if (civ.em / civ.ii > civ2.em / civ2.ii)
-                    warChance *= 0.85;
-                else
-                    warChance *= 1.1;
-                if (civ.pm / civ.ii > civ2.pm / civ2.ii)
-                    warChance *= 0.85;
-                else
-                    warChance *= 1.1;
-            }
+            // if (warChance > 0.25) {
+            if (civ.em / civ.ii > civ2.em / civ2.ii)
+                warChance *= 0.80;
+            else
+                warChance *= 1.2;
+            if (civ.pm / civ.ii > civ2.pm / civ2.ii)
+                warChance *= 0.35;
+            else
+                warChance *= 1.5;
+            // }
 
             warChance *= Math.min(5, Math.max(0, (civ.deposit + civ.money) / (civ.ii * civ.urban / 10 * 2)));
 
