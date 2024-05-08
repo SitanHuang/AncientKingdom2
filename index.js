@@ -818,7 +818,7 @@ endTurn = function () {
     }
 
     // rebel pops: for perished civs
-    if (ii <= 2 && turn >= 10 * 4 * civOrders.length && (Math.random() < 0.002
+    if (ii <= 2 && turn >= 10 * 4 * civOrders.length && (Math.random() < 0.0012
     // || (1 + turn) % (88 * 4 * civOrders.length) <= 14
     ) && civ.technology >= 0 && Math.random() < RCHANCEMOD) {
        // auto pick target
@@ -871,7 +871,7 @@ popRebel = function (civName, target, source) {
 
         let i = 0;
         while (!target) {
-            let chance = adjusted[i][1];
+            let chance = (adjusted[i][1] += 0.1);
             console.log('Rebel ->', adjusted[i][0], chance);
             if (Math.random() < chance)
                 target = adjusted[i][0];
