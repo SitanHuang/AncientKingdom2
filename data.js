@@ -115,6 +115,8 @@ var types = {
     school: {
         defend: 16,
         income: function (civ) {
+            if (civ.money <= 0 || civ.politic <= 0) return;
+
             civ.politic -= randn_bm();
             civ.money -= randn_bm() * 30;
             civ.technology += Math.max(0.60 - civ.ii / data.length / data[0].length, 0.05) / 5;
@@ -155,7 +157,7 @@ var types = {
     },
     gate: {
         income: function (civ) {
-            civ.politic += randn_bm() / 65;
+            civ.politic += randn_bm() / 20;
             civ.money += randn_bm();
         },
         draw: function (x, y) {

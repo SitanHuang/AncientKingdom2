@@ -611,7 +611,7 @@ endTurn = function () {
 
             if (change > 0) {
                 if (d.growth >= 1) {
-                    let nchange = change * Math.min(1500000, d.pop) / 200000 * Math.sqrt(res_econ_mod(row, col));
+                    let nchange = change * Math.max(Math.min(1500000, d.pop), 1000) / 200000 * Math.sqrt(res_econ_mod(row, col));
                     // 2/20/24, adjusting for lower population, hence the 0.10
                     nchange *= 1 + (civ.gov.mods.EGRVG || 0) - INCOMEMOD - imodDTR + 0.15; // econ reduction factor
                     d._econ = nchange;

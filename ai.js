@@ -78,10 +78,10 @@ var AI = {
                                 }
                             }
                             if (isAlliance(civ, k) && isAlliance(civs[x], k) && !isAlliance(civ, x) && !isAtWar(civ, x)) {
-                                if (((civs[x].income > civ.income * 0.7) && Math.random() < 0.2) ||
+                                if (((civs[x].income > civ.income * 0.7) && Math.random() < 0.3) ||
                                     Math.random() < 0.1 ||
                                     (civs[x].income > civ.income * 0.5 && civs[x].ii > civ.ii * 0.5 &&
-                                     civs[k].income > civ.income * 0.8 && civs[k].ii > civ.ii * 0.8 && Math.random() < 0.6))
+                                     civs[k].income > civ.income * 0.8 && civs[k].ii > civ.ii * 0.8 && Math.random() < 0.7))
                                     promptForAlliance(civName, x) || promptForPact(civName, x);
                                 else
                                     promptForPact(civName, x);
@@ -94,10 +94,10 @@ var AI = {
                 this.tryDefend(civ, civName, civ.money / (Math.ceil(Math.random() * 2)));
                 // this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 7)), types.town, 35);
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 5)), types.city, 85, 0.1, 1);
-                if (civ.happiness > 60 && civ.income > Math.max(60, civ.ii * 2, (civ.expense) / 0.30)) // max 30% of budget
-                    this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 4)), types.school, 105, -0.1, 2, Math.random() > 0.7);
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 20)), types.fort, 25, -1, -1);
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 5)), types.city, 85, 0.1, 1);
+                if (civ.happiness > 60 && civ.income > Math.max(60, civ.ii * 2, (civ.expense) / 0.30)) // max 30% of budget
+                    this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 8)), types.school, 105, -0.1, 2, Math.random() > 0.7);
                 if (civ.happiness > 70 && (civ.urban < 65 || civ.ii < 70))
                     this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 2)), types.finance, 105, 5, 1, true);
                 if (civ.ii < 100)
