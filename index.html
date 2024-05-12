@@ -19,6 +19,7 @@
     <script charset="utf-8" src="history_chart.js"></script>
 
     <script src="utils.js"></script>
+    <script src="colorScale.js"></script>
 
     <script src="gov/names.data.js"></script>
     <script src="gov/persons.js"></script>
@@ -31,6 +32,7 @@
     <script src="data.js"></script>
     <script src="map.js"></script>
     <script src="resources.js"></script>
+    <script src="regions.js"></script>
     <script src="dynasty.js"></script>
     <script src="canvas.js"></script>
     <script src="ai.js"></script>
@@ -545,6 +547,7 @@ c:
 <br>
 <button onclick="gp=!gp;drawCanvas()">Population</button>
 <button onclick="ge=!ge;drawCanvas()">Economy</button>
+<button onclick="gte=!gte;drawCanvas()">Tax Eff</button>
 <button onclick="gpm=!gpm;drawCanvas()">Pop Mod</button>
 <button onclick="gem=!gem;drawCanvas()">Econ Mod</button>
 <button onclick="gpem=!gpem;drawCanvas()">Econ * Pop</button>
@@ -558,6 +561,7 @@ c:
 <th role="columnheader" data-sort-method=number class="extra">em</th>
 <th role="columnheader" data-sort-method=number class="extra">pmb</th>
 <th role="columnheader" data-sort-method=number class="extra">emb</th>
+<th role="columnheader" data-sort-method=number class="extra">teb</th>
 <th role="columnheader" data-sort-method=number>Urb.</th>
 <th role="columnheader" data-sort-method=number>Den.</th>
 <th role="columnheader" data-sort-method=number class="extra">imd</th>
@@ -590,6 +594,7 @@ c:
 <div id="incGraph" style="width: 800px;height: 600px"></div>
 <h3>Power:</h3>
 <div id="pwrGraph" style="width: 800px;height: 600px"></div>
+Build: pre-release, 2025 (regional supplies & tax efficiencies)<br>
 Build: May, 2024 (smart war length, rebel rework, disallow build on empty color, popgrowth changes, preserve pop on build, income fixes, schools close on 0 money and politic)<br>
 Build: pre-release 2024 (gov & persons, lot of mechanics bug fixes, high reserve penalty, AI trybuild overhaul, advanced stats, dynasty mechanic, rebel size happiness relation)<br>
 Build: Jan, 2023 (econ & pop mod, climate, lz2, retention after building destroyed)<br>

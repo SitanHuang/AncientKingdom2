@@ -413,6 +413,8 @@ endTurn = function () {
     civ.em = 0;
     civ.pmb = 0;
     civ.emb = 0;
+    civ.teb = 0;
+    let tebi = 0;
     let pmbi = 0;
     let embi = 0;
 
@@ -614,6 +616,12 @@ endTurn = function () {
                     let nchange = change * Math.max(Math.min(1500000, d.pop), 1000) / 200000 * Math.sqrt(res_econ_mod(row, col));
                     // 2/20/24, adjusting for lower population, hence the 0.10
                     nchange *= 1 + (civ.gov.mods.EGRVG || 0) - INCOMEMOD - imodDTR + 0.15; // econ reduction factor
+
+                    const taxEff = regions_taxEff(civ, civName, row, col);
+                    tebi += nchange;
+                    nchange *= taxEff; // tax efficiency
+                    civ.teb += nchange;
+
                     d._econ = nchange;
                     civ.money -= change - nchange;
                     income += nchange;
@@ -658,6 +666,9 @@ endTurn = function () {
             }
         }
     });
+
+    civ._parts && ++civ._parts.lastUpdated; // update yearly parts cache counter
+
     // for (var row = 0; row < data.length; row++) {
     //     var rowData = data[row];
     //     for (var col = 0; col < rowData.length; col++) {
@@ -693,6 +704,8 @@ endTurn = function () {
         civ.pmb = Math.round(civ.pmb / (pmbi) * 100) / 100;
     if (embi)
         civ.emb = Math.round(civ.emb / (embi) * 100) / 100;
+    if (tebi)
+        civ.teb = Math.round(civ.teb / (tebi) * 100) / 100;
 
     max_pop_country = 0;
     max_econ_country = 0;
@@ -1002,7 +1015,7 @@ showInfo = function () {
                     `Legitimacy: ${Math.round(civ.gov?.cohesion * 10000) / 100}\n` +
                     "Population: " + civ.pop + ` (+${civ.popchange}, +${civ.popchangeperc}%, 4-turn RA=+${civ.popchangepercRA}%)\n` +
                     "Military(Until last turn): " + civ.military + "\n" +
-                    `Happiness: ${Math.round(civ.happiness * 100) / 100} % (Rebellion chance: ${Math.round(civ.rchance * 100000) / 1000}%; x${Math.round((civ._hapDec) * 100) / 100} from unnatural deaths)\n` +
+                    `Happiness: ${Math.round(civ.happiness * 100) / 100} % (Rebellion chance: ${Math.round(civ.rchance * 100000) / 1000}%; x${Math.round((civ._hapDec) * 100) / 100} from unnatural deaths; ${civ._perished || 0} rebel movements)\n` +
                     "Urbanization: " + civ.urban + "% (" + civ.cityCount + ")\n" +
                     `Migrants: ${civ.migrantsOutTotal} total displaced, ${civ.migrantsOutSuccessful} migrated out, ${civ.migrantsIn} in; net=${civ.migrantsIn - civ.migrantsOutSuccessful} <button onclick="manageMigrants()">Manage</button>\n` +
                     "==Statistics==\n" +
@@ -1285,6 +1298,7 @@ refreshTable = function () {
         tr.append(`<td class="extra">${civ._avgem || ''}</td>`);
         tr.append(`<td class="extra">${civ.pmb || ''}</td>`);
         tr.append(`<td class="extra">${civ.emb || ''}</td>`);
+        tr.append(`<td class="extra">${civ.teb || ''}</td>`);
         tr.append(`<td>${Math.round(civ.urban * 100) / 100 || ''}</td>`)
         tr.append(`<td>${Math.round(civ.pop / civ.ii) || ''}</td>`)
         tr.append(`<td class="extra">${Math.round(civ.imodDueToReserve * 100) || ''}</td>`)

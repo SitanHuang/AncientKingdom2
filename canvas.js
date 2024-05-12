@@ -202,6 +202,7 @@ function median(values){
 
 gp=0;
 ge=0;
+gte=0;
 gpm=0;
 gem=0;
 gpem=0;
@@ -235,6 +236,17 @@ function drawCanvas(compare, relationship, pop) {
             if (d == null) {
                 context.fillStyle = "rgba(80, 100, 125,1)";
                 context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE,  (BLOCK_SIZE + 1),  (BLOCK_SIZE + 1));
+            } else if (d.color && gte) {
+                let p = (g_bycountry ? civs[d.color]?.teb : regions_taxEff(civs[d.color], d.color, row, col)) || 0;
+                let max = 1;
+                context.fillStyle = redYellowBlueScale(p / max, 0.7);
+                context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                if (!g_bycountry) {
+                    context.font = BLOCK_SIZE / 2 + "px 'Roboto Mono'";
+                    context.fillStyle = 'black';
+                    context.fillText(Math.round(p * 10) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
+                }
+                continue;
             } else if (gpm) {
                 let p = ((g_bycountry ? civs[d.color]?._avgpm : res_pop_mod(row, col)) - 0.7) || 0;
                 let max = g_bycountry ? max_avg_pm_country - 0.7 : (1.8 - 0.5);
@@ -574,4 +586,3 @@ function onClick(row, col) {
 
     drawCanvas()
 }
-
