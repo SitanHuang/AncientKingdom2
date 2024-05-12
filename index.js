@@ -165,10 +165,24 @@ move = function (cn1, pickedUp, p2, ai) {
     var c1 = civs[cn1];
     var c2 = civs[cn2];
 
+    const l2DefMod = regions_defBonus(c2, cn2, row2, col2);
+
     var type = $.extend(true, {}, types.military);
     type.val = pickedUp.type.val;
 
     var result = [type.val, 0];
+
+    var t1 = c1.technology;
+    var t2 = c2.technology;
+
+    t1 *= 1 + (c1.gov?.mods?.MCCCT || 0);
+    t2 *= 1 + (c2.gov?.mods?.MCCCT || 0);
+    t2 *= l2DefMod;
+
+    if (l2._oldcolor == cn1) // if taking own territory back
+        t1 = t1 * 1.50;
+    else
+        t1 = t1 * 0.75;
 
     if (cn1 == cn2) {
         if (data[row2][col2].type.val)
@@ -181,21 +195,10 @@ move = function (cn1, pickedUp, p2, ai) {
         data[row2][col2].type = type;
         data[row2][col2].color = cn1;
     } else if (typeof l2.type.val == 'undefined') {
-        result = battle(pickedUp.type.val, l2.type.defend, c1.technology, c2.technology);
+        result = battle(pickedUp.type.val, l2.type.defend, t1, t2);
     } else {
         var m1 = pickedUp.type.val;
         var m2 = l2.type.val / 2;
-
-        var t1 = c1.technology;
-        var t2 = c2.technology;
-
-        t1 *= 1 + (c1.gov?.mods?.MCCCT || 0);
-        t2 *= 1 + (c2.gov?.mods?.MCCCT || 0);
-
-        if (l2._oldcolor == cn1) // if taking own territory back
-            t1 = t1 * 1.50;
-        else
-            t1 = t1 * 0.75;
 
         var eM1 = m1 * t1;
         var eM2 = m2 * t2;
@@ -632,7 +635,10 @@ endTurn = function () {
                     d._econ = change;
                 }
                 max_econ = Math.max(max_econ, d._econ);
-            } else expense -= change;
+            } else {
+                d._exp = -change;
+                expense -= change;
+            }
 
             change = civ.technology - _oldtech;
             if (change > 0) {

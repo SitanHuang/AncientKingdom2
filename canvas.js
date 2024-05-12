@@ -203,6 +203,7 @@ function median(values){
 gp=0;
 ge=0;
 gte=0;
+gdef=0;
 gpm=0;
 gem=0;
 gpem=0;
@@ -246,6 +247,15 @@ function drawCanvas(compare, relationship, pop) {
                     context.fillStyle = 'black';
                     context.fillText(Math.round(p * 10) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
                 }
+                continue;
+            } else if (d.color && gdef) {
+                let p = regions_defBonus(civs[d.color], d.color, row, col) || 0;
+                let max = 1.5;
+                context.fillStyle = redYellowBlueScale(p / max, 0.5 / 1.5);
+                context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                context.font = BLOCK_SIZE / 2 + "px 'Roboto Mono'";
+                context.fillStyle = 'black';
+                context.fillText(Math.round(p * 10) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
                 continue;
             } else if (gpm) {
                 let p = ((g_bycountry ? civs[d.color]?._avgpm : res_pop_mod(row, col)) - 0.7) || 0;

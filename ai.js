@@ -111,12 +111,41 @@ var AI = {
                 }
             }
         } else {
+            // we're in bankrupt
+            if (civ.money < 0 && civ.newMoney < civ.oldMoney && civ.gov?.cohesion < 0.15)
+                this.tryFixBankrupt(civ, civName);
+
             while (civ.deposit > 150) {
                 civ.money += civ.deposit / 10;
                 civ.deposit -= civ.deposit / 10;
             }
             this.tryDefend(civ, civName, civ.money);
         }
+    },
+    tryFixBankrupt: function(civ, civName) {
+        if (!civ._parts?.map) return;
+
+        let deficit = civ.oldMoney - civ.newMoney;
+
+        let toRemove = Object.keys(civ._parts.map).map(x => {
+            const pos = _regions_parseKey(x);
+            return [pos[0], pos[1], data[pos[0]][pos[1]]];
+        }).filter(x => {
+            return x[2]._exp > 0;
+        }).sort((a, b) => (a[2].pop - b[2].pop) || (b[2]._exp - a[2]._exp));
+
+        let totFixed = 0;
+        let totRemoved = 0;
+        for (let x of toRemove) {
+            deficit -= x[2]._exp;
+            totFixed += x[2]._exp;
+            totRemoved++;
+            x[2].type = types.land;
+            if (deficit < 0)
+                break;
+        }
+
+        console.log("AI: Fix bankrupt for ", civName, "removed", totRemoved, "buildings worth expenses $", totFixed);
     },
     // one promotion at a time
     handleGov: function(civ, civName) {

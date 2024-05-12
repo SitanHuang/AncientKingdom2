@@ -7,7 +7,7 @@ function gov_opinion_aggressive_war(civ, civName, gov) {
       x.mods.MMVCT < 0 ||
       x.mods.MCCCT > 0
     ),
-    0.07
+    0.25
   );
 
   // foreign experts opinion decreases

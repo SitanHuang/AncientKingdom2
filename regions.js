@@ -7,11 +7,6 @@ function regions_taxEff(civ, civName, row, col) {
 
   let eff = part.capital == 1 ? 1 : (Math.max(Math.min(part.pop / civ.pop, 1), 0.15) || 0); // region supply factor
 
-  eff *= Math.min(1, Math.sqrt(res_pop_mod(row, col) * res_econ_mod(row, col))); // terrain factor
-
-  eff *= 1 - (civ.rchance || 0); // rebel factor
-  eff *= Math.max(0.65, civ.gov?.cohesion || 0); // gov legitmacy factor
-
   const hub = parts.supplyCenter;
 
   // radial factor from capital
@@ -20,8 +15,15 @@ function regions_taxEff(civ, civName, row, col) {
     Math.pow(hub[1] - col, 2)
   );
 
-
   eff *= (Math.pow(0.95, r * 0.7 - 2) + 0.2) || 1;
+
+
+  eff *= Math.min(1, Math.sqrt(res_pop_mod(row, col) * res_econ_mod(row, col))); // terrain factor
+
+  if (r > 2) {
+    eff *= 1 - (civ.rchance || 0); // rebel factor
+    eff *= Math.max(0.65, civ.gov?.cohesion || 0); // gov legitmacy factor
+  }
 
   return eff;
 }
@@ -29,18 +31,22 @@ function regions_taxEff(civ, civName, row, col) {
 function regions_defBonus(civ, civName, row, col) {
   let def = 1;
 
-  def *= Math.regions_taxEff(civ, civName, row, col);
+  def *= regions_taxEff(civ, civName, row, col);
 
   def *= Math.max(1, 2 - res_pop_mod(row, col));
 
   def *= Math.max(1, data[row][col]?.pop / 250000) || 1;
 
-  return def;
+  return Math.min(Math.max(def, 0.1), 5);
 }
 
 function regions_getPart(civ, civName, row, col) {
   const parts = regions_genCountryParts(civ, civName);
   return parts.parts[parts.map[row + ':' + col]];
+}
+
+function _regions_parseKey(key) {
+  return key.split(':').map(Number);
 }
 
 // allows future expansion into regions with independent policies by limiting
@@ -66,18 +72,13 @@ function regions_genCountryParts(civ, civName) {
     }
   }
 
-  // flood fill parts
-  function parseKey(key) {
-    return key.split(':').map(Number);
-  }
-
   function getAdjacentTiles(r, c) {
     return [
       `${r - 1}:${c}`, `${r + 1}:${c}`,
       `${r}:${c - 1}`, `${r}:${c + 1}`,
-      // use 8x for performance and minimal regions
-      `${r - 1}:${c - 1}`, `${r + 1}:${c + 1}`,
-      `${r + 1}:${c - 1}`, `${r - 1}:${c + 1}`,
+      // // use 8x for performance and minimal regions
+      // `${r - 1}:${c - 1}`, `${r + 1}:${c + 1}`,
+      // `${r + 1}:${c - 1}`, `${r - 1}:${c + 1}`,
     ];
   }
 
@@ -95,7 +96,7 @@ function regions_genCountryParts(civ, civName) {
       if (civProvs[currentKey] !== -1) // visited or doesn't exist
         continue;
 
-      const parsedKey = parseKey(currentKey);
+      const parsedKey = _regions_parseKey(currentKey);
 
       civProvs[currentKey] = regionID; // mark as visited & use for region mapping
       region.push(parsedKey);
