@@ -40,6 +40,7 @@ function gov_opinion_disaster(civ, civName, gov) {
 }
 
 // deposit/money < 0
+// ->>>>> CAREFUL ai relies on legit < threshold to start fixing bankruptcy
 function gov_opinion_bankrupt(civ, civName, gov) {
   const isAtWar = Object.values(civ.war || {}).filter(x => x > 0).length;
   if (civ.income < 100 || isAtWar || isNaN(civ.money) || isNaN(civ.deposit) || civ.newMoney > civ.oldMoney)

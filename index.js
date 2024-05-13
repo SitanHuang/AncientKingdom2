@@ -276,7 +276,7 @@ move = function (cn1, pickedUp, p2, ai) {
               c1.happiness *= rate;
               c1._hapDec *= rate;
             }
-            if (((c2.money < -50 || c2.politic < 0) && Math.random() < Math.min(1, 1 - c2.happiness / 100) * 0.3
+            if (((c2.money + c2.deposit < -100 || c2.politic < 0) && Math.random() < Math.min(1, 1 - c2.happiness / 100) * 0.3
                 && c2.ii < 150 && c2.military < 50 && c2.deposit + c2.money < (c2.ii * c2.urban / 10) * 0.6) ||
                 (ddffeend == types.capital.draw.toString() && Math.random() < 0.1)) {
                 for (var row = 0; row < data.length; row++) {
@@ -751,7 +751,8 @@ endTurn = function () {
     civ.urban = Math.round(cityCount / ii * 10000) / 100;
     civ._aicitycount = cityCount;
     civ.cityCount = cityCount;
-    civ.govExp = (civ.ii / 850 + 0.17) * civ.ii + (civ.occupiedII / 50 + 0.5) * civ.occupiedII;
+    // this shouldn't be too non-linear due to tax eff factoring radius (5/12/2024)
+    civ.govExp = (civ.ii / 2000 + 0.17) * civ.ii + (civ.occupiedII / 40 + 0.5) * civ.occupiedII;
     civ.money = Math.round((civ.money - (civ.govExp)
       + (civ.deposit < 0 ? civ.deposit / 10 : 0)) * 100) / 100;
     civ.spentOnUrban = 0;

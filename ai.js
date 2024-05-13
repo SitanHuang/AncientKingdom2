@@ -96,8 +96,8 @@ var AI = {
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 5)), types.city, 85, 0.1, 1);
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 20)), types.fort, 25, -1, -1);
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 5)), types.city, 85, 0.1, 1);
-                if (civ.happiness > 60 && civ.income > Math.max(60, civ.ii * 2, (civ.expense) / 0.30)) // max 30% of budget
-                    this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 8)), types.school, 105, -0.1, 2, Math.random() > 0.7);
+                if (civ.happiness > 60 && civ.income > Math.max(60, civ.ii * 2, (civ.expense) / 0.40)) // max 40% of budget
+                    this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 2)), types.school, 105, -0.1, 2, Math.random() > 0.5);
                 if (civ.happiness > 70 && (civ.urban < 65 || civ.ii < 70))
                     this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 2)), types.finance, 105, 5, 1, true);
                 if (civ.ii < 100)
@@ -125,27 +125,36 @@ var AI = {
     tryFixBankrupt: function(civ, civName) {
         if (!civ._parts?.map) return;
 
-        let deficit = civ.oldMoney - civ.newMoney;
+        let deficit = (civ.oldMoney - civ.newMoney) * 2 + 50;
+
+        if (deficit < 0) return;
+
+        if (civ.money < -200)
+            deficit *= Math.max(Math.abs(civ.money / deficit), 2);
 
         let toRemove = Object.keys(civ._parts.map).map(x => {
             const pos = _regions_parseKey(x);
             return [pos[0], pos[1], data[pos[0]][pos[1]]];
         }).filter(x => {
-            return x[2]._exp > 0;
+            return x[2]._exp > 1 && (Math.random() > 0.75 || x[2].growth > 1);
         }).sort((a, b) => (a[2].pop - b[2].pop) || (b[2]._exp - a[2]._exp));
 
         let totFixed = 0;
+        let totDispPop = 0;
         let totRemoved = 0;
         for (let x of toRemove) {
             deficit -= x[2]._exp;
             totFixed += x[2]._exp;
+            totDispPop += x[2].pop - 1;
             totRemoved++;
             x[2].type = types.land;
             if (deficit < 0)
                 break;
+            if (totDispPop / civ.pop > 0.01) // not too many population to keep rchance low
+                break;
         }
 
-        console.log("AI: Fix bankrupt for ", civName, "removed", totRemoved, "buildings worth expenses $", totFixed);
+        console.log("AI: Fix bankrupt for ", civName, "removed", totRemoved, "buildings worth expenses $", totFixed, "and pop=", totDispPop);
     },
     // one promotion at a time
     handleGov: function(civ, civName) {
