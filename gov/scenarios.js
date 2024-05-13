@@ -7,7 +7,7 @@ function gov_opinion_aggressive_war(civ, civName, gov) {
       x.mods.MMVCT < 0 ||
       x.mods.MCCCT > 0
     ),
-    0.25
+    0.15
   );
 
   // foreign experts opinion decreases
@@ -25,7 +25,7 @@ function gov_opinion_aggressive_war(civ, civName, gov) {
       x.mods.MMVCT < 0 ||
       x.mods.MCCCT > 0
     ),
-    -0.07
+    -0.07 - ((Math.max(0, 100 - civ.happiness) / 1500) || 0)
   );
 }
 
@@ -35,7 +35,7 @@ function gov_opinion_disaster(civ, civName, gov) {
   gov_batch_mod_opinion(
     gov,
     x => !x.mods.PDSCR, // except those with diaster mod
-    -0.15
+    -0.20
   );
 }
 
@@ -43,7 +43,7 @@ function gov_opinion_disaster(civ, civName, gov) {
 // ->>>>> CAREFUL ai relies on legit < threshold to start fixing bankruptcy
 function gov_opinion_bankrupt(civ, civName, gov) {
   const isAtWar = Object.values(civ.war || {}).filter(x => x > 0).length;
-  if (civ.income < 100 || isAtWar || isNaN(civ.money) || isNaN(civ.deposit) || civ.newMoney > civ.oldMoney)
+  if (civ.income < 100 || isAtWar || isNaN(civ.money) || isNaN(civ.deposit) || civ.newMoney > civ.oldMoney || gov.cohesion < 0)
     return;
   let deficit = Math.min(civ.money, civ.deposit) / civ.income;
 

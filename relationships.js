@@ -16,6 +16,12 @@ declareWar = function(civName1, civName2, ig, par, majorWar) {
     civ1.war = civ1.war ? civ1.war : {};
     civ2.war = civ2.war ? civ2.war : {};
 
+    civ1.rchance += 0.01;
+    civ1.rchance *= 2;
+    civ1.happiness -= 10;
+    civ1.happiness *= 0.9;
+    civ2.rchance *= 0.8;
+
     // 10 politic = max 14 moves per turn; minor war = 10%, major war=80%
 
     let maxII = Math.max(civ1.ii, civ2.ii) || 50;

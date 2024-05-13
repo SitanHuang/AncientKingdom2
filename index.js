@@ -785,7 +785,7 @@ endTurn = function () {
         gov_exec(civ, civName);
 
     if (civ.ii >= 2) {
-        let rchance = (20 / Math.max(1, civ.happiness) - 0.1);
+        let rchance = (20 / Math.max(1, civ.happiness) - 0.1) + ((Math.max(0, 1 - civ.gov.cohesion)) || 0);
         rchance *= (1 + rchance);
         rchance *= 0.0001 * (1 + civ.ii / data.length / data[0].length * 10) * (1 + civ.years / 75);
         if (civ.ii < 200)
