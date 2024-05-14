@@ -1027,7 +1027,7 @@ showInfo = function () {
                     `Migrants: ${civ.migrantsOutTotal} total displaced, ${civ.migrantsOutSuccessful} migrated out, ${civ.migrantsIn} in; net=${civ.migrantsIn - civ.migrantsOutSuccessful} <button onclick="manageMigrants()">Manage</button>\n` +
                     "==Statistics==\n" +
                     "        " + (civ.oldMoney) + "\n" +
-                    ` + Tax     ${civ.income} (12-turn RA=$${civ.incomesRA}, +${civ.incomeRAdiffsRA}%, reduction due to high reserve: -${Math.round(civ.imodDueToReserve * 10000) / 100}%) \n` +
+                    ` + Tax     ${civ.income} (12-turn RA=$${civ.incomesRA}, +${civ.incomeRAdiffsRA}%, reduction due to high reserve: -${Math.round(civ.imodDueToReserve * 10000) / 100}%, tax eff. = ${Math.round(civ.teb*100)}%) \n` +
                     (civ.spentOnUrban > 0 ? ` - Urban overflow $${Math.round(civ.spentOnUrban * 100) / 100}\n` : "") +
                     " - Expense " + Math.round((civ.expense) * 100) / 100 + "  (Logistics " + civ.logistics + ")\n" +
                     " - Gov     " + Math.round(civ.govExp * 100) / 100 + "  (Government Offices in " + civ.ii + " counties, " + civ.occupiedII + " are occupied)\n" +
