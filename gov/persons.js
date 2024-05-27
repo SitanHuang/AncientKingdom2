@@ -34,12 +34,12 @@ const GOV_PERSON_MODS = {
       id: "PPPGR",
       name: "Population growth",
       min: -0.04,
-      max: 0.12,
+      max: 0.20,
       ai: 'desc'
     }, { // done
       id: "PDSCR",
       name: "Disaster chance",
-      min: -0.35,
+      min: -0.20,
       max: 0.05,
       ai: 'asc'
     }, { // done
@@ -51,7 +51,7 @@ const GOV_PERSON_MODS = {
     }, { // done
       id: "PUOFC",
       name: "Urban overflow cost",
-      min: -0.25,
+      min: -0.45,
       max: 0.05,
       ai: 'asc'
     },
@@ -85,7 +85,7 @@ const GOV_PERSON_MODS = {
       id: "EHPGR",
       name: "Happiness growth",
       min: -0.04,
-      max: 0.35,
+      max: 0.65,
       ai: 'desc'
     },
   ],
@@ -100,7 +100,7 @@ const GOV_PERSON_MODS = {
       id: "OPPGN",
       name: "Political power gain",
       min: -0.08,
-      max: 0.30,
+      max: 0.40,
       ai: 'desc'
     }, { // done
       id: "OPPCP",
