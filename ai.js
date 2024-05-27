@@ -8,7 +8,14 @@ var AI = {
         if ((Math.random() < 0.1 || (civ.urban > 50 && Math.random() < 0.7)) && !Object.values(civ.war).filter(x => x > 0).length)
             this.tryResearch(civ);
 
-        if (civ.gov && Object.keys(civ.gov.advisors).length < GOV_ADVISORS_PER_CIV)
+        if (civ.gov && Math.random() < 0.3) {
+            // demote all, refresh court
+            Object.keys(civ.gov.advisors)
+                .forEach(x => gov_demote_to_bureaucrat(civ.gov, x));
+            gov_refresh(civ, civName);
+        }
+
+        while (civ.gov && Object.keys(civ.gov.advisors).length < GOV_ADVISORS_PER_CIV)
             this.handleGov(civ, civName);
 
         civ.outGate = true;
@@ -159,21 +166,28 @@ var AI = {
     // one promotion at a time
     handleGov: function(civ, civName) {
         const gov = civ.gov;
-        const leader = gov.persons[gov.leader];
+        // const leader = gov.persons[gov.leader];
+
+        const useMandateLogic = civ.mandate || civ.rchance > 0.15 || civ.happiness < 30;
+
         let candidate;
         let candidates = Object.values(gov.persons)
             .filter(x => x.pos == GOV_POSITIONS.BUREAUCRAT)
             .sort((a, b) =>
-                person_tot_mod_value(b) -
-                person_tot_mod_value(a)
+                useMandateLogic ?
+                (person_mandate_mod_value(b) -
+                person_mandate_mod_value(a)) :
+                (person_tot_mod_value(b) -
+                person_tot_mod_value(a))
             );
-        // make sure successor of same family is in advisors
-        if (Math.random() < 0.7) {
-            let advisors = Object.keys(gov.advisors).map(x => gov.persons[x]);
-            if (!advisors.filter(x => x.family == leader.family).length) {
-                candidate = candidates.filter(x => x.family == leader.family)[0];
-            }
-        }
+
+        // // make sure successor of same family is in advisors
+        // if (Math.random() < 0.7) {
+        //     let advisors = Object.keys(gov.advisors).map(x => gov.persons[x]);
+        //     if (!advisors.filter(x => x.family == leader.family).length) {
+        //         candidate = candidates.filter(x => x.family == leader.family)[0];
+        //     }
+        // }
 
         candidate = candidate || candidates[0];
         if (!candidate)

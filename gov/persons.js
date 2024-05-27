@@ -193,6 +193,26 @@ function person_tot_mod_value(person) {
   return val;
 }
 
+function person_mandate_mod_value(person) {
+  let val = 0;
+
+  const mandate_mods = {
+    'ORBRD': 8, // rebel chance
+    'PIMHR': 2, // unhappiness from migration
+    'PDSCR': 3, // disaster chance
+  };
+
+  for (const mid in person.mods) {
+    let modVal = person_mod_value(mid, person.mods[mid]);
+
+    if (mandate_mods[mid])
+      modVal *= mandate_mods[mid];
+
+    val += modVal;
+  }
+  return val;
+}
+
 function person_add(civ, src) {
   let person = person_gen(src);
   civ.gov.persons[person.id] = person;
