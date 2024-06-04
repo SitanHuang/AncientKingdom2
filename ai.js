@@ -211,14 +211,27 @@ var AI = {
             var alliance = false;
 
             let warChance = 0;
-            if (civ.income > civ2.income)
+            if (civ.income * 1.2 > civ2.income)
                 warChance += Math.min(0.25, Math.max(0, civ.income / civ2.income / 10)) || 0;
-            if (civ.technology > civ2.technology)
-                warChance += Math.min(0.25, (civ.technology - civ2.technology) / civ2.technology) || 0;
-            if (civ.ii > civ2.ii)
+            if (civ.technology * 1.2 > civ2.technology)
+                warChance += Math.min(0.25, civ.technology / civ2.technology) || 0;
+            if (civ.ii * 1.2 > civ2.ii)
                 warChance += Math.min(0.25, Math.max(0, civ.ii / civ2.ii / 10)) || 0;
-            if (civ.pop > civ2.pop)
+            if (civ.pop * 1.2 > civ2.pop)
                 warChance += Math.min(0.25, Math.max(0, civ.pop / civ2.pop / 10)) || 0;
+
+            let civAdjMoney = (civ.money || 0) + (civ.deposit || 0) + (civ.income || 0) * 4 + (civ.incomesRA || 0) * 4;
+            let civ2AdjMoney = (civ2.money || 0) + (civ2.deposit || 0) + (civ2.income || 0) * 4 + (civ2.incomesRA || 0) * 4;
+
+            let minAdjMoney = Math.min(civ2AdjMoney, civAdjMoney); // one way to handle negatives
+
+            civAdjMoney -= minAdjMoney;
+            civ2AdjMoney -= minAdjMoney;
+
+            if (civAdjMoney * 1.2 > civ2AdjMoney)
+                warChance += Math.min(0.75, Math.max(0, civAdjMoney / civ2AdjMoney / 10)) || 0;
+
+            warChance *= (civ2.rchance || 0) + 1;
 
             // if (warChance > 0.25) {
             if (civ.em / civ.ii > civ2.em / civ2.ii)
@@ -237,8 +250,10 @@ var AI = {
             warChance *= AGGRESSIVENESS;
             warChance *= 1 + (civ2.gov?.mods?.OFRHS || 0);
 
-            if (civ.mandate)
-                warChance *= 0.2;
+            if (civ.mandate) {
+                warChance *= 0.15;
+                warChance = Math.min(warChance, 0.7);
+            }
 
             civ._warChances[cn] = warChance;
         }
@@ -258,14 +273,29 @@ var AI = {
             var alliance = false;
 
             let warChance = 0;
-            if (civ.income > civ2.income)
-                warChance += Math.min(0.25, Math.max(0, civ.income / civ2.income / 10)) || 0;
-            if (civ.technology > civ2.technology)
-                warChance += Math.min(0.25, (civ.technology - civ2.technology) / civ2.technology) || 0;
-            if (civ.ii > civ2.ii)
+            // if (civ.income * 1.2 > civ2.income)
+            //     warChance += Math.min(0.25, Math.max(0, civ.income / civ2.income / 10)) || 0;
+            if (civ.technology * 1.2 > civ2.technology)
+                warChance += Math.min(0.25, civ.technology / civ2.technology) || 0;
+            if (civ.ii * 1.2 > civ2.ii)
                 warChance += Math.min(0.25, Math.max(0, civ.ii / civ2.ii / 10)) || 0;
-            if (civ.pop > civ2.pop)
+            if (civ.pop * 1.2 > civ2.pop)
                 warChance += Math.min(0.25, Math.max(0, civ.pop / civ2.pop / 10)) || 0;
+
+            if (!civ.mandate) {
+                let civAdjMoney = (civ.money || 0) + (civ.deposit || 0) + (civ.income || 0) * 4 + (civ.incomesRA || 0) * 4;
+                let civ2AdjMoney = (civ2.money || 0) + (civ2.deposit || 0) + (civ2.income || 0) * 4 + (civ2.incomesRA || 0) * 4;
+
+                let minAdjMoney = Math.min(civ2AdjMoney, civAdjMoney); // one way to handle negatives
+
+                civAdjMoney -= minAdjMoney;
+                civ2AdjMoney -= minAdjMoney;
+
+                if (civAdjMoney * 1.2 > civ2AdjMoney)
+                    warChance += Math.min(0.75, Math.max(0, civAdjMoney / civ2AdjMoney / 10)) || 0;
+
+                warChance *= (civ2.rchance || 0) + 1;
+            }
 
             // if (warChance > 0.25) {
             if (civ.em / civ.ii > civ2.em / civ2.ii)
@@ -284,8 +314,10 @@ var AI = {
             warChance *= AGGRESSIVENESS;
             warChance *= 1 + (civ2.gov?.mods?.OFRHS || 0);
 
-            if (civ.mandate)
-                warChance *= 0.15;
+            if (civ.mandate) {
+                warChance *= 0.10;
+                warChance = Math.min(warChance, 0.7);
+            }
 
             civ._warChances[cn] = warChance;
 
