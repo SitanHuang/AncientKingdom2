@@ -84,13 +84,13 @@ calculateYears = function(civ, civName) {
             //                 alert(`${civName} - ${x} War ended.`);
             //             }
             if (civ.war[x] >= -0.5 && (civ.war[x] <= 1 || civ.ii <= 2 || civ2.ii <= 2)) {
-                civ.war[x] = Math.round(-20 * 4 * Math.random()) - 5.5;
+                civ.war[x] = Math.round(-12 * 4 * Math.random()) - 2.5;
                 if (civ2 && civ2.war)
                     civ2.war[civName] = civ.war[x];
-                civ.rchance *= 0.8;
-                civ.happiness *= 1.1;
-                civ2.rchance *= 0.8;
-                civ2.happiness *= 1.1;
+                civ.rchance *= 0.5;
+                civ.happiness *= 1.2;
+                civ2.rchance *= 0.5;
+                civ2.happiness *= 1.2;
 
                 push_msg(`${civName} - ${x} War ended.`, [civName, x]);
 
@@ -273,7 +273,7 @@ function promptForPact(civName, civName2) {
     }
 
     if (deal) {
-        push_msg(`${civName} and ${civName2} signed a non-aggression pact for ` + ((civ.war[civName2] = civ2.war[civName] = Math.round(-20 * 4 * Math.random()) - 6.5) / 4) + ' years', [civName, civName2]);
+        push_msg(`${civName} and ${civName2} signed a non-aggression pact for ` + ((civ.war[civName2] = civ2.war[civName] = Math.round(-16 * 4 * Math.random()) - 6.5) / 4) + ' years', [civName, civName2]);
         const odppc1 = 1 + (civ.gov?.mods?.ODPPC || 0);
         const odppc2 = 1 + (civ2.gov?.mods?.ODPPC || 0);
         civ.politic -= 5 * odppc1;
