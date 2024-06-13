@@ -168,7 +168,7 @@ var AI = {
         const gov = civ.gov;
         // const leader = gov.persons[gov.leader];
 
-        const useMandateLogic = civ.mandate || civ.rchance > 0.15 || civ.happiness < 30;
+        const useMandateLogic = civ.mandate || civ.rchance > 0.05 || civ.happiness < 45;
 
         let candidate;
         let candidates = Object.values(gov.persons)
