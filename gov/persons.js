@@ -187,26 +187,19 @@ function person_mod_value(mid, val) {
 }
 
 function person_tot_mod_value(person) {
-  let val = 0;
-  for (const mid in person.mods)
-    val += person_mod_value(mid, person.mods[mid]);
-  return val;
+  return person_custom_mod_value(person);
 }
 
-function person_mandate_mod_value(person) {
+function person_custom_mod_value(person, modMap={}, defVal=1) {
   let val = 0;
-
-  const mandate_mods = {
-    'ORBRD': 8, // rebel chance
-    'PIMHR': 2, // unhappiness from migration
-    'PDSCR': 3, // disaster chance
-  };
 
   for (const mid in person.mods) {
     let modVal = person_mod_value(mid, person.mods[mid]);
 
-    if (mandate_mods[mid])
-      modVal *= mandate_mods[mid];
+    if (modMap.hasOwnProperty(mid))
+      modVal *= modMap[mid];
+    else
+      modVal *= defVal;
 
     val += modVal;
   }

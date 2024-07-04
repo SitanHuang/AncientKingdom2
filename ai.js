@@ -8,6 +8,15 @@ var AI = {
         if ((Math.random() < 0.1 || (civ.urban > 50 && Math.random() < 0.7)) && !Object.values(civ.war).filter(x => x > 0).length)
             this.tryResearch(civ);
 
+        if (civ.pop > _dynastyPopReq * 0.7 && !civ.mandate && Math.random() < 0.1)
+            civ.mandateInAcquirement = 30 * 4; // 30 years
+
+        if (civ.mandateInAcquirement)
+            civ.mandateInAcquirement--;
+
+        if (!civ.mandateInAcquirement || civ.mandate || civ.pop < _dynastyPopReq * 0.6)
+            delete civ.mandateInAcquirement;
+
         if (civ.gov && Math.random() < 0.3) {
             // demote all, refresh court
             Object.keys(civ.gov.advisors)
@@ -103,7 +112,12 @@ var AI = {
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 5)), types.city, 85, 0.1, 1);
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 20)), types.fort, 25, -1, -1);
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 5)), types.city, 85, 0.1, 1);
-                if (civ.happiness > 60 && civ.income > Math.max(60, civ.ii * 2, (civ.expense) / 0.40)) // max 40% of budget
+
+                let adjInc = (Math.min(civ.incomesRA, civ.income) - civ.spentOnUrban - civ.govExp)
+                    / 1 + (civ.gov?.mods?.EGRVG || 0);
+
+                if ((!civ.mandateInAcquirement || adjInc > Math.max(60, civ.ii * 2, civ.expense / 0.15)) &&  // max 15% of budget
+                    civ.happiness > 60 && adjInc > Math.max(60, civ.ii * 2, civ.expense / 0.30)) // max 30% of budget
                     this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 2)), types.school, 105, -0.1, 2, Math.random() > 0.5);
                 if (civ.happiness > 70 && (civ.urban < 65 || civ.ii < 70))
                     this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 2)), types.finance, 105, 5, 1, true);
@@ -170,15 +184,26 @@ var AI = {
 
         const useMandateLogic = civ.mandate || civ.rchance > 0.05 || civ.happiness < 45;
 
+        const modMap = useMandateLogic ? {
+            'ORBRD': 8, // rebel chance
+            'PIMHR': 2, // unhappiness from migration
+            'PDSCR': 3, // disaster chance
+        } : (
+            civ.mandateInAcquirement ? {
+                'MCCCT': 10, // combat strength
+                'MMVCT': 2, // movement cost
+                'PIMHR': 5, // unhappiness from migration
+                'OMVPC': 50, // movement political cost
+                'ORBRD': 10, // rebel chance per round
+            } : {}
+        );
+
         let candidate;
         let candidates = Object.values(gov.persons)
             .filter(x => x.pos == GOV_POSITIONS.BUREAUCRAT)
             .sort((a, b) =>
-                useMandateLogic ?
-                (person_mandate_mod_value(b) -
-                person_mandate_mod_value(a)) :
-                (person_tot_mod_value(b) -
-                person_tot_mod_value(a))
+                (person_custom_mod_value(b, modMap) -
+                person_custom_mod_value(a, modMap))
             );
 
         // // make sure successor of same family is in advisors
@@ -255,6 +280,11 @@ var AI = {
                 warChance = Math.min(warChance, 0.7);
             }
 
+            if (civ.mandateInAcquirement) {
+                warChance *= 10;
+                warChance = Math.min(warChance, 0.8);
+            }
+
             civ._warChances[cn] = warChance;
         }
     },
@@ -317,6 +347,11 @@ var AI = {
             if (civ.mandate) {
                 warChance *= 0.10;
                 warChance = Math.min(warChance, 0.7);
+            }
+
+            if (civ.mandateInAcquirement) {
+                warChance *= 10;
+                warChance = Math.min(warChance, 0.8);
             }
 
             civ._warChances[cn] = warChance;

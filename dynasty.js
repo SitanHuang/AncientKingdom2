@@ -1,6 +1,9 @@
 _dynastyData = [[null, 0]];
 MANDATE_THRESHOLD = 0.45;
 
+_dynastyPopReq = Infinity;
+_dynastyIncReq = Infinity;
+
 function dynasty_get_mandate() {
   let mandate = civOrders.filter(x => !isNaN(civs[x].mandate))[0] || null;
 
@@ -37,8 +40,8 @@ function dynasty_assign_candidate() {
     }
   };
 
-  let popReq = totPop * MANDATE_THRESHOLD + 1000;
-  let incReq = totInc * MANDATE_THRESHOLD + 200;
+  let popReq = _dynastyPopReq = totPop * MANDATE_THRESHOLD + 1000;
+  let incReq = _dynastyIncReq = totInc * MANDATE_THRESHOLD + 200;
 
   // check new candidate
   for (let x of civNames) {

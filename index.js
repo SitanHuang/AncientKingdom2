@@ -912,7 +912,7 @@ popRebel = function (civName, target, source) {
             for (let c = 0;c < data[r].length;c++) {
                 let d = data[r][c];
                 if (d?.color == target && d?.growth >= 1)
-                    choices.push([r, c, d._d + d.pop]);
+                    choices.push([r, c, (d._d + d.pop) / regions_taxEff(civs[target], target, r, c)]);
             }
         }
         source = choices.sort((a, b) => b[2] - a[2])[0]?.splice(0, 2);
@@ -1299,6 +1299,8 @@ refreshTable = function () {
         civ._oldpower1 = civ.power;
         if (civ.mandate)
             tr.css("font-weight", "bold");
+        if (civ.mandateInAcquirement)
+            tr.css("font-style", "italic");
         tr.append(`<td>${civName}</td>`);
         tr.append(`<td>${Math.round(civ.ii)}</td>`);
         tr.append(`<td class="extra">${civ._avgpm || ''}</td>`);
