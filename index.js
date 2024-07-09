@@ -1054,6 +1054,7 @@ showInfo = function () {
 let _populationData = [];
 let _incomeData = [];
 let _pwrData = [];
+let _techData = [];
 let enableGraph = true;
 
 let hisChart = new HistoryChart('#hisGraph', 761, 25);
@@ -1083,12 +1084,15 @@ prepareTurn = function () {
             let popObj = {date: currentYear, pop: 0};
             civOrders.forEach(x => {
                 let last = 0;
-                if (_populationData.length > 4)
-                    for (let i = _populationData.length - 1;i >= 0 && i >= _populationData.length - 4;i--) {
-                        last += _populationData[i][x]?.pop;
+                if (_populationData.length > 2) {
+                    for (let i = 1;i <= 2; i++) {
+                        last += _populationData[_populationData.length - i][x + '.h'];
                     }
-                last = last || (civs[x].pop * 3);
-                popObj[x] = (civs[x].pop + last) / 4 / 1000000;
+                    popObj[x] = (last + civs[x].pop / 1000000) / 3;
+                } else {
+                    popObj[x] = civs[x].pop / 1000000;
+                }
+                popObj[x + '.h'] = civs[x].pop / 1000000;
                 popObj.pop += popObj[x];
             });
             _populationData.push(popObj);
@@ -1097,7 +1101,7 @@ prepareTurn = function () {
             var pChart = d3_timeseries()
                 .width(800)
                 .height(600)
-                .addSerie(_populationData, { x: 'date', y: 'pop' }, { interpolate: 'linear', color: 'grey' });
+                .addSerie(_populationData, { x: 'date', y: 'pop' }, { interpolate: 'linear', color: 'grey', width: 2 });
             pChart.xscale.tickFormat(timeFormat);
             civOrders.forEach(x => {
                 pChart = pChart.addSerie(_populationData,{x:'date',y: x},{interpolate:'linear', color: civs[x].color, width: 1});
@@ -1114,12 +1118,15 @@ prepareTurn = function () {
             let incObj = { date: currentYear, inc: 0};
             civOrders.forEach(x => {
                 let last = 0;
-                if (_incomeData.length > 10)
-                    for (let i = _incomeData.length - 1;i >= 0 && i >= _incomeData.length - 1 - 10;i--) {
-                        last += _incomeData[i][x]?.income;
+                if (_incomeData.length > 4) {
+                    for (let i = 1; i <= 4; i++) {
+                        last += _incomeData[_incomeData.length - i][x + '.h'];
                     }
-                last = last || (civs[x].income * 10);
-                incObj[x] = (civs[x].income + last) / (10 + 1) / 1000;
+                    incObj[x] = (last + civs[x].income / 1000) / 5;
+                } else {
+                    incObj[x] = civs[x].income / 1000;
+                }
+                incObj[x + '.h'] = civs[x].income / 1000;
                 incObj.inc += incObj[x];
             });
             _incomeData.push(incObj);
@@ -1128,7 +1135,7 @@ prepareTurn = function () {
             var iChart = d3_timeseries()
                 .width(800)
                 .height(600)
-                .addSerie(_incomeData,{x:'date',y:'inc'},{interpolate:'linear', color: 'grey'});
+                .addSerie(_incomeData, { x: 'date', y: 'inc' }, { interpolate: 'linear', color: 'grey', width: 2 });
             iChart.xscale.tickFormat(timeFormat);
             civOrders.forEach(x => {
                 iChart = iChart.addSerie(_incomeData,{x:'date',y: x},{interpolate:'linear', color: civs[x].color, width: 1});
@@ -1138,12 +1145,15 @@ prepareTurn = function () {
             let pwrObj = { date: currentYear, pwr: 0};
             civOrders.forEach(x => {
                 let last = 0;
-                if (_pwrData.length > 10)
-                    for (let i = _pwrData.length - 1;i >= 0 && i >= _pwrData.length - 1 - 10;i--) {
-                        last += _pwrData[i][x]?.power;
+                if (_pwrData.length > 2) {
+                    for (let i = 1; i <= 2; i++) {
+                        last += _pwrData[_pwrData.length - i][x + '.h'];
                     }
-                last = last || (civs[x].power * 10);
-                pwrObj[x] = (civs[x].power + last) / (10 + 1);
+                    pwrObj[x] = (last + civs[x].power) / 3;
+                } else {
+                    pwrObj[x] = civs[x].power;
+                }
+                pwrObj[x + '.h'] = civs[x].power;
                 pwrObj.pwr += pwrObj[x];
             });
             _pwrData.push(pwrObj);
@@ -1157,6 +1167,32 @@ prepareTurn = function () {
                 wChart = wChart.addSerie(_pwrData,{x:'date',y: x},{interpolate:'linear', color: civs[x].color, width: 1});
             });
             wChart('#pwrGraph');
+
+            let techObj = { date: currentYear, globalPeak: 0};
+            let newHighestTech = 0;
+            let lastTechPeak = 0;
+            civOrders.forEach(x => {
+                if (_techData.length > 4 && civs[x].techinc > 0 && civs[x].technology > 0 && civs[x].techinc < 30) {
+                    lastTechPeak = Math.max(lastTechPeak, civs[x].technology - civs[x].techinc);
+                    newHighestTech = Math.max(newHighestTech, civs[x].technology);
+                }
+
+                techObj[x] = Math.min(Math.max((civs[x].techincRA * 0.75 + civs[x].techinc * 0.25) || civs[x].techinc || 0, 0), 99);
+            });
+            if (lastTechPeak && newHighestTech)
+                techObj.globalPeak = Math.max(Math.min(newHighestTech - lastTechPeak, 99), -9);
+            _techData.push(techObj);
+
+            $('#techGraph').html('');
+            var wChart = d3_timeseries()
+                .width(800)
+                .height(600);
+            wChart.xscale.tickFormat(timeFormat);
+            civOrders.forEach(x => {
+                wChart = wChart.addSerie(_techData,{x:'date',y: x},{interpolate:'linear', color: civs[x].color, width: 1});
+            });
+            wChart = wChart.addSerie(_techData, { x: 'date', y: 'globalPeak' }, { interpolate: 'linear', color: 'grey', width: 2 });
+            wChart('#techGraph');
         }
 
 
