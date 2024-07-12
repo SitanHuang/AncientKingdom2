@@ -2,6 +2,9 @@ readMap();
 TIMEOUT_DELAY = 150;
 RCHANCEMOD = 1;
 INCOMEMOD = 0.3;
+
+var onRightClick = null;
+
 ready = function () {
     drawCanvas();
 
@@ -15,6 +18,10 @@ ready = function () {
         drawCanvas()
     }).click(function (e) {
         onClick(Math.floor(e.pageY / BLOCK_SIZE), Math.floor(e.pageX / BLOCK_SIZE));
+    }).on("contextmenu", function(e) {
+        if (onRightClick) {
+            onRightClick(Math.floor(e.pageY / BLOCK_SIZE), Math.floor(e.pageX / BLOCK_SIZE));
+        }
     });
 
     prepareTurn();
@@ -315,6 +322,11 @@ endTurn = function () {
     civ.technology = Math.max(Math.round(civ.technology * 1000) / 1000, 1);
     civ.money = !Number.isFinite(civ.money) || Number.isNaN(civ.money) ? 0 : civ.money;
     let oldtech = civ.technology;
+
+    if (civ.birth &&
+        !(data[civ.birth[0]] && data[civ.birth[0]][civ.birth[1]])) {
+        delete civ.birth;
+    }
 
     const oldRealInc = (civ.income + 10) / (1 - (civ.imodDueToReserve || 0));
 
