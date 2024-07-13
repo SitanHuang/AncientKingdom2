@@ -476,7 +476,7 @@ endTurn = function () {
               delete d._oct;
             }
             getNeighbors(row, col, (d2, r, c) => {
-                if (d2?.type && d2?.color != civName) {
+                if (d2?.type && d2?.color != civName && d2.color) {
                     // d._adj = r == row - 1 && c == col ? 1 :// top
                     //          r == row + 1 && c == col ? 2 : // bottom
                     //          r == row && c == col - 1 ? 3 : 4; // left, right
@@ -814,12 +814,20 @@ endTurn = function () {
             rchance *= 1.4;
         if (civ.happiness < 0)
             rchance *= 1.5;
-        if (civ.gov.cohesion < 1)
-            rchance *= 1.2;
+        if (civ.gov.cohesion > 1)
+            rchance *= 0.8;
+        if (civ.gov.cohesion > 1.1)
+            rchance *= 0.8;
+        if (civ.gov.cohesion > 1.2)
+            rchance *= 0.6;
+        if (civ.gov.cohesion > 1.4)
+            rchance *= 0.5;
         if (civ.gov.cohesion < 0.9)
             rchance *= 1.5;
         if (civ.gov.cohesion < 0.85)
             rchance *= 1.5;
+        if (civ.gov.cohesion < 0.45)
+            rchance *= 2.5;
         civ.rchance = rchance > civ.rchance ? rchance : (civ.rchance || 0) * 0.3 + rchance * 0.7;
         civ.rchance *= 1 + (civ.gov.mods.ORBRD || 0);
     } else {
@@ -839,7 +847,7 @@ endTurn = function () {
     }
 
     civ.rchance *= 1 + civ.rchance;
-    civ.rchance = Math.min(0.35, civ.rchance);
+    civ.rchance = Math.min(0.50, civ.rchance);
 
     // rebel pops: for own civ
     if (Math.random() < civ.rchance && Math.random() < RCHANCEMOD) {

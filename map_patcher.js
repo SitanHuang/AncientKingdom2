@@ -2,7 +2,7 @@
 const [map_patch_mode_start, map_patch_mode_end] = (() => {
   let history;
 
-  function _nearest_color(row, col) {
+  function _cell_nearest_color(row, col) {
     const colorCount = {};
 
     getNeighbors(row, col, (cell) => {
@@ -23,7 +23,10 @@ const [map_patch_mode_start, map_patch_mode_end] = (() => {
       }
     }
 
-    return mostProminentColor;
+    if (mostProminentColor)
+      return { color: mostProminentColor, type: types.land };
+    else
+      return { color: null, type: null };
   }
 
   function map_patch_mode_start() {
@@ -33,8 +36,8 @@ const [map_patch_mode_start, map_patch_mode_end] = (() => {
       let cell = data[row][col];
 
       if (cell === null) { // set to land
-        data[row][col] = { color: _nearest_color(row, col), type: types.land };
-        history += `data[${row}][${col}] = { color: _nearest_color(${row}, ${col}), type: types.land };\n`;
+        data[row][col] = _cell_nearest_color(row, col);
+        history += `data[${row}][${col}] = _cell_nearest_color(${row}, ${col});\n`;
       } else {
         data[row][col] = null;
         history += `data[${row}][${col}] = null;\n`;
