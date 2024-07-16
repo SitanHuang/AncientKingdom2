@@ -20,11 +20,11 @@ function _ter_set(row, col, prop, dat) {
 function _ter_gen() {
   console.time("_ter_gen");
   const funcs = [
-    [_res_econ_mod_raw, 'e', 3, 6, 3, 2],
-    [_res_pop_mod_raw, 'p', 4, 6, 3, 0]
+    [_res_econ_mod_raw, 'e', 2, 3, 2, 1, 1],
+    [_res_pop_mod_raw, 'p', 5, 8, 3, 2.5, 1.3]
   ];
 
-  for (const [func, prop, r, p, R, climateFactor] of funcs) {
+  for (const [func, prop, r, p, R, climateFactor, c] of funcs) {
     const raw = data.map((r, row) => r.map((c, col) => c && func(row, col)));
 
     raw.forEach((row, i) => row.forEach((cell, j) => {
@@ -49,6 +49,9 @@ function _ter_gen() {
         mod *= 1 - Math.pow(1 - r / data.length - 0.1, 9) * climateFactor;
       else
         mod -= Math.pow(1 - r / data.length - 0.1, 9) * climateFactor;
+
+      mod *= c;
+      mod = Math.max(0.08, mod);
 
       _ter_set(i, j, prop, mod);
     }));

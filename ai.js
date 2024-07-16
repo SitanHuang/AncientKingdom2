@@ -263,17 +263,13 @@ var AI = {
                 warChance *= 0.80;
             else
                 warChance *= 1.2;
+            if (civ.pm / civ.ii * 0.8 > civ2.pm / civ2.ii)
+                warChance *= 0.35;
             if (civ.pm / civ.ii > civ2.pm / civ2.ii)
                 warChance *= 0.35;
             else
                 warChance *= 1.5;
             // }
-
-            warChance *= Math.min(5, Math.max(0, (civ.deposit + civ.money) / (civ.ii * civ.urban / 10 * 2)));
-
-            warChance *= civ.happiness / 100 - 0.2;
-            warChance *= AGGRESSIVENESS;
-            warChance *= 1 + (civ2.gov?.mods?.OFRHS || 0);
 
             if (civ.mandate) {
                 warChance *= 0.15;
@@ -284,6 +280,12 @@ var AI = {
                 warChance *= 10;
                 warChance = Math.min(warChance, 0.8);
             }
+
+            warChance *= Math.min(5, Math.max(0, (civ.deposit + civ.money) / (civ.ii * civ.urban / 10 * 2)));
+
+            warChance *= civ.happiness / 100 - 0.2;
+            warChance *= AGGRESSIVENESS;
+            warChance *= 1 + (civ2.gov?.mods?.OFRHS || 0);
 
             civ._warChances[cn] = warChance;
         }
@@ -327,11 +329,22 @@ var AI = {
                 warChance *= (civ2.rchance || 0) + 1;
             }
 
+            if (civ.mandate) {
+                warChance *= 0.10;
+                warChance = Math.min(warChance, 0.7);
+            }
+
+            if (civ.mandateInAcquirement) {
+                warChance *= 10;
+                warChance = Math.min(warChance, 0.8);
+            }
             // if (warChance > 0.25) {
             if (civ.em / civ.ii > civ2.em / civ2.ii)
                 warChance *= 0.80;
             else
                 warChance *= 1.2;
+            if (civ.pm / civ.ii * 0.8 > civ2.pm / civ2.ii)
+                warChance *= 0.35;
             if (civ.pm / civ.ii > civ2.pm / civ2.ii)
                 warChance *= 0.35;
             else
@@ -343,16 +356,6 @@ var AI = {
             warChance *= civ.happiness / 100 - 0.2;
             warChance *= AGGRESSIVENESS;
             warChance *= 1 + (civ2.gov?.mods?.OFRHS || 0);
-
-            if (civ.mandate) {
-                warChance *= 0.10;
-                warChance = Math.min(warChance, 0.7);
-            }
-
-            if (civ.mandateInAcquirement) {
-                warChance *= 10;
-                warChance = Math.min(warChance, 0.8);
-            }
 
             civ._warChances[cn] = warChance;
 
