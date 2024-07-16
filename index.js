@@ -2,6 +2,9 @@ readMap();
 TIMEOUT_DELAY = 150;
 RCHANCEMOD = 1;
 INCOMEMOD = 0.3;
+
+var onRightClick = null;
+
 ready = function () {
     drawCanvas();
 
@@ -15,6 +18,10 @@ ready = function () {
         drawCanvas()
     }).click(function (e) {
         onClick(Math.floor(e.pageY / BLOCK_SIZE), Math.floor(e.pageX / BLOCK_SIZE));
+    }).on("contextmenu", function(e) {
+        if (onRightClick) {
+            onRightClick(Math.floor(e.pageY / BLOCK_SIZE), Math.floor(e.pageX / BLOCK_SIZE));
+        }
     });
 
     prepareTurn();
@@ -316,6 +323,11 @@ endTurn = function () {
     civ.money = !Number.isFinite(civ.money) || Number.isNaN(civ.money) ? 0 : civ.money;
     let oldtech = civ.technology;
 
+    if (civ.birth &&
+        !(data[civ.birth[0]] && data[civ.birth[0]][civ.birth[1]])) {
+        delete civ.birth;
+    }
+
     const oldRealInc = (civ.income + 10) / (1 - (civ.imodDueToReserve || 0));
 
     civ.imodDueToReserve = 0;
@@ -464,7 +476,7 @@ endTurn = function () {
               delete d._oct;
             }
             getNeighbors(row, col, (d2, r, c) => {
-                if (d2?.type && d2?.color != civName) {
+                if (d2?.type && d2?.color != civName && d2.color) {
                     // d._adj = r == row - 1 && c == col ? 1 :// top
                     //          r == row + 1 && c == col ? 2 : // bottom
                     //          r == row && c == col - 1 ? 3 : 4; // left, right
@@ -517,7 +529,7 @@ endTurn = function () {
             let urb = Math.max(1, civ.urban) || 10;
 
             // use carrying capacity equation
-            let cap = 600000 * res_pop_mod(row, col);
+            let cap = 400000 * res_pop_mod(row, col);
 
             // distributed growth depends on res_pop_mod
             let decline = d.growth > 1 ? (nextDecline < 0 ? nextDecline / urb * 10 * Math.random() * res_pop_mod(row, col) : Math.min(nextDecline, d.pop / 1.5, nextDecline / urb * 10 * Math.random())) : 0;
@@ -802,12 +814,20 @@ endTurn = function () {
             rchance *= 1.4;
         if (civ.happiness < 0)
             rchance *= 1.5;
-        if (civ.gov.cohesion < 1)
-            rchance *= 1.2;
+        if (civ.gov.cohesion > 1)
+            rchance *= 0.8;
+        if (civ.gov.cohesion > 1.1)
+            rchance *= 0.8;
+        if (civ.gov.cohesion > 1.2)
+            rchance *= 0.6;
+        if (civ.gov.cohesion > 1.4)
+            rchance *= 0.5;
         if (civ.gov.cohesion < 0.9)
             rchance *= 1.5;
         if (civ.gov.cohesion < 0.85)
             rchance *= 1.5;
+        if (civ.gov.cohesion < 0.45)
+            rchance *= 2.5;
         civ.rchance = rchance > civ.rchance ? rchance : (civ.rchance || 0) * 0.3 + rchance * 0.7;
         civ.rchance *= 1 + (civ.gov.mods.ORBRD || 0);
     } else {
@@ -827,7 +847,7 @@ endTurn = function () {
     }
 
     civ.rchance *= 1 + civ.rchance;
-    civ.rchance = Math.min(0.35, civ.rchance);
+    civ.rchance = Math.min(0.50, civ.rchance);
 
     // rebel pops: for own civ
     if (Math.random() < civ.rchance && Math.random() < RCHANCEMOD) {

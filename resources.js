@@ -6,7 +6,7 @@
 // 4dof next to any ocean -> beach
 // 4 dof next to beach -> beach front (high econ modifier)
 // 8 dof next to land -> field (high pop modifier)
-delete data._ter;
+
 function _ter_get(row, col, prop) {
   data._ter = data._ter || {};
   return data._ter[row + ',' + col + '.' + prop];
