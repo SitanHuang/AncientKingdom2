@@ -6,16 +6,93 @@
 // 4dof next to any ocean -> beach
 // 4 dof next to beach -> beach front (high econ modifier)
 // 8 dof next to land -> field (high pop modifier)
-
-function ter_get(row, col, prop) {
+delete data._ter;
+function _ter_get(row, col, prop) {
   data._ter = data._ter || {};
   return data._ter[row + ',' + col + '.' + prop];
 }
 
-function ter_set(row, col, prop, dat) {
+function _ter_set(row, col, prop, dat) {
   data._ter = data._ter || {};
   data._ter[row + ',' + col + '.' + prop] = dat;
 }
+
+function _ter_gen() {
+  console.time("_ter_gen");
+  const funcs = [
+    [_res_econ_mod_raw, 'e', 3, 6, 3, 2],
+    [_res_pop_mod_raw, 'p', 4, 6, 3, 0]
+  ];
+
+  for (const [func, prop, r, p, R, climateFactor] of funcs) {
+    const raw = data.map((r, row) => r.map((c, col) => c && func(row, col)));
+
+    raw.forEach((row, i) => row.forEach((cell, j) => {
+      if (cell === null) return;
+
+      let divisor = 0;
+      let sumOfSquares = 0;
+      for (let x = Math.max(0, i - r); x <= Math.min(data.length - 1, i + r); x++) {
+        for (let y = Math.max(0, j - r); y <= Math.min(row.length - 1, j + r); y++) {
+          if (raw[x][y] !== null) {
+            const dist = Math.sqrt((x - i)**2 + (y - j)**2);
+            sumOfSquares += (raw[x][y] ** p) / (dist + 1);
+            divisor += 1 / (dist + 1);
+          }
+        }
+      }
+
+      let mod = Math.pow(sumOfSquares / divisor, 1 / R);
+
+      // due to climate (80%: -4%, 90%: -13%, 100%: -40%)
+      if (mod > 1)
+        mod *= 1 - Math.pow(1 - r / data.length - 0.1, 9) * climateFactor;
+      else
+        mod -= Math.pow(1 - r / data.length - 0.1, 9) * climateFactor;
+
+      _ter_set(i, j, prop, mod);
+    }));
+  }
+  console.timeEnd("_ter_gen");
+}
+
+function _res_econ_mod_raw(row, col) {
+  let mod = 0.7;
+  let sea = _res_count_sea(row, col);
+
+  if (_res_is_field(row, col))
+    mod += 0.3;
+
+  if (_res_is_beachfront(row, col))
+    mod += 1;
+
+  mod = mod + sea * sea / 8 * 0.5; // up to 3.1
+
+  return mod;
+}
+
+function _res_pop_mod_raw(row, col) {
+  let mod = 0.65;
+
+  let fields = _res_count_field(row, col);
+
+  if (fields >= 8)
+    mod += 0.55;
+
+  if (_res_is_beachfront(row, col))
+    mod += 0.1;
+
+  mod = mod + fields * fields / 8 / 8 * 0.3; // up to 1.5 with field
+
+  // due to climate (80%: -4%, 90%: -13%, 100%: -40%)
+  if (mod > 1)
+    mod *= 1 - Math.pow(1 - row / data.length - 0.1, 9);
+  else
+    mod -= Math.pow(1 - row / data.length - 0.1, 9);
+
+  return mod;
+}
+
 
 function _res_is_ocean(row, col) {
   // check is sea tile
@@ -95,49 +172,23 @@ function _res_is_field(row, col) {
 }
 
 function res_econ_mod(row, col) {
-  let cache = ter_get(row, col, 'em');
+  const cache = _ter_get(row, col, 'e');
 
-  if (cache) return cache;
+  if (!cache) {
+    _ter_gen();
+    return _ter_get(row, col, 'e');
+  }
 
-  let mod = 0.7;
-  let sea = _res_count_sea(row, col);
-
-  if (_res_is_field(row, col))
-    mod += 0.3;
-
-  if (_res_is_beachfront(row, col))
-    mod += 1;
-
-  mod = mod + sea * sea / 8 * 0.5; // up to 3.1
-
-  ter_set(row, col, 'em', mod);
-  return mod;
+  return cache;
 }
 
 function res_pop_mod(row, col) {
-  let cache = ter_get(row, col, 'pm');
+  const cache = _ter_get(row, col, 'p');
 
-  if (cache) return cache;
+  if (!cache) {
+    _ter_gen();
+    return _ter_get(row, col, 'p');
+  }
 
-  let mod = 0.65;
-
-  let fields = _res_count_field(row, col);
-
-  // if (_res_is_field(row, col))
-  if (fields >= 8)
-    mod += 0.55;
-
-  if (_res_is_beachfront(row, col))
-    mod += 0.1;
-
-  mod = mod + fields * fields / 8 / 8 * 0.3; // up to 1.5 with field
-
-  // due to climate (80%: -4%, 90%: -13%, 100%: -40%)
-  if (mod > 1)
-    mod *= 1 - Math.pow(1 - row / data.length - 0.1, 9);
-  else
-    mod -= Math.pow(1 - row / data.length - 0.1, 9);
-
-  ter_set(row, col, 'pm', mod);
-  return mod;
+  return cache;
 }
