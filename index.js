@@ -789,12 +789,37 @@ endTurn = function () {
 
     dynasty_assign_candidate();
 
-    if (civ.money < 0 || civ.deposit < 10) {
+    if ((civ.money < 0 || civ.deposit < 10) && civ.gov?.cohesion > 0) {
         gov_opinion_bankrupt(civ, civName, civ.gov);
     }
 
     if (civ.ii > 0)
         gov_exec(civ, civName);
+
+    // rebel pops: for own civ
+    if (Math.random() < civ.rchance && Math.random() < RCHANCEMOD) {
+        console.log("== triggering rebellion in", civName, "with chance=", civ.rchance);
+        push_msg(`Rebellions in ${civName} are attempting an uprising.`, [civName, ...Object.keys(civ.neighbors)]);
+        if (popRebel(null, civName))
+            civ.rchance *= 0.35;
+    }
+
+    // rebel pops: for perished civs
+    if (ii <= 2 && turn >= 10 * 4 * civOrders.length && (Math.random() < 0.0012
+    // || (1 + turn) % (88 * 4 * civOrders.length) <= 14
+    ) && civ.technology >= 0 && Math.random() < RCHANCEMOD) {
+       // auto pick target
+        console.log("## triggering rebellion for", civName);
+        if (Math.random() < 0.7 && civ.birth) {
+            let targetCiv = data[civ.birth[0]][civ.birth[1]].color;
+            targetCiv.rchance *= 100; // cause a cascade
+            if (popRebel(civName, targetCiv, civ.birth))
+              push_msg(`Descendants of ${civName} are attempting an uprising in ${targetCiv}.`, [civName, targetCiv]);
+        } else {
+            delete civ.birth;
+            popRebel(civName);
+        }
+    }
 
     if (civ.ii >= 2) {
         let rchance = (20 / Math.max(1, civ.happiness) - 0.1) + ((Math.max(0, 1 - civ.gov.cohesion)) || 0);
@@ -848,31 +873,6 @@ endTurn = function () {
 
     civ.rchance *= 1 + civ.rchance;
     civ.rchance = Math.min(0.50, civ.rchance);
-
-    // rebel pops: for own civ
-    if (Math.random() < civ.rchance && Math.random() < RCHANCEMOD) {
-        console.log("== triggering rebellion in", civName, "with chance=", civ.rchance);
-        push_msg(`Rebellions in ${civName} are attempting an uprising.`, [civName, ...Object.keys(civ.neighbors)]);
-        if (popRebel(null, civName))
-            civ.rchance *= 0.35;
-    }
-
-    // rebel pops: for perished civs
-    if (ii <= 2 && turn >= 10 * 4 * civOrders.length && (Math.random() < 0.0012
-    // || (1 + turn) % (88 * 4 * civOrders.length) <= 14
-    ) && civ.technology >= 0 && Math.random() < RCHANCEMOD) {
-       // auto pick target
-        console.log("## triggering rebellion for", civName);
-        if (Math.random() < 0.7 && civ.birth) {
-            let targetCiv = data[civ.birth[0]][civ.birth[1]].color;
-            targetCiv.rchance *= 100; // cause a cascade
-            if (popRebel(civName, targetCiv, civ.birth))
-              push_msg(`Descendants of ${civName} are attempting an uprising in ${targetCiv}.`, [civName, targetCiv]);
-        } else {
-            delete civ.birth;
-            popRebel(civName);
-        }
-    }
 
     document.getElementById('tickTime').innerText = 'Tick: ' + (new Date().getTime() - _startTime).toFixed("0") + 'ms';
     prepareTurn();
