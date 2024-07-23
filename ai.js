@@ -32,7 +32,10 @@ var AI = {
         if (civ.inGatesDisallowed && civ.neighbors) {
             for (let cn in civ.neighbors) {
                 let c2 = civs[cn];
-                if (civ.rchance > 1.25 / 100 || civ.happiness < 40 || (civ.mandate && Math.random() < 0.90)) {
+                if (
+                    civ.rchance > 1.25 / 100 || civ.happiness < 40 ||
+                    ((civ.mandate || civ.mandateInAcquirement) && Math.random() < 0.90)
+                ) {
                     civ.inGatesDisallowed[cn] = true;
                 } else if (civ.rchance > 0.75 / 100 || civ.happiness < 50) {
                     civ.inGatesDisallowed[cn] = (c2.nextDecline > civ.pop * 0.005) || (c2.pop > civ.pop * 0.1 && Math.random() > civ.happiness / 100 / 4);
@@ -190,11 +193,10 @@ var AI = {
             'PDSCR': 3, // disaster chance
         } : (
             civ.mandateInAcquirement ? {
-                'MCCCT': 10, // combat strength
-                'MMVCT': 2, // movement cost
-                'PIMHR': 5, // unhappiness from migration
-                'OMVPC': 50, // movement political cost
-                'ORBRD': 10, // rebel chance per round
+                'MCCCT': 5, // combat strength
+                'PIMHR': 10, // unhappiness from migration
+                'OMVPC': 10, // movement political cost
+                'ORBRD': 5, // rebel chance per round
             } : {}
         );
 
