@@ -16,6 +16,8 @@
     <script charset="utf-8" src="d3.v4.js"></script>
     <script charset="utf-8" src="d3_timeseries.min.js"></script>
 
+    <script charset="utf-8" src="jszip.min.js"></script>
+
     <script charset="utf-8" src="history_chart.js"></script>
 
     <script src="utils.js"></script>
@@ -35,6 +37,7 @@
     <script src="regions.js"></script>
     <script src="dynasty.js"></script>
     <script src="canvas.js"></script>
+    <script src="gallery.js"></script>
     <script src="ai.js"></script>
     <script src="relationships.js"></script>
     <script src="serializer.js"></script>
@@ -42,6 +45,7 @@
     <script src="msgbox.js"></script>
     <script src="tablesort.min.js"></script>
     <script src="tablesort.number.min.js"></script>
+    <link rel="stylesheet" href="css/gallery.css">
     <meta name="viewport" content="width=device-width">
     <style>
         table.hide-extras .extra {
@@ -326,8 +330,9 @@
     </table>
 </div>
 <button onclick="alertCopy(serialize(eval(prompt())))">&gt;_</button>
-<button onclick="showCellBorder = !(lazyDraw = !lazyDraw);">LazyDraw</button>
-<button onclick="(lazyDraw2 = !lazyDraw2);">LazyDraw 2</button>
+<button onclick="lazyDrawCml = !lazyDrawCml;">lzdCml</button>
+<button onclick="showCellBorder = !(lazyDraw = !lazyDraw);">lzd</button>
+<button onclick="(lazyDraw2 = !lazyDraw2);">lzd2</button>
 <button onclick="lazyDrawCount = Math.max(civOrders.length, (parseInt(prompt('lazyDrawCount=', lazyDrawCount)) | 0) || lazyDrawCount || 10)">lzdrwcnt=</button>
 <button onclick="showBorder = !showBorder">border?</button>
 <button onclick="showStripes = !showStripes">stripes?</button>
@@ -344,9 +349,13 @@
 <button onclick="localStorage.back2 = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage2</button>
 <input type="file" id="file"><br>
 <button onclick="alert = console.log">quiteMode On</button>
-<button onclick="alert = alertCopy">quiteMode Off</button><br>
+<button onclick="alert = alertCopy">quiteMode Off</button>
+<button onclick="GALLERY_MAX_YEARS = (parseFloat(prompt('GALLERY_MAX_YEARS=', GALLERY_MAX_YEARS))) || GALLERY_MAX_YEARS || 10">max int=</button>
+<button onclick="GALLERY_MIN_YEARS = (parseFloat(prompt('GALLERY_MIN_YEARS=', GALLERY_MIN_YEARS))) || GALLERY_MIN_YEARS || 0.25">min int=</button>
+<button onclick="GALLERY_TRIGGER_CHANGES = (parseFloat(prompt('GALLERY_TRIGGER_CHANGES=', GALLERY_TRIGGER_CHANGES))) || GALLERY_TRIGGER_CHANGES || 0.2">map % change=</button>
+<br>
 <button onclick="enableGraph = !enableGraph">toggle graphs</button>
-<button onclick="_populationData = [];_incomeData = [];_pwrData = [];_techData = [];_dynastyData = [[null, 0]];">clear graphs</button>
+<button onclick="_populationData = [];_incomeData = [];_pwrData = [];_techData = [];_dynastyData = [[null, 0]];GALLERY_DATA = [];">clear graphs & gallery</button>
 <script>
     window.alertCopy = alert;
     function deposit() {
@@ -597,7 +606,32 @@ c:
 <div id="pwrGraph" style="width: 800px;height: 600px"></div>
 <h3>School activity:</h3>
 <div id="techGraph" style="width: 800px;height: 600px"></div>
-Build: 2025 (terrain smoothing, AI smart gov, mandate acquirement, less budget breaking school building, make graph smoothing actually work)<br>
+<h3>Gallery:</h3>
+<div id="gallery">
+    <div class="nav top-nav">
+        <div class="download">
+            <button onclick="downloadGallery()">zip & ffmpeg</button>
+        </div>
+        <div class="navHeader"></div>
+        <div class="size" style="flex-basis: 6em;"></div>
+    </div>
+    <div class="img-con">
+        <img src="" alt="">
+    </div>
+    <div class="nav center-nav">
+        <div class="navPrev">
+            <button onclick="galleryIndex--; galleryDisp();">←</button>
+        </div>
+        <div class="navHeader"></div>
+        <div class="navNext">
+            <button onclick="galleryIndex++; galleryDisp();">→</button>
+        </div>
+    </div>
+    <div class="navInfos">
+    </div>
+</div>
+<br>
+Build: 2025 (gallery, terrain smoothing, AI smart gov, mandate acquirement, less budget breaking school building, make graph smoothing actually work)<br>
 Build: pre-release, 2025 (regional supplies & tax efficiencies, supply based def mod, fix gov.MCCCT on buildings, AI auto bankrupt fix)<br>
 Build: May, 2024 (smart war length, rebel rework, disallow build on empty color, popgrowth changes, preserve pop on build, income fixes, schools close on 0 money and politic)<br>
 Build: pre-release 2024 (gov & persons, lot of mechanics bug fixes, high reserve penalty, AI trybuild overhaul, advanced stats, dynasty mechanic, rebel size happiness relation)<br>

@@ -130,6 +130,28 @@ var newtypes = {
     }
 };
 
+function canvasScreenshot() {
+    const data = canvas.toDataURL('image/jpeg');
+    const image = document.createElement('img');
+    image.src = data;
+    image.rel = "preload";
+
+    GALLERY_DATA.push({
+        img: image,
+        pop: window.average && window.average.pop || 0,
+        gdp: Math.floor(window.average?.income),
+        gdpPerCapita: Math.floor(1000 * 1e6 * window.average?.income / window.average?.pop) / 1000,
+        year: Math.floor(turn / civOrders.length) / 4,
+        dynasty: dynasty_get_mandate(),
+        contenders: civOrders.filter(x => civs[x].mandateInAcquirement).join(", ")
+    });
+
+    _gallery_prev_year = Math.floor(turn / civOrders.length) / 4;
+    _gallery_change_cml = 0;
+
+    galleryDisp(true);
+}
+
 /** Creates a canvas filled with a 45-degree pinstripe.
   * @returns the filled HTMLCanvasElement. */
 function createPinstripeCanvas(side_length, bg, colour) {
@@ -211,8 +233,7 @@ g_bycountry=0;
 function drawCanvas(compare, relationship, pop) {
     let start = new Date();
     if (gp) pop=1;
-    count++;
-    if ((lazyDraw || lazyDraw2) && count % lazyDrawCount != 0) return;
+    if ((lazyDraw || lazyDraw2) && count++ % lazyDrawCount != 0) return;
     //BLOCK_SIZE += 0.17;
     if (showCellBorder)
         BLOCK_SIZE = Math.floor(BLOCK_SIZE) + 0.27;

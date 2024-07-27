@@ -3,12 +3,20 @@ TIMEOUT_DELAY = 150;
 RCHANCEMOD = 1;
 INCOMEMOD = 0.3;
 
+lazyDrawCml = false;
+
+_gallery_prev_year = 0;
+_gallery_change_cml = 0;
+GALLERY_MAX_YEARS = 10;
+GALLERY_MIN_YEARS = 0.5;
+GALLERY_TRIGGER_CHANGES = 0.2; // as percent of map size
+
 var onRightClick = null;
 
 ready = function () {
     drawCanvas();
 
-    $('canvas').bind('wheel', function (e) {
+    $('canvas').bind('wheel', function (e) {_gallery_change_cml
         e.preventDefault();
         if (e.originalEvent.wheelDelta / 120 > 0) {
             BLOCK_SIZE++;
@@ -350,6 +358,8 @@ endTurn = function () {
     civ.outGate = civ.outGate === undefined ? true : civ.outGate;
     civ._perished = 0;
 
+    let _newColorGrid = data.map(x => x.map(x => null));
+
     if (!civ.gov)
         gov_init(civ, civName);
 
@@ -457,7 +467,13 @@ endTurn = function () {
         if (d?._econ)
           max_econ = Math.max(max_econ, d._econ);
 
+        _newColorGrid[row][col] = d?.color || null;
+
         if (!d || !d.color || !d.type) return;
+
+        if (data._cgrid && data._cgrid[row][col] != d?.color)
+            _gallery_change_cml += 1 / data.length / data[0].length;
+
         if (d.type.draw.toString() == types.capital.draw.toString()
             && civs[d.color] && !civs[d.color].birth) {
             civs[d.color].birth = [row, col];
@@ -684,6 +700,8 @@ endTurn = function () {
             }
         }
     });
+
+    data._cgrid = _newColorGrid;
 
     civ._parts && ++civ._parts.lastUpdated; // update yearly parts cache counter
 
@@ -1084,6 +1102,19 @@ prepareTurn = function () {
     i++;
     if (i >= civOrders.length) {
         i = 0;
+
+        const yearsSinceLastScreenshot = Math.floor(turn / civOrders.length) / 4 - _gallery_prev_year;
+        if (
+            yearsSinceLastScreenshot >= GALLERY_MAX_YEARS ||
+            (yearsSinceLastScreenshot >= GALLERY_MIN_YEARS && _gallery_change_cml >= GALLERY_TRIGGER_CHANGES)
+        ) {
+            if (lazyDrawCml) {
+                count = 0;
+                drawCanvas();
+            }
+            canvasScreenshot();
+        }
+
         window.average = {
             happiness: averageData.happiness / civOrders.length,
             logistics: averageData.logistics / civOrders.length,
@@ -1226,14 +1257,14 @@ prepareTurn = function () {
         AI.think(civs[civOrders[i]], civOrders[i]);
         $('#aiTime').text((new Date() - start) + 'ms');
         $('#panel').hide();
-        refreshTable();
-        drawCanvas();
         setTimeout(endTurn, TIMEOUT_DELAY || 150);
     } else {
         showInfo();
-        refreshTable();
-        drawCanvas();
     }
+    refreshTable();
+    if (lazyDrawCml)
+        count = 1; // prevents draw on lazydraw
+    drawCanvas();
 
     document.getElementById('year').innerText =
         'Population: ' + (window.average && window.average.pop || 0) +
