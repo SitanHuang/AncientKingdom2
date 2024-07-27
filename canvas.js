@@ -497,13 +497,26 @@ function drawCanvas(compare, relationship, pop) {
             }
 
             let font_size = Math.max(10, max_diff / color.length * 2 / 4);
-            context.font = 'bold ' + font_size + "px 'Roboto Mono'";
 
-            context.shadowBlur = font_size / 2;
             context.textAlign = "center";
             context.shadowColor = "black";
             context.shadowOffs = 0;
             context.fillStyle = "rgba(255, 255, 255, 0.9)";
+
+            if (civOrders.filter(x => civs[x].mandate).length) {
+                if (civs[color].mandate) {
+                    context.font = 'bold ' + font_size + "px 'Roboto Mono'";
+                    font_size *= 1.2;
+                } else {
+                    context.font = font_size + "px 'Roboto Mono'";
+                    context.fillStyle = "rgba(0, 0, 0, 0.9)";
+                    context.shadowColor = "white";
+                }
+            } else {
+                context.font = 'bold ' + font_size + "px 'Roboto Mono'";
+            }
+
+            context.shadowBlur = font_size / 2;
             context.fillText(color, cx, cy + font_size / 2);
         })
     }
