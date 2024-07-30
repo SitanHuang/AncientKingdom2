@@ -7,7 +7,7 @@ lazyDrawCml = false;
 
 _gallery_prev_year = 0;
 _gallery_change_cml = 0;
-GALLERY_MAX_YEARS = 10;
+GALLERY_MAX_YEARS = 12;
 GALLERY_MIN_YEARS = 0.5;
 GALLERY_TRIGGER_CHANGES = 0.2; // as percent of map size
 

@@ -350,9 +350,10 @@
 <input type="file" id="file"><br>
 <button onclick="alert = console.log">quiteMode On</button>
 <button onclick="alert = alertCopy">quiteMode Off</button>
-<button onclick="GALLERY_MAX_YEARS = (parseFloat(prompt('GALLERY_MAX_YEARS=', GALLERY_MAX_YEARS))) || GALLERY_MAX_YEARS || 10">max int=</button>
-<button onclick="GALLERY_MIN_YEARS = (parseFloat(prompt('GALLERY_MIN_YEARS=', GALLERY_MIN_YEARS))) || GALLERY_MIN_YEARS || 0.25">min int=</button>
+<button onclick="GALLERY_MAX_YEARS = (parseFloat(prompt('GALLERY_MAX_YEARS=', GALLERY_MAX_YEARS))) || GALLERY_MAX_YEARS || 12">max int=</button>
+<button onclick="GALLERY_MIN_YEARS = (parseFloat(prompt('GALLERY_MIN_YEARS=', GALLERY_MIN_YEARS))) || GALLERY_MIN_YEARS || 0.5">min int=</button>
 <button onclick="GALLERY_TRIGGER_CHANGES = (parseFloat(prompt('GALLERY_TRIGGER_CHANGES=', GALLERY_TRIGGER_CHANGES))) || GALLERY_TRIGGER_CHANGES || 0.2">map % change=</button>
+<button onclick="canvasScreenshot()">sc now</button>
 <br>
 <button onclick="enableGraph = !enableGraph">toggle graphs</button>
 <button onclick="_populationData = [];_incomeData = [];_pwrData = [];_techData = [];_dynastyData = [[null, 0]];GALLERY_DATA = [];">clear graphs & gallery</button>
@@ -546,10 +547,10 @@ a:
 c:
 <span id="canvasTime"></span>
 <button onclick="stopIntervals()">STOP</button>
-<button onclick="TIMEOUT_DELAY = Math.max(10, (parseInt(prompt('delay=', TIMEOUT_DELAY)) | 0) || TIMEOUT_DELAY || 150)">delay=</button>
-<button onclick="AGGRESSIVENESS = (parseFloat(prompt('AGGRESSIVENESS=', AGGRESSIVENESS))) || AGGRESSIVENESS || 0.5">AI aggrs.=</button>
-<button onclick="RCHANCEMOD = (parseFloat(prompt('RCHANCEMOD=', RCHANCEMOD))) || RCHANCEMOD || 1">Rebel mod=</button>
-<button onclick="INCOMEMOD = (parseFloat(prompt('INCOMEMOD=', INCOMEMOD))) || INCOMEMOD || 0.3">GDP mod=</button>
+<button onclick="TIMEOUT_DELAY = Math.max(5, (parseInt(prompt('delay=', TIMEOUT_DELAY)) | 0) || TIMEOUT_DELAY || 150)">delay=</button>
+<button onclick="AGGRESSIVENESS = (parseFloat(prompt('AGGRESSIVENESS=', AGGRESSIVENESS))) || AGGRESSIVENESS || 0.5">aggrs.=</button>
+<button onclick="RCHANCEMOD = (parseFloat(prompt('RCHANCEMOD=', RCHANCEMOD))) || RCHANCEMOD || 1">Reb md=</button>
+<button onclick="INCOMEMOD = (parseFloat(prompt('INCOMEMOD=', INCOMEMOD))) || INCOMEMOD || 0.3">GDP md=</button>
 <button onclick="MANDATE_THRESHOLD = (parseFloat(prompt('MANDATE_THRESHOLD=', MANDATE_THRESHOLD))) || MANDATE_THRESHOLD || 0.45">dyn. thre=</button>
 <div id="heatmap" style="width: 700px;height: 700px">
 </div>
