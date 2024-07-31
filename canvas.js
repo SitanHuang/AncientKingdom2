@@ -10,6 +10,10 @@ var lazyDrawCount = 10;
 var showBorder = true;
 var showStripes = true;
 var showCellBorder = true;
+var showYear = {
+    yr: true,
+    offset: 0,
+};
 
 var newtypes = {
     capital: {
@@ -130,7 +134,15 @@ var newtypes = {
     }
 };
 
-function canvasScreenshot() {
+function canvasScreenshot(force) {
+    if (force) {
+        const [ old, old2 ] = [lazyDraw, lazyDraw2];
+        [lazyDraw, lazyDraw2] = [false, false];
+        count = 0;
+        drawCanvas();
+        [lazyDraw, lazyDraw2] = [ old, old2 ];
+    }
+
     const data = canvas.toDataURL('image/jpeg');
     const image = document.createElement('img');
     image.src = data;
@@ -519,6 +531,27 @@ function drawCanvas(compare, relationship, pop) {
             context.shadowBlur = font_size / 2;
             context.fillText(color, cx, cy + font_size / 2);
         })
+    }
+
+    if (showYear.yr) {
+        const font_size = BLOCK_SIZE;
+
+        const year = Math.floor(turn / civOrders.length) / 4;
+        const season = year % 1;
+        const dispYear = year - season + showYear.offset;
+        const yearText = '公元' +
+            (dispYear < 0 ? '前' + (-dispYear) : dispYear) + '年' +
+            (season < 0.25 ? '春' :
+            (season < 0.50 ? '夏' :
+            (season < 0.75 ? '秋' : '冬')));
+
+        context.textAlign = "left";
+        context.shadowColor = "black";
+        context.shadowOffs = 0;
+        context.fillStyle = "rgba(255, 255, 255, 0.9)";
+        context.shadowBlur = font_size / 2;
+        context.font = 'bold ' + font_size + "px Serif";
+        context.fillText(yearText, BLOCK_SIZE * 0.1, BLOCK_SIZE * 0.5 + font_size / 2);
     }
 
     // BLOCK_SIZE -= 0.17;
