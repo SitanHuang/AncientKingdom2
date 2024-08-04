@@ -197,7 +197,11 @@ var AI = {
                 'PIMHR': 10, // unhappiness from migration
                 'OMVPC': 10, // movement political cost
                 'ORBRD': 5, // rebel chance per round
-            } : {}
+            } : {
+                'PIMHR': 2, // unhappiness from migration
+                'OMVPC': 4, // movement political cost
+                'ORBRD': 3, // rebel chance per round
+            }
         );
 
         let candidate;

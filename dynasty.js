@@ -20,6 +20,7 @@ function dynasty_assign_candidate() {
   // every year
   if (turn <= 10 ||
     Math.floor(turn / civOrders.length) != turn / civOrders.length ||
+    // mandate held minimum 10 years
     turn - _dynastyData[_dynastyData.length - 1][1] < 10 * civOrders.length * 4) return;
 
   let civNames = [...civOrders].sort((a, b) => civs[b].pop - civs[a].pop);
@@ -60,7 +61,7 @@ function dynasty_assign_candidate() {
     factor = Math.max(0.4, 1 - factor / 200);
 
     let civ = civs[prevCiv];
-    if (civ.pop < popReq * factor && civ.incomesRA < incReq * factor)
+    if (civ.pop < popReq * factor || civ.incomesRA < incReq * factor)
       delete civ.mandate;
   }
 }
