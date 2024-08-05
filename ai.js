@@ -577,7 +577,7 @@ var AI = {
         });
     },
     tryBuildLand: function(civ, civName, maxMoney) {
-        var moneySpent = 200;
+        var moneySpent = civGetLandPrice(civ);
         iterateMathRandom(function (row, col) {
             if (Math.random() < 0.9)
                 return;
@@ -595,6 +595,8 @@ var AI = {
                     }
                 });
                 if (bool) {
+                    civ.landsBuilt = (civ.landsBuilt || 0) + 1;
+
                     data[row][col] = {
                         color: civName,
                         type: types.land
@@ -607,8 +609,8 @@ var AI = {
                             };
                         }
                     });
-                    civ.money -= 200;
-                    moneySpent += 200;
+                    civ.money -= civGetLandPrice(civ);
+                    moneySpent += civGetLandPrice(civ);
                 }
             }
         });

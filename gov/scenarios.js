@@ -39,6 +39,15 @@ function gov_opinion_disaster(civ, civName, gov) {
   );
 }
 
+function gov_opinion_rebel(civ, civName, gov) {
+  // general opinion decreases
+  gov_batch_mod_opinion(
+    gov,
+    x => true,
+    -0.15
+  );
+}
+
 // deposit/money < 0
 // ->>>>> CAREFUL ai relies on legit < threshold to start fixing bankruptcy
 function gov_opinion_bankrupt(civ, civName, gov) {

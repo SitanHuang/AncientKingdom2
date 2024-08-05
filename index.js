@@ -41,6 +41,18 @@ var civOrders = Object.keys(civs).sort();
 
 var buyClick = null;
 
+function civGetLandPrice(civ) {
+    return Math.min(800, Math.ceil(
+        Math.max(
+            0,
+            45 * Math.sqrt(civ.landsBuilt || 0)
+            - Math.max(0, (civ.years || 0) * 0.6)
+        )
+        + Math.max(0, (civ.ii || 0))
+        + 200 // base price
+    ));
+}
+
 buy = function (type, price) {
     $('#panel').hide();
     var civName = civOrders[i];
@@ -86,6 +98,8 @@ buy = function (type, price) {
                 alert('Land is not adjacent to your territory.')
             } else {
                 if (type.defend == types.land.defend) {
+                    civ.landsBuilt = (civ.landsBuilt || 0) + 1;
+
                     getNeighbors(row, col, function (l, r, c) {
                         if (!l.color) {
                             data[r][c] = {
@@ -334,6 +348,10 @@ endTurn = function () {
     if (civ.birth &&
         !(data[civ.birth[0]] && data[civ.birth[0]][civ.birth[1]])) {
         delete civ.birth;
+    }
+    if (civ.capital &&
+        !(data[civ.capital[0]] && data[civ.capital[0]][civ.capital[1]])) {
+        delete civ.capital;
     }
 
     const oldRealInc = (civ.income + 10) / (1 - (civ.imodDueToReserve || 0));
@@ -874,6 +892,8 @@ endTurn = function () {
         civ.rchance = rchance > civ.rchance ? rchance : (civ.rchance || 0) * 0.3 + rchance * 0.7;
         civ.rchance *= 1 + (civ.gov.mods.ORBRD || 0);
     } else {
+        civ.landsBuilt = 0;
+
         civ.rchance = 0;
         civ.years = 0;
         civ.technology = 0;
@@ -978,16 +998,22 @@ popRebel = function (civName, target, source) {
     civs[target].happiness *= 0.6;
     civs[target].politic *= 0.4;
 
+    if (civs[target].gov)
+        gov_opinion_rebel(civs[target], target, civs[target].gov);
+
     civ.war = civ.war || {};
     civs[target].war = civs[target].war || {};
     delete civs[target].war[civName];
     delete civ.war[target];
+
+    civ.landsBuilt = Math.ceil((civs[target].landsBuilt || 0) * 0.8);
 
     civ.money = 100 + civ.ii * 5;
     civ.politic = 50;
     civ.happiness = 100;
     civ.rchance = 0;
     civ.years = 0;
+
     if (civs[target].deposit > 0) {
         civ.deposit = civs[target].deposit * civ.ii / oldii;
         civs[target].deposit -= civ.deposit;
@@ -1007,7 +1033,7 @@ popRebel = function (civName, target, source) {
         sum = Math.max(civs[civN].technology, sum);
     });
 
-    civ.technology = Math.max(1, sum * (Math.random() * 0.4 + 0.5));
+    civ.technology = Math.max(1, sum * (Math.random() * 0.5 + 0.5));
 
     if (!civ.birth) return true;
 
@@ -1025,6 +1051,7 @@ showInfo = function () {
     var tributeToOthersText = "<div style='max-height: 5em;overflow: auto;border: 1px dashed grey;'>";
     var tributeToOther = civ.tributeToOther || {};
     var tributeToMe = civ.tributeToMe || {};
+
     Object.getOwnPropertyNames(tributeToOther).forEach(x => {
         let out = tributeToOther[x];
         let inp = tributeToMe[x] || 0;
@@ -1040,6 +1067,7 @@ showInfo = function () {
 //     });
 
     $('#panel').show().children('div').hide();
+    $('#panel button.buyLand').text(`land $${civGetLandPrice(civs[civOrders[i]])}`);
     $('#turn').html('<h2></h2>');
     const edpmx = 1 + (civ.gov?.mods?.EDPMX || 0);
 
