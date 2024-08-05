@@ -14,7 +14,7 @@ function gov_opinion_aggressive_war(civ, civName, gov) {
   gov_batch_mod_opinion(
     gov,
     x => x.mods.OFRHS < 0,
-    -0.10
+    -0.30
   );
 
   // general opinion decreases
@@ -35,7 +35,7 @@ function gov_opinion_disaster(civ, civName, gov) {
   gov_batch_mod_opinion(
     gov,
     x => !x.mods.PDSCR, // except those with diaster mod
-    -0.20
+    -0.30 - Math.max(0, (gov.cohesion || 0) - 1) * 0.5
   );
 }
 
@@ -44,7 +44,7 @@ function gov_opinion_rebel(civ, civName, gov) {
   gov_batch_mod_opinion(
     gov,
     x => true,
-    -0.15
+    -0.15 - Math.max(0, (gov.cohesion || 0) - 1) * 0.5
   );
 }
 

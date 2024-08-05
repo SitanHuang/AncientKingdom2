@@ -111,7 +111,7 @@ const GOV_PERSON_MODS = {
     }, { // done
       id: "ORBRD",
       name: "Rebel chance per round",
-      min: -0.45,
+      min: -0.25,
       max: 0.05,
       ai: 'asc'
     }, { // done

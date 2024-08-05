@@ -466,6 +466,10 @@ endTurn = function () {
     const dchance2 = 0.001 * pdscr;
     let maginitude = Math.random() < dchance1 ? 0.2 * Math.random() : (Math.random() < dchance2 ? 0.4 : 0);
     if (maginitude && civ.ii > 2) {
+        if (civ.money > 0)
+            civ.money *= maginitude;
+        if (civ.deposit > 0)
+            civ.deposit *= maginitude;
         gov_opinion_disaster(civ, civName, civ.gov);
         push_msg(`Natural disasters in ${civName} is causing famines killing ${maginitude * 100 | 0}% of population.`, [civName, ...Object.keys(civ.neighbors)]);
     }
