@@ -85,9 +85,9 @@ var AI = {
                             if (isAtWar(civs[x], k) && !isAtWar(civ, x) && x != civName) {
                                 if (!isPeace(civ, x)) {
                                     if (((civs[x].ii * 0.5 < civ.ii || civs[x].income > civ.income) && Math.random() < 0.9) ||
-                                        Math.random() < 0.3)
+                                        Math.random() < 0.3 && !civ.mandateInAcquirement)
                                         promptForAlliance(civName, x) || promptForPact(civName, x);
-                                    else
+                                    else if (!civ.mandateInAcquirement)
                                         promptForPact(civName, x);
                                 }
                                 if (civ.neighbors && civs[x].neighbors) {

@@ -307,7 +307,7 @@ move = function (cn1, pickedUp, p2, ai) {
             }
             if (((c2.money + c2.deposit < -100 || c2.politic < 0) && Math.random() < Math.min(1, 1 - c2.happiness / 100) * 0.3
                 && c2.ii < 150 && c2.military < 50 && c2.deposit + c2.money < (c2.ii * c2.urban / 10) * 0.6) ||
-                (ddffeend == types.capital.draw.toString() && Math.random() < 0.1)) {
+                (ddffeend == types.capital.draw.toString() && Math.random() < 0.1 && c2.ii < 250)) {
                 for (var row = 0; row < data.length; row++) {
                     var rowData = data[row];
                     for (var col = 0; col < rowData.length; col++) {
