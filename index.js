@@ -45,7 +45,7 @@ function civGetLandPrice(civ) {
     return Math.min(800, Math.ceil(
         Math.max(
             0,
-            45 * Math.sqrt(civ.landsBuilt || 0)
+            100 * Math.sqrt(civ.landsBuilt || 0)
             - Math.max(0, (civ.years || 0) * 0.6)
         )
         + Math.max(0, (civ.ii || 0))
