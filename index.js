@@ -1030,8 +1030,8 @@ popRebel = function (civName, target, source) {
 
     var sum = 0;
 
-    if (Math.random() < 0.8)
-        declareWar(target, civName, true, `as a result of the ${civName} rebellion.`, 3 + 5*(civs[target].rchance || 0))
+    if (Math.random() < 0.8 || civs[target].mandate > 1)
+        declareWar(target, civName, true, `as a result of the ${civName} rebellion.`, 5 + 5*(civs[target].rchance || 0))
 
     civOrders.forEach(function (civN) {
         sum = Math.max(civs[civN].technology, sum);
