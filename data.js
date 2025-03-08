@@ -1,4 +1,5 @@
 var data;
+var popv2;
 var civs = {
     China: {
         color: '#DB4437',

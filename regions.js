@@ -35,7 +35,7 @@ function regions_defBonus(civ, civName, row, col) {
 
   def *= Math.max(1, 2 - res_pop_mod(row, col));
 
-  def *= Math.max(1, data[row][col]?.pop / 250000) || 1;
+  def *= Math.max(1, popv2_get_totpop(row, col) / 250000) || 1;
 
   return Math.min(Math.max(def, 0.1), 5);
 }

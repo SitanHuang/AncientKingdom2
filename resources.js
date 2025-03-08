@@ -18,7 +18,10 @@ function _ter_set(row, col, prop, dat) {
 }
 
 function _ter_gen() {
-  console.time("_ter_gen");
+  console.time("_ter_gen: map must have changed");
+  popv2 = null;
+  popv2_init();
+
   const funcs = [
     [_res_econ_mod_raw, 'e', 2, 3, 2, 1, 1],
     [_res_pop_mod_raw, 'p', 5, 8, 3, 2.5, 1.3]

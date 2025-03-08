@@ -116,8 +116,8 @@ buy = function (type, price) {
                     color: civName,
                     type: type,
                 };
-                if (land.pop > 10000)
-                    data[row][col].pop = land.pop;
+                // if (land.pop > 10000)
+                //     data[row][col].pop = land.pop;
                 if (land._oldcolor)
                     data[row][col]._oldcolor = land._oldcolor;
                 if (land._oct)
@@ -299,7 +299,7 @@ move = function (cn1, pickedUp, p2, ai) {
               c2.logistics = c2.logistics ? c2.logistics + result[0] / 25 : result[0] / 25;
 
               let rate = Math.min(0.99, Math.max(0.8, 1 - result[0] * 500 * (1 + (c1.ii || 0) / 1000) / c1.pop)) || 0.97;
-              let rate2 = Math.min(0.99, Math.max(0.8, 1 - data[row2][col2].pop / c2.pop)) || 0.97;
+              let rate2 = Math.min(0.99, Math.max(0.8, 1 - popv2_get_totpop(row2, col2) / c2.pop)) || 0.97;
               c2.happiness *= rate2;
               c2._hapDec *= rate2;
               c1.happiness *= rate;
@@ -380,6 +380,8 @@ endTurn = function () {
 
     if (!civ.gov)
         gov_init(civ, civName);
+
+    popv2_init();
 
     civ._migrantInfo = {
         alleviatedFromOut: {happiness: 1},
@@ -484,8 +486,9 @@ endTurn = function () {
 
     iterateMathRandom((row, col) => {
         let d = data[row][col];
-        if (d?.pop)
-          max_pop = Math.max(max_pop, d.pop);
+        // if (d?.pop)
+        //   max_pop = Math.max(max_pop, d.pop);
+        max_pop = Math.max(max_pop, popv2_get_totpop(row, col));
         if (d?._econ)
           max_econ = Math.max(max_econ, d._econ);
 
@@ -522,6 +525,9 @@ endTurn = function () {
                     totalNeighbors++;
                 }
             });
+
+            // !!! WORK ZONE START !!!
+
             d.pop = Math.min(d.pop, 1500000) || 0;
             /*if ((!d.pop || d.pop < 1000) && d.type.defend && !d.type.val) {
                 d.pop = d.type.defend * 5000 * Math.random();
@@ -649,6 +655,8 @@ endTurn = function () {
             // }
             civ.pop += d.pop;
             max_pop = Math.max(max_pop, d.pop);
+
+            // !!! WORK ZONE END !!!
 
             let _oldmoney = civ.money + 0;
             let _oldtech = civ.technology + 0;

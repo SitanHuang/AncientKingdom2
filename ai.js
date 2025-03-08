@@ -566,8 +566,8 @@ var AI = {
                 color: civName,
                 type: type,
             };
-            if (land.pop > 10000)
-                data[row][col].pop = land.pop;
+            // if (land.pop > 10000)
+            //     data[row][col].pop = land.pop;
             if (land._oldcolor)
                 data[row][col]._oldcolor = land._oldcolor;
             if (land._oct)

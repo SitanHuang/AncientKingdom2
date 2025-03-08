@@ -332,14 +332,14 @@ function drawCanvas(compare, relationship, pop) {
                     else
                         context.fillStyle = 'grey';
                 } else if (pop) {
-                    let p = (g_bycountry ? civs[d.color].pop : d.pop) || 0;
+                    let p = (g_bycountry ? civs[d.color].pop : popv2_get_totpop(row, col)) || 0;
                     let max = g_bycountry ? Math.floor(max_pop_country || max_pop) : max_pop;
                     context.fillStyle = `rgb(${250 - p/max*250}, ${250 - p/max*125}, ${250 - p/max*250})`;
                     context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
                     if (!g_bycountry) {
                         context.font = BLOCK_SIZE / 2 + "px 'Roboto Mono'";
                         context.fillStyle = 'black';
-                        if (d.pop > 500) context.fillText(Math.round(d.pop / 10000) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
+                        if (popv2_get_totpop(row, col) > 500) context.fillText(Math.round(popv2_get_totpop(row, col) / 10000) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
                     }
                     continue;
                 } else if (ge) {
@@ -369,7 +369,7 @@ function drawCanvas(compare, relationship, pop) {
 
                 if (!lazyDraw) {
                     let _draw = d.type.draw;
-                    let bold = d.growth > 1 && d.pop > Math.max(max_pop * 0.75, 100000) ? '"bold " + 1.2 * ' : '';
+                    let bold = d.growth > 1 && popv2_get_totpop(row, col) > Math.max(max_pop * 0.75, 100000) ? '"bold " + 1.2 * ' : '';
                     let body = _draw.toString()
                       .replace('x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE',
                         bold ? 'x * BLOCK_SIZE + BLOCK_SIZE / 4 * 0.9, y * BLOCK_SIZE + BLOCK_SIZE / 1.5 * 1.1' :
