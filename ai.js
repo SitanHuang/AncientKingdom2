@@ -283,8 +283,8 @@ var AI = {
             }
 
             if (civ.mandateInAcquirement) {
-                warChance *= 10;
-                warChance = Math.min(warChance, 0.8);
+                warChance *= 50;
+                warChance = Math.min(warChance, 2);
             }
 
             warChance *= Math.min(5, Math.max(0, (civ.deposit + civ.money) / (civ.ii * civ.urban / 10 * 2)));
