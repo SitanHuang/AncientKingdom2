@@ -341,8 +341,8 @@ var AI = {
             }
 
             if (civ.mandateInAcquirement) {
-                warChance *= 10;
-                warChance = Math.min(warChance, 0.8);
+                warChance *= 50;
+                warChance = Math.min(warChance, 2);
             }
             // if (warChance > 0.25) {
             if (civ.em / civ.ii > civ2.em / civ2.ii)
