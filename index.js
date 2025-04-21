@@ -813,6 +813,10 @@ endTurn = function () {
     civ.cityCount = cityCount;
     // this shouldn't be too non-linear due to tax eff factoring radius (5/12/2024)
     civ.govExp = (civ.ii / 2000 + 0.17) * civ.ii + (civ.occupiedII / 40 + 0.5) * civ.occupiedII;
+    if (civ.money < civ.govExp) {
+        civ.govExp = 0;
+        civ.rchance *= 1.2;
+    }
     civ.money = Math.round((civ.money - (civ.govExp)
       + (civ.deposit < 0 ? civ.deposit / 10 : 0)) * 100) / 100;
     civ.spentOnUrban = 0;

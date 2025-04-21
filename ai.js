@@ -116,11 +116,10 @@ var AI = {
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 20)), types.fort, 25, -1, -1);
                 this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 5)), types.city, 85, 0.1, 1);
 
-                let adjInc = (Math.min(civ.incomesRA, civ.income) - civ.spentOnUrban - civ.govExp)
-                    / 1 + (civ.gov?.mods?.EGRVG || 0);
+                let adjInc = (Math.min(civ.incomesRA, civ.income) - civ.spentOnUrban - civ.govExp);
 
                 if ((!civ.mandateInAcquirement || adjInc > Math.max(60, civ.ii * 2, civ.expense / 0.15)) &&  // max 15% of budget
-                    civ.happiness > 60 && adjInc > Math.max(60, civ.ii * 2, civ.expense / 0.30)) // max 30% of budget
+                    civ.happiness > 60 && adjInc * 0.9 > Math.max(60, civ.ii * 2, civ.expense / 0.30)) // max 30% of budget
                     this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 2)), types.school, 105, -0.1, 2, Math.random() > 0.5);
                 if (civ.happiness > 70 && (civ.urban < 65 || civ.ii < 70))
                     this.tryBuild(civ, civName, civ.money / (Math.ceil(Math.random() * 2)), types.finance, 105, 5, 1, true);
