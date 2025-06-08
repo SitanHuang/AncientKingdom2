@@ -332,14 +332,15 @@ function drawCanvas(compare, relationship, pop) {
                     else
                         context.fillStyle = 'grey';
                 } else if (pop) {
-                    let p = (g_bycountry ? civs[d.color].pop : popv2_get_totpop(row, col)) || 0;
+                    const dPop = popv2_get_totpop(row, col);
+                    let p = (g_bycountry ? civs[d.color].pop : dPop) || 0;
                     let max = g_bycountry ? Math.floor(max_pop_country || max_pop) : max_pop;
                     context.fillStyle = `rgb(${250 - p/max*250}, ${250 - p/max*125}, ${250 - p/max*250})`;
                     context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-                    if (!g_bycountry) {
+                    if (!g_bycountry && dPop > 50000) {
                         context.font = BLOCK_SIZE / 2 + "px 'Roboto Mono'";
                         context.fillStyle = 'black';
-                        if (popv2_get_totpop(row, col) > 500) context.fillText(Math.round(popv2_get_totpop(row, col) / 10000) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
+                        if (dPop > 500) context.fillText(Math.round(dPop / 10000) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
                     }
                     continue;
                 } else if (ge) {

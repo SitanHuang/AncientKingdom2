@@ -20,7 +20,7 @@ function _ter_set(row, col, prop, dat) {
 function _ter_gen() {
   console.time("_ter_gen: map must have changed");
   popv2 = null;
-  popv2_init();
+  // popv2_init();
 
   const funcs = [
     [_res_econ_mod_raw, 'e', 2, 3, 2, 1, 1],
@@ -59,7 +59,7 @@ function _ter_gen() {
       _ter_set(i, j, prop, mod);
     }));
   }
-  console.timeEnd("_ter_gen");
+  console.timeEnd("_ter_gen: map must have changed");
 }
 
 function _res_econ_mod_raw(row, col) {

@@ -293,13 +293,17 @@ move = function (cn1, pickedUp, p2, ai) {
             data[row2][col2].type = type;
         }
 
+        let dPop = popv2_get_totpop(row2, col2);
+
+        popv2_apply_delta(row2, col2, -dPop * Math.random() * 0.25);
+
         if (c2) {
             if (result[0]) {
               c2.money -= result[0] / 25;
               c2.logistics = c2.logistics ? c2.logistics + result[0] / 25 : result[0] / 25;
 
               let rate = Math.min(0.99, Math.max(0.8, 1 - result[0] * 500 * (1 + (c1.ii || 0) / 1000) / c1.pop)) || 0.97;
-              let rate2 = Math.min(0.99, Math.max(0.8, 1 - popv2_get_totpop(row2, col2) / c2.pop)) || 0.97;
+              let rate2 = Math.min(0.99, Math.max(0.8, 1 - dPop / c2.pop)) || 0.97;
               c2.happiness *= rate2;
               c2._hapDec *= rate2;
               c1.happiness *= rate;
@@ -486,9 +490,10 @@ endTurn = function () {
 
     iterateMathRandom((row, col) => {
         let d = data[row][col];
-        // if (d?.pop)
-        //   max_pop = Math.max(max_pop, d.pop);
-        max_pop = Math.max(max_pop, popv2_get_totpop(row, col));
+
+        let dPop = popv2_get_totpop(row, col);
+
+        max_pop = Math.max(max_pop, dPop);
         if (d?._econ)
           max_econ = Math.max(max_econ, d._econ);
 
@@ -528,30 +533,41 @@ endTurn = function () {
 
             // !!! WORK ZONE START !!!
 
-            d.pop = Math.min(d.pop, 1500000) || 0;
-            /*if ((!d.pop || d.pop < 1000) && d.type.defend && !d.type.val) {
-                d.pop = d.type.defend * 5000 * Math.random();
-            }*/
-            d.growth = 0.5;
+            popv2_clamp_max(row, col, 1500000);
+
+            let noGrowth = true;
+            d.growth = 1.001;
+            let cap = 30000 * res_pop_mod(row, col);
+
             if (d && (d.type.draw.toString() == types.city.draw.toString() ||
                         d.type.draw.toString() == types.town.draw.toString() ||
                         d.type.draw.toString() == types.school.draw.toString() ||
                         d.type.draw.toString() == types.headquarter.draw.toString())) {
-                d.growth = d.pop < 50000 ? 1.015 : 1.0020;
-                nextDecline -= (d.pop < 50000 ? 0.015 : 0.0020) * d.pop * 0.10;
+                d.growth = dPop < 50000 ? 1.015 : 1.0027;
+                nextDecline -= (dPop < 50000 ? 0.015 : 0.0020) * dPop * 0.10;
                 cityCount++;
+                cap *= 8;
+                noGrowth = false;
             } else if (d && d.type.draw.toString() == types.finance.draw.toString()) {
-                d.growth = d.pop < 50000 ? 0.025 : 0.0040;
+                d.growth = dPop < 50000 ? 0.025 : 0.0040;
                 d.growth *= 1 + (civ.gov.mods.EFNPG || 0);
                 d.growth += 1;
-                nextDecline -= (d.pop < 50000 ? 0.025 : 0.0040) * d.pop * 0.05;
+                nextDecline -= (dPop < 50000 ? 0.025 : 0.0040) * dPop * 0.05;
                 cityCount+=2;
+                cap *= 10;
+                noGrowth = false;
             } else if (d && d.type.draw.toString() == types.capital.draw.toString()) {
-                d.growth = d.pop < 50000 ? 1.030 : 1.005;
-                nextDecline -= (d.pop < 50000 ? 0.030 : 0.005) * d.pop * 0.01;
+                d.growth = dPop < 50000 ? 1.030 : 1.005;
+                nextDecline -= (dPop < 50000 ? 0.030 : 0.005) * dPop * 0.01;
                 cityCount+=2;
+                cap *= 20;
+                noGrowth = false;
             } else if (d && d.type.val > 0) {
                 // nextDecline += d.type.val * (civ.ii || 100);
+            }
+
+            if (noGrowth) {
+                cap *= res_pop_mod(row, col);
             }
 
             if (d.growth > 1) {
@@ -563,22 +579,25 @@ endTurn = function () {
                 d.growth += 1;
             }
 
-            if ((!d.pop || d.pop < 1000) && d.growth > 1) {
+            if ((!dPop || dPop < 1000) && d.growth > 1) {
                 // assign normal population on start of game
+
+                let init;
                 if (turn <= civOrders.length * 2)
-                    d.pop = d.type.defend * 5000 * Math.random() * (res_pop_mod(row, col) + 0.3) * res_pop_mod(row, col);
+                    init = d.type.defend * 5000 * Math.random() * (res_pop_mod(row, col) + 0.3) * res_pop_mod(row, col);
                 else
-                    d.pop = d.type.defend * 2500 * Math.random() * Math.pow(res_pop_mod(row, col), 2);
+                    init = d.type.defend * 2500 * Math.random() * Math.pow(res_pop_mod(row, col), 2);
+
+                popv2_apply_delta(row, col, init);
+                dPop = popv2_get_totpop(row, col);
             }
+
             let urb = Math.max(1, civ.urban) || 10;
 
-            // use carrying capacity equation
-            let cap = 400000 * res_pop_mod(row, col);
-
             // distributed growth depends on res_pop_mod
-            let decline = d.growth > 1 ? (nextDecline < 0 ? nextDecline / urb * 10 * Math.random() * res_pop_mod(row, col) : Math.min(nextDecline, d.pop / 1.5, nextDecline / urb * 10 * Math.random())) : 0;
+            let decline = !noGrowth ? (nextDecline < 0 ? nextDecline / urb * 10 * Math.random() * res_pop_mod(row, col) : Math.min(nextDecline, dPop / 1.5, nextDecline / urb * 10 * Math.random())) : 0;
 
-            if (decline < 0 && d.pop > cap)
+            if (decline < 0 && dPop > cap)
               decline /= 20;
 
             decline = Math.min(50000, decline);
@@ -586,8 +605,10 @@ endTurn = function () {
             nextDecline -= decline;
 
             d._d = decline;
+
+            // use carrying capacity equation
             // 1/25/23 LMAO growth rate cant be negative, this feature was broke since the beginning
-            let delta = d.growth < 1 ? (d.growth - 1) * d.pop : (Math.max(0, d.growth - 1) * d.pop * (1 - d.pop / cap));
+            let delta = Math.max(0, dPop > cap ? 0.05 : (d.growth - 1)) * dPop * (1 - dPop / cap);
             if (delta > 0) {
                 delta *= res_pop_mod(row, col);
                 delta *= Math.random() * 1.2 - 0.2;
@@ -605,7 +626,7 @@ endTurn = function () {
                 // around 25%
                 let migrants = -(delta * Math.random() * 0.5 | 0);
                 // other 35% move domestically
-                if (d.growth < 1)
+                if (noGrowth)
                   nextDecline += (delta * Math.random() * 0.7) | 0;
                 civ.migrantsOutTotal += migrants;
                 if (civ.outGate) {
@@ -647,14 +668,17 @@ endTurn = function () {
                 civ._hapDec *= rate;
             }
 
-            d.pop = Math.max(d.growth > 1 ? 1001 : 0, Math.round(delta + d.pop + 1)) || 0;
-            // if (d.pop > 1000000) {
-            //   let diff = d.pop - 1000000;
-            //   d.pop -= diff;
-            //   nextDecline -= diff;
-            // }
-            civ.pop += d.pop;
-            max_pop = Math.max(max_pop, d.pop);
+            popv2_apply_delta(row, col, Math.round(delta + 1));
+
+            popv2_record_history(row, col);
+
+            dPop = popv2_get_totpop(row, col);
+
+            // legacy:
+            d.pop = dPop;
+
+            civ.pop += dPop;
+            max_pop = Math.max(max_pop, dPop);
 
             // !!! WORK ZONE END !!!
 
@@ -674,7 +698,7 @@ endTurn = function () {
 
             if (change > 0) {
                 if (d.growth >= 1) {
-                    let nchange = change * Math.max(Math.min(1500000, d.pop), 1000) / 200000 * Math.sqrt(res_econ_mod(row, col));
+                    let nchange = change * Math.max(Math.min(1500000, dPop), 1000) / 200000 * Math.sqrt(res_econ_mod(row, col));
                     // 2/20/24, adjusting for lower population, hence the 0.10
                     nchange *= 1 + (civ.gov.mods.EGRVG || 0) - INCOMEMOD - imodDTR + 0.15; // econ reduction factor
 
@@ -700,14 +724,14 @@ endTurn = function () {
 
             change = civ.technology - _oldtech;
             if (change > 0) {
-                let nchange = change * d.pop / 150000;
+                let nchange = change * dPop / 150000;
                 nchange *= 1 + (civ.gov.mods.OSTOI || 0);
                 civ.technology -= change - nchange;
             };
 
             change = civ.happiness - _oldhap;
             if (change > 0) {
-                let nchange = change * d.pop / 150000;
+                let nchange = change * dPop / 150000;
                 nchange *= 1 + (civ.gov.mods.EHPGR || 0);
                 civ.happiness -= change - nchange;
             };
@@ -985,8 +1009,9 @@ popRebel = function (civName, target, source) {
         for (let r = 0;r < data.length;r++) {
             for (let c = 0;c < data[r].length;c++) {
                 let d = data[r][c];
+                let dPop = popv2_get_totpop(r, c);
                 if (d?.color == target && d?.growth >= 1)
-                    choices.push([r, c, (d._d + d.pop) / regions_taxEff(civs[target], target, r, c)]);
+                    choices.push([r, c, (d._d + dPop) / regions_taxEff(civs[target], target, r, c)]);
             }
         }
         source = choices.sort((a, b) => b[2] - a[2])[0]?.splice(0, 2);
