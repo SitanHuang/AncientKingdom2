@@ -344,11 +344,11 @@
 <div id="takeControls">
 </div>
 <button onclick="download(prompt('File name', 'scenario') + '.json',
-    serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0}))">Export</button>
+    serialize({data, civs, turn, popv2, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0}))">Export</button>
 <button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage</button>
-<button onclick="localStorage.back = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage</button>
+<button onclick="localStorage.back = serialize({data, civs, turn, popv2, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage</button>
 <button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back2);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage2</button>
-<button onclick="localStorage.back2 = serialize({data: data, civs: civs, turn: turn, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage2</button>
+<button onclick="localStorage.back2 = serialize({data, civs, turn, popv2, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage2</button>
 <input type="file" id="file"><br>
 <button onclick="alert = console.log">quiteMode On</button>
 <button onclick="alert = alertCopy">quiteMode Off</button>

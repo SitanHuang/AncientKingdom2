@@ -483,7 +483,7 @@ var AI = {
         var moneySpent = price;
         let buildList = []; // [[row, col], ...]
         iterateMathRandom(function(row, col) {
-            if (Math.random() < 0.2)
+            if (Math.random() < 0.25)
                 return;
 
             var land = data[row][col];
@@ -577,14 +577,16 @@ var AI = {
     },
     tryBuildLand: function(civ, civName, maxMoney) {
         var moneySpent = civGetLandPrice(civ);
+
+        if (moneySpent > maxMoney || civ.money < moneySpent)
+            return false;
+
+        let buildList = []; // [[row, col], ...]
         iterateMathRandom(function (row, col) {
-            if (Math.random() < 0.9)
+            if (Math.random() < 0.1)
                 return;
 
             var land = data[row][col];
-
-            if (moneySpent > maxMoney || civ.money < moneySpent)
-                return false;
 
             if (land && !land.color) {
                 var bool = false;
@@ -594,24 +596,33 @@ var AI = {
                     }
                 });
                 if (bool) {
-                    civ.landsBuilt = (civ.landsBuilt || 0) + 1;
+                    buildList.push([row, col]);
+                }
+            }
+        });
 
-                    data[row][col] = {
+        buildList.sort((a, b) =>
+            ((res_pop_mod(b[0], b[1]) * 2.0) + (Math.min(2, res_econ_mod(b[0], b[1])) * 1.0) + Math.random() * 0.1) -
+            ((res_pop_mod(a[0], a[1]) * 2.0) + (Math.min(2, res_econ_mod(a[0], a[1])) * 1.0) + Math.random() * 0.1)
+        ).forEach(([row, col]) => {
+            if (moneySpent > maxMoney || civ.money < moneySpent)
+                return;
+
+            data[row][col] = {
+                color: civName,
+                type: types.land
+            };
+            civ.landsBuilt = (civ.landsBuilt || 0) + 1;
+            getNeighbors(row, col, function (l, r, c) {
+                if (!l.color) {
+                    data[r][c] = {
                         color: civName,
                         type: types.land
                     };
-                    getNeighbors(row, col, function(l, r, c) {
-                        if (!l.color) {
-                            data[r][c] = {
-                                color: civName,
-                                type: types.land
-                            };
-                        }
-                    });
-                    civ.money -= civGetLandPrice(civ);
-                    moneySpent += civGetLandPrice(civ);
                 }
-            }
+            });
+            civ.money -= civGetLandPrice(civ);
+            moneySpent += civGetLandPrice(civ);
         });
     }
 };
