@@ -242,6 +242,9 @@ gpm=0;
 gem=0;
 gpem=0;
 g_bycountry=0;
+
+gp_culture = -1; // -1 = all, 1 = mixed, string = specific
+
 function drawCanvas(compare, relationship, pop) {
     let start = new Date();
     if (gp) pop=1;
@@ -333,13 +336,37 @@ function drawCanvas(compare, relationship, pop) {
                         context.fillStyle = 'grey';
                 } else if (pop) {
                     const dPop = popv2_get_totpop(row, col);
-                    let p = (g_bycountry ? civs[d.color].pop : dPop) || 0;
+
+                    let bgColor;
+
                     let max = g_bycountry ? Math.floor(max_pop_country || max_pop) : max_pop;
-                    context.fillStyle = `rgb(${250 - p/max*250}, ${250 - p/max*125}, ${250 - p/max*250})`;
+
+                    if (gp_culture == -1) {
+                        let p = (g_bycountry ? civs[d.color].pop : dPop) || 0;
+                        bgColor = {
+                            R: 250 - p / max * 250,
+                            G: 250 - p / max * 125,
+                            B: 250 - p / max * 250,
+                        };
+                    } else if (gp_culture == 1) {
+                        const table = {};
+                        poptable_hook(table);
+                        poptable_add_from_pt(table, row, col);
+                        bgColor = mixColors(Object.entries(table._poptable).map(([key, val]) => {
+                            const culture = popv2_culture_reinit_culture(key);
+                            return [
+                                culture.colorRGB,
+                                val / max
+                            ];
+                        }));
+                    }
+
+                    context.fillStyle = `rgb(${bgColor.R}, ${bgColor.G}, ${bgColor.B})`;
+
                     context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
                     if (!g_bycountry && dPop > 50000) {
                         context.font = BLOCK_SIZE / 2 + "px 'Roboto Mono'";
-                        context.fillStyle = 'black';
+                        context.fillStyle = idealTextColor(bgColor);
                         if (dPop > 500) context.fillText(Math.round(dPop / 10000) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
                     }
                     continue;

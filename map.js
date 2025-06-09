@@ -99,6 +99,9 @@ Math.dist = function(x1,y1,x2,y2){
 }
 
 function findNearbyCitiesOfLargestCiv(source, color, target) {
+    const popTable = {};
+    poptable_hook(popTable);
+
     let cities = [];
     for (let row = 0;row < data.length;row++) {
         for (let col = 0;col < data[0].length;col++) {
@@ -133,6 +136,9 @@ function findNearbyCitiesOfLargestCiv(source, color, target) {
             civs[x1.color].ii++;
             capitals.push([x, x1]);
         }
+
+        poptable_add_hist_from_pt(popTable, x[0], x[1]);
+
         getNeighbors(x[0], x[1], (xx1, row, col) => {
             if (xx1 && xx1.color && xx1.type) {
                 civs[xx1.color].ii--;
@@ -151,5 +157,18 @@ function findNearbyCitiesOfLargestCiv(source, color, target) {
         delete x[1]._oct;
         delete x[1]._oldcolor;
         civs[color].birth = x[0];
+    }
+
+    const popResults = poptable_gen_table(popTable);
+
+    if (popResults.length) {
+        if (popResults.find(x => x.culture == color)?.percent > 0.05) {
+            civs[color].culture = color;
+        } else if (popResults.find(x => x.culture == civs[color].culture)) {
+            // ignore; rebel has population inside this region
+        } else {
+            civs[color].culture = poptable_gen_table(popTable)
+                .sort((a, b) => b.population - a.population)[0]?.culture || civs[color].culture;
+        }
     }
 }

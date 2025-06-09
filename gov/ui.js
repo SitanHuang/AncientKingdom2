@@ -23,7 +23,7 @@ abdicate = null;
     Object.values(gov.persons).forEach(p => {
       if (p.pos == GOV_POSITIONS.LEADER)
         return;
-      
+
       families[p.family][0] += p.influence;
       families[p.family][1] += p.influence * p.opinion;
       families[p.family][2]++;
@@ -43,7 +43,7 @@ abdicate = null;
         <td style="text-align: right;"> (${Math.round(size / totCount * 100)}%)
         <td style="text-align: right; font-weight: ${avgInf > 1.1 ? 'bold' : ''}"> ${avgInf}
         <td style="text-align: right; font-weight: ${wInf > 1.5 ? 'bold' : ''}"> ${wInf}
-        <td style="text-align: right; 
+        <td style="text-align: right;
           font-weight: ${op < 1 ? 'bold' : ''};
           color: ${stepColor(op, [[0.9, 'red'], [1.1, '#bd8218'], [2, 'green']])}
         ">${Math.round(op * 100) / 100}
@@ -56,6 +56,7 @@ abdicate = null;
   function buildPersonCols(p, op, inf) {
     let html = `
       <th>${p.name}</th>
+      <th>${p.culture || ''}</th>
       <td>${p.family}</td>
       <td>${p.age | 0}</td>
       <td data-sort="${person_tot_mod_value(p)}"
@@ -81,7 +82,7 @@ abdicate = null;
       <span style="font-weight: ${(rval > 0.7 || Math.abs(val) > 0.1 || Math.abs(mval) > 0.7 ? 'bold' : 'normal')};
                    color: ${color};">
         ${val > 0 ? '+' : ''}${Math.round(val * 1000) / 10}%
-      </span><br> 
+      </span><br>
       `;
     }
 
@@ -209,7 +210,7 @@ abdicate = null;
     $('#govBureacrats tbody').html(html);
     window.tableSetup4.refresh();
 
-    
+
     if (!window.tableSetup5) {
       window.tableSetup5 = new Tablesort($('#govFactions')[0]);
     }

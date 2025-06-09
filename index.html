@@ -214,6 +214,18 @@
     <br>
     <button onclick="deposit()">Deposit</button>
     <button onclick="withdraw()">Withdraw</button>
+    Demographics:
+    <select id="demoSelect"></select>
+    <table id="demoPopTable" style="text-align: right;">
+    <thead>
+        <th>Culture</th>
+        <th>Population</th>
+        <th>%</th>
+    </thead>
+    <tbody>
+
+    </tbody>
+    </table>
 </div>
 <div id="gov-panel" class="aux-panel">
     <button onclick="$('#gov-panel').hide()">hide menu</button>
@@ -224,6 +236,7 @@
     <table id="govLeader">
         <thead>
             <th>Name</th>
+            <th>Culture</th>
             <th>Family</th>
             <th>Age</th>
             <th>Modifiers</th>
@@ -237,7 +250,7 @@
     <h3>Advisors</h3>
     <table id="govAdvisors">
         <thead>
-            <th>Name</th>
+            <th>Name</th><th>Culture</th>
             <th>Family</th>
             <th>Age</th>
             <th>Modifiers</th>
@@ -267,6 +280,7 @@
     <table id="govBureacrats">
         <thead>
             <th>Name</th>
+            <th>Culture</th>
             <th>Family</th>
             <th>Age</th>
             <th aria-sort="descending">Modifiers</th>
@@ -345,9 +359,9 @@
 </div>
 <button onclick="download(prompt('File name', 'scenario') + '.json',
     serialize({data, civs, turn, popv2, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0}))">Export</button>
-<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage</button>
+<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back);data = o.data;popv2 = o.popv2;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage</button>
 <button onclick="localStorage.back = serialize({data, civs, turn, popv2, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage</button>
-<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back2);data = o.data;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage2</button>
+<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back2);data = o.data;popv2 = o.popv2;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage2</button>
 <button onclick="localStorage.back2 = serialize({data, civs, turn, popv2, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage2</button>
 <input type="file" id="file"><br>
 <button onclick="alert = console.log">quiteMode On</button>
@@ -465,6 +479,7 @@
                 contents = contents.replace(/Math\.random\(\)/g, 'randn_bm()');
                 var scenario = eval('(' + contents + ')');
                 data = scenario.data;
+                popv2 = scenario.popv2;
                 civs = scenario.civs;
                 RCHANCEMOD = scenario.rmod || RCHANCEMOD;
                 AGGRESSIVENESS = scenario.agr || AGGRESSIVENESS;
@@ -557,7 +572,8 @@ c:
 <div id="heatmap" style="width: 700px;height: 700px">
 </div>
 <br>
-<button onclick="gp=!gp;drawCanvas()">Pop</button>
+<button onclick="gp=!gp;gp_culture=-1;drawCanvas()">Pop</button>
+<button onclick="gp=!gp;gp_culture=1;drawCanvas()">Cultures</button>
 <button onclick="ge=!ge;drawCanvas()">Econ</button>
 <button onclick="gte=!gte;drawCanvas()">Tax Eff</button>
 <button onclick="gdef=!gdef;drawCanvas()">Def Mod</button>
@@ -569,6 +585,7 @@ c:
 <table id="statsTable" style="text-align: right;">
 <thead>
 <th data-sort-method='none'>Name</th>
+<th role="columnheader">Culture</th>
 <th role="columnheader" data-sort-method=number>Area</th>
 <th role="columnheader" data-sort-method=number class="extra">pm</th>
 <th role="columnheader" data-sort-method=number class="extra">em</th>
@@ -599,6 +616,16 @@ c:
 <tbody>
 
 </tbody>
+</table>
+<table id="worldPopTable" style="text-align: right;">
+    <thead>
+        <th>Culture</th>
+        <th>Population</th>
+        <th>%</th>
+    </thead>
+    <tbody>
+
+    </tbody>
 </table>
 <h3>Population:</h3>
 <div id="popGraph" style="width: 800px;height: 600px"></div>

@@ -333,6 +333,7 @@ if (!ai) drawCanvas();
 };
 turn = 0;
 averageData = {income: 0, happiness: 0, logistics: 0, technology: 0, ii: 0, politic: 0, money: 0, population: 0}
+poptable_hook(averageData);
 max_pop = 200000;
 max_econ = 0;
 max_pop_country = 200000;
@@ -458,6 +459,8 @@ endTurn = function () {
     let oldpop = civ.pop || (civ.pop = 0);
     civ.pop = 0;
 
+    poptable_hook(civ);
+
     civ.pm = 0;
     civ.em = 0;
     civ.pmb = 0;
@@ -543,24 +546,24 @@ endTurn = function () {
                         d.type.draw.toString() == types.town.draw.toString() ||
                         d.type.draw.toString() == types.school.draw.toString() ||
                         d.type.draw.toString() == types.headquarter.draw.toString())) {
-                d.growth = dPop < 50000 ? 1.015 : 1.0027;
-                nextDecline -= (dPop < 50000 ? 0.015 : 0.0020) * dPop * 0.10;
+                d.growth = dPop < 70000 ? 1.025 : 1.005;
+                nextDecline -= (dPop < 70000 ? 0.025 : 0.005) * dPop * 0.10;
                 cityCount++;
-                cap *= 8;
+                cap *= 20;
                 noGrowth = false;
             } else if (d && d.type.draw.toString() == types.finance.draw.toString()) {
-                d.growth = dPop < 50000 ? 0.025 : 0.0040;
+                d.growth = dPop < 100000 ? 0.045 : 0.0090;
                 d.growth *= 1 + (civ.gov.mods.EFNPG || 0);
                 d.growth += 1;
-                nextDecline -= (dPop < 50000 ? 0.025 : 0.0040) * dPop * 0.05;
+                nextDecline -= (dPop < 100000 ? 0.045 : 0.009) * dPop * 0.05;
                 cityCount+=2;
-                cap *= 10;
+                cap *= 30;
                 noGrowth = false;
             } else if (d && d.type.draw.toString() == types.capital.draw.toString()) {
-                d.growth = dPop < 50000 ? 1.030 : 1.005;
-                nextDecline -= (dPop < 50000 ? 0.030 : 0.005) * dPop * 0.01;
+                d.growth = dPop < 150000 ? 1.050 : 1.01;
+                nextDecline -= (dPop < 150000 ? 0.050 : 0.01) * dPop * 0.01;
                 cityCount+=2;
-                cap *= 20;
+                cap *= 50;
                 noGrowth = false;
             } else if (d && d.type.val > 0) {
                 // nextDecline += d.type.val * (civ.ii || 100);
@@ -668,9 +671,16 @@ endTurn = function () {
                 civ._hapDec *= rate;
             }
 
+            dPop = popv2_get_totpop(row, col);
+
+            popv2_apply_delta(row, col, -dPop * 0.04);
+            popv2_apply_delta(row, col, dPop * 0.04);
+
             popv2_apply_delta(row, col, Math.round(delta + 1));
 
             popv2_record_history(row, col);
+
+            poptable_add_from_pt(civ, row, col);
 
             dPop = popv2_get_totpop(row, col);
 
@@ -697,25 +707,29 @@ endTurn = function () {
             }
 
             if (change > 0) {
-                if (d.growth >= 1) {
-                    let nchange = change * Math.max(Math.min(1500000, dPop), 1000) / 200000 * Math.sqrt(res_econ_mod(row, col));
-                    // 2/20/24, adjusting for lower population, hence the 0.10
-                    nchange *= 1 + (civ.gov.mods.EGRVG || 0) - INCOMEMOD - imodDTR + 0.15; // econ reduction factor
+                // if (!noGrowth) {
+                const baseline = 40000;
+                const refPop = Math.max(Math.min(1500000, dPop), 1000);
+                const efficiency = Math.log((refPop + baseline) / baseline) + (1 - Math.log(2));
 
-                    const taxEff = regions_taxEff(civ, civName, row, col);
-                    tebi += nchange;
-                    nchange *= taxEff; // tax efficiency
-                    civ.teb += nchange;
+                let nchange = change * efficiency * res_econ_mod(row, col);
+                // 2/20/24, adjusting for lower population, hence the 0.10
+                nchange *= 1 + (civ.gov.mods.EGRVG || 0) - INCOMEMOD - imodDTR + 0.15; // econ reduction factor
 
-                    d._econ = nchange;
-                    civ.money -= change - nchange;
-                    income += nchange;
-                    civ.emb += res_econ_mod(row, col);
-                    embi++;
-                } else {
-                    income += change;
-                    d._econ = change;
-                }
+                const taxEff = regions_taxEff(civ, civName, row, col);
+                tebi += nchange;
+                nchange *= taxEff; // tax efficiency
+                civ.teb += nchange;
+
+                d._econ = nchange;
+                civ.money -= change - nchange;
+                income += nchange;
+                civ.emb += res_econ_mod(row, col);
+                embi++;
+                // } else {
+                //     income += change;
+                //     d._econ = change;
+                // }
                 max_econ = Math.max(max_econ, d._econ);
             } else {
                 d._exp = -change;
@@ -861,6 +875,7 @@ endTurn = function () {
     averageData.politic += civ.politic;
     averageData.money += civ.money;
     averageData.income += civ.income;
+    poptable_add(averageData, poptable_get_popObj_from_poptable(civ));
     civ.logistics = 0;
 
     dynasty_assign_candidate();
@@ -1055,6 +1070,10 @@ popRebel = function (civName, target, source) {
     civ.rchance = 0;
     civ.years = 0;
 
+    delete civ.gov;
+    gov_init(civ, civName);
+    gov_exec(civ, civName);
+
     if (civs[target].deposit > 0) {
         civ.deposit = civs[target].deposit * civ.ii / oldii;
         civs[target].deposit -= civ.deposit;
@@ -1156,6 +1175,18 @@ showInfo = function () {
         }
     });
     ;
+
+    if (civ._poptable) {
+        const demoSelect = $('#demoSelect').html(civOrders.map(x => `
+            <option value="${x}" ${x == civOrders[i] ? 'selected' : ''}>${x}</option>
+        `).join(""))[0];
+        demoSelect.onchange = function() {
+            const selectedCiv = civs[demoSelect.value];
+            poptable_gen_Tablesort(selectedCiv, $('#demoPopTable'));
+        };
+
+        demoSelect.onchange();
+    }
 };
 
 let _populationData = [];
@@ -1193,6 +1224,9 @@ prepareTurn = function () {
             pop: averageData.population,
             income: averageData.income
         };
+
+        poptable_gen_Tablesort(averageData, $('#worldPopTable'));
+
         // console.log(average);
 
         if (enableGraph) {
@@ -1316,7 +1350,8 @@ prepareTurn = function () {
         }
 
 
-        averageData = {income: 0,happiness: 0, logistics: 0, technology: 0, politic: 0, money: 0, population: 0}
+        averageData = {income: 0,happiness: 0, logistics: 0, technology: 0, politic: 0, money: 0, population: 0};
+        poptable_hook(averageData);
     }
     let civ = civs[civOrders[i]];
     civ.newMoney = civ.money;
@@ -1458,6 +1493,13 @@ refreshTable = function () {
         if (civ.mandateInAcquirement)
             tr.css("font-style", "italic");
         tr.append(`<td>${civName}</td>`);
+        const culture = popv2_culture_get_culture_obj(civName);
+
+        if ((!civ.ai) || civ.ii >= 5)
+            tr.append(`<td style="background: ${culture.color}; color: ${culture.fontColor};">${civ.culture}</td>`);
+        else
+            tr.append(`<td>${civ.culture}</td>`);
+
         tr.append(`<td>${Math.round(civ.ii)}</td>`);
         tr.append(`<td class="extra">${civ._avgpm || ''}</td>`);
         tr.append(`<td class="extra">${civ._avgem || ''}</td>`);

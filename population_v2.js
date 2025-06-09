@@ -35,7 +35,7 @@ function popv2_init() {
       const culture = popv2_culture_get_or_create_civ(tile.color);
 
       // if (tile.pop) {
-      obj.totPop = obj.pop[culture] = obj.hist[culture] = Math.max(tile.pop || 0, 20000 * res_pop_mod(row, col) * Math.random());
+      obj.totPop = obj.pop[culture] = obj.hist[culture] = Math.round(Math.max(tile.pop || 0, 20000 * res_pop_mod(row, col) * Math.random()));
       // }
 
       return obj;
@@ -62,7 +62,11 @@ function popv2_clamp_max(row, col, max) {
   }
 }
 
-function popv2_apply_delta(row, col, delta, { assimulationRate=0.05 }={}) {
+ASSIMULATION_RATE = 0.05;
+
+function popv2_apply_delta(row, col, delta, opts={}) {
+  let assimulationRate = opts.assimulationRate ?? ASSIMULATION_RATE;
+
   const tile = data[row][col];
   if (!tile || !delta) return;
 
@@ -78,6 +82,10 @@ function popv2_apply_delta(row, col, delta, { assimulationRate=0.05 }={}) {
 
   delta = Math.max(delta, -obj.totPop + 1000); // clamp to prevent negative pops
 
+  if (delta < 0) {
+    assimulationRate = 0;
+  }
+
   const reservedPartial = Math.ceil(ownerCul ? delta * assimulationRate : 0);
   const reducedDelta = delta - reservedPartial;
 
@@ -89,7 +97,10 @@ function popv2_apply_delta(row, col, delta, { assimulationRate=0.05 }={}) {
     obj.pop[culture] = obj.pop[culture] || 0;
 
     const perc = obj.pop[culture] / Math.max(obj.totPop, 1);
-    const partial = Math.round(reducedDelta * perc);
+    const partial = Math.max(
+      Math.round(reducedDelta * perc),
+      -obj.pop[culture]
+    );
 
     obj.pop[culture] += partial;
 
@@ -114,14 +125,123 @@ function popv2_culture_get_or_create_civ(civName) {
   if (!civ.culture) {
     civ.culture = POPV2_FLAG_USE_UNI_CULTURE ? 'DefaultCulture' : civName;
 
-    popv2_culture_reinit_civ(civ.culture);
+    popv2_culture_reinit_culture(civ.culture);
   }
 
   return civ.culture;
 }
 
-function popv2_culture_reinit_civ(name, mods={}) {
+function popv2_culture_get_culture_obj(civName) {
+  const civ = civs[civName];
+
+  if (!popv2.cultures[civ.culture]) {
+    popv2_culture_get_or_create_civ(civName);
+  }
+
+  return popv2.cultures[civ.culture];
+}
+
+function popv2_culture_reinit_culture(name, mods={}) {
+  const civ = civs[name];
+  const color = popv2?.cultures?.[name]?.color || civ?.color || mods.color || '#5e5e5e';
+  const colorRGB = cssColorToRGB(color);
+
+  const maxChannel = Math.max(colorRGB.R, colorRGB.G, colorRGB.B);
+  const threshold = 255 * 0.75;
+
+  if (maxChannel > threshold) {
+    // Clamp the intensity so it shows on white canvas
+    colorRGB.R = Math.round(colorRGB.R * threshold / maxChannel);
+    colorRGB.G = Math.round(colorRGB.G * threshold / maxChannel);
+    colorRGB.B = Math.round(colorRGB.B * threshold / maxChannel);
+  }
+
   return popv2.cultures[name] = Object.assign({
+    fontColor: civ?.fontColor || idealTextColor(color),
+    color,
+    colorRGB,
     name
   }, mods);
 }
+
+function poptable_hook(self) {
+  self._poptable = {}; // <- dont change this
+  self._poptable_tot = 0;
+}
+
+function poptable_add_from_pt(self, row, col) {
+  const tile = popv2?.map?.[row]?.[col];
+  if (tile) {
+    poptable_add(self, tile.pop);
+  }
+}
+function poptable_add_hist_from_pt(self, row, col) {
+  const tile = popv2?.map?.[row]?.[col];
+  if (tile) {
+    poptable_add(self, tile.hist);
+  }
+}
+
+function poptable_get_popObj_from_poptable(self) {
+  return self._poptable;
+}
+function poptable_add(self, popObj) {
+  for (const key in popObj) {
+    self._poptable[key] = (self._poptable[key] || 0) + popObj[key];
+    self._poptable_tot += popObj[key];
+  }
+}
+
+function poptable_gen_table(self) {
+  const total = self._poptable_tot;
+  return Object.entries(self._poptable)
+    .map(([culture, pop]) => ({
+      culture,
+      population: pop,
+      percent: pop / total
+    }));
+}
+
+function poptable_debug(self) {
+  console.table(
+    poptable_gen_table(self)
+      .map(x => { x.percent = (x.percent * 100).toFixed(2) + '%'; return x; })
+      .sort((a, b) => b.population - a.population)
+  );
+}
+
+function poptable_gen_Tablesort(self, $element) {
+  if (!$element.data('tableSort'))
+    $element.data('tableSort', new Tablesort($element[0]));
+
+  const tableSort = $element.data('tableSort');
+
+  const $table = $element.find('tbody');
+  $table.html('');
+  poptable_gen_table(self)
+    .map(x => { x.percent = (x.percent * 100).toFixed(2) + '%'; return x; })
+    .sort((a, b) => b.population - a.population)
+    .forEach(function ({culture, population, percent}) {
+      const cultureObj = popv2_culture_reinit_culture(culture);
+      let tr = $('<tr/>');
+      tr.css('background', cultureObj.color).css('color', cultureObj.fontColor);
+      tr.append(`<td>${culture}</td>`);
+      tr.append(`<td>${population}</td>`);
+      tr.append(`<td>${percent}</td>`);
+      $table.append(tr)
+    });
+
+  tableSort.refresh();
+}
+
+  // getResultantColor(max) {
+  //   max = Math.max(1, max || this.total);
+
+  //   return mixColors(Object.entries(this.pop).map(([key, val]) => {
+  //     const culture = popv2_culture_reinit_culture(key);
+  //     return [
+  //       culture.colorRGB,
+  //       val / max
+  //     ];
+  //   }));
+  // }

@@ -13,10 +13,16 @@ function gov_exec(civ, civName) {
   gov_refresh(civ, civName);
 
   // TODO: cohesion should affect some civ stats
-  
+
   _gov_age_spawn_death(civ, civName, gov);
 
   gov_refresh(civ, civName);
+
+  const leader = gov.persons[gov.leader];
+  if (civ.culture) {
+    leader.culture = leader.culture ?? civ.culture;
+  }
+  civ.culture = leader.culture;
 }
 
 function gov_refresh(civ, civName) {
@@ -59,7 +65,7 @@ function _gov_calc_cohesion(gov) {
   Object.values(gov.persons).forEach(p => {
     if (p.pos == GOV_POSITIONS.LEADER)
       return;
-    
+
     inf += p.influence;
     coh += p.influence * p.opinion;
   });
@@ -74,8 +80,8 @@ function _gov_trigger_succession(civ, gov) {
   let leader = gov.persons[gov.leader];
 
   let successor = Object.values(gov.persons)
-                    .sort((a, b) => 
-                      person_successor_score(leader, b) - 
+                    .sort((a, b) =>
+                      person_successor_score(leader, b) -
                       person_successor_score(leader, a))[0];
 
   person_remove(civ, gov.leader);
@@ -111,10 +117,10 @@ function gov_demote_to_bureaucrat(gov, person) {
 function gov_promote_to_advisors(gov, person) {
   if (!person?.id)
     person = gov.persons[person];
-  
+
   if (person.pos != GOV_POSITIONS.BUREAUCRAT)
     return false;
-  
+
   person.pos = GOV_POSITIONS.ADVISOR;
   gov.advisors[person.id] = 1;
 
@@ -127,7 +133,7 @@ function gov_promote_to_advisors(gov, person) {
 // without propagation
 function gov_batch_mod_opinion(gov, cond, delta) {
   const leader = gov.persons[gov.leader];
-  
+
   Object.values(gov.persons).forEach(x => {
     if (x.pos == GOV_POSITIONS.LEADER)
       return;
@@ -135,7 +141,7 @@ function gov_batch_mod_opinion(gov, cond, delta) {
     let d = delta;
     if (x.family == leader.family && delta < 0)
       d *= Math.random() / 2;
-    
+
     if (cond(x))
       x.opinion += d * 2 * Math.random();
   });
@@ -218,7 +224,7 @@ function _gov_age_spawn_death(civ, civName, gov) {
     // opinion increases if in position of power
     if (p.pos == GOV_POSITIONS.ADVISOR && p.opinion < 1.1)
       p.opinion += (Math.random()) / 50;
-    
+
     // opinion drifts to family average but inverse to own influence
     let familyAvg = familyAvgs[p.family];
     if (!familyAvg) {
@@ -237,7 +243,7 @@ function _gov_age_spawn_death(civ, civName, gov) {
       if (p.pos == GOV_POSITIONS.LEADER || (!civ.ai && p.pos == GOV_POSITIONS.ADVISOR))
         push_msg(
           person_disprole(p) + ' ' + person_dispname(p) + ' of ' + civName +
-          ' has passed away at the age of ' + (p.age | 0) + 
+          ' has passed away at the age of ' + (p.age | 0) +
           ' (' + person_dispmods(p, ', ') + ')' + '.', [civName]
         );
 

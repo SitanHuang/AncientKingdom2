@@ -209,6 +209,35 @@ function person_custom_mod_value(person, modMap={}, defVal=1) {
 function person_add(civ, src) {
   let person = person_gen(src);
   civ.gov.persons[person.id] = person;
+
+  const parents = Object.values(civ.gov.persons);
+
+  const parent1 = parents[Math.floor(Math.random() * parents.length)];
+  const parent2 = parents[Math.floor(Math.random() * parents.length)];
+
+  person.culture = null;
+  if (civ.culture && civ._poptable) {
+    const table = poptable_gen_table(civ)
+      .map(x => ({
+        culture: x.culture,
+        chance: parent1.culture == x.culture || parent2.culture == x.culture ? (x.percent * 2) : x.percent,
+      }))
+      .sort((a, b) => b.chance - a.chance);
+
+    let finalChoice = table[0]?.culture || civ.culture;
+
+    for (let { culture, chance } of table) {
+      if (Math.random() < chance * 0.8) {
+        finalChoice = culture;
+        break;
+      }
+    }
+
+    person.culture = finalChoice;
+  } else if (civ.culture) {
+    person.culture = civ.culture;
+  }
+
   return person.id;
 }
 

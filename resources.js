@@ -19,7 +19,7 @@ function _ter_set(row, col, prop, dat) {
 
 function _ter_gen() {
   console.time("_ter_gen: map must have changed");
-  popv2 = null;
+  // popv2 = null;
   // popv2_init();
 
   const funcs = [

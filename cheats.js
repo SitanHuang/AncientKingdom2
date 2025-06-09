@@ -6,35 +6,6 @@ annex = function (owner, civName) {
     });
     drawCanvas()
 };
-function getRandomColor() {
-  var letters = '0123456789ABCDEF';
-  var color = '#';
-  for (var i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
-}
-function idealTextColor(bgColor) {
-
-   var nThreshold = 105;
-   var components = getRGBComponents(bgColor);
-   var bgDelta = (components.R * 0.299) + (components.G * 0.587) + (components.B * 0.114);
-
-   return ((255 - bgDelta) < nThreshold) ? "#000000" : "#ffffff";
-}
-
-function getRGBComponents(color) {
-
-    var r = color.substring(1, 3);
-    var g = color.substring(3, 5);
-    var b = color.substring(5, 7);
-
-    return {
-       R: parseInt(r, 16),
-       G: parseInt(g, 16),
-       B: parseInt(b, 16)
-    };
-}
 
 function blocWar(list1, list2, years, override=false) {
     !list1.push && (list1 = list1.split(","));
@@ -94,6 +65,22 @@ function formAlliance(list, years, override = false) {
     });
 }
 
+addCulture = function (name, color, targetCivs='') {
+    popv2 = Object.assign({
+        map: [[]],
+        cultures: {},
+    }, popv2);
+    popv2_culture_reinit_culture(name, {
+        color: color || getRandomColor()
+    });
+    applyCulture(name, targetCivs);
+};
+
+applyCulture = function (name, targetCivs) {
+    targetCivs.split(',').forEach(civName => {
+        civs[civName].culture = name;
+    });
+}
 
 addCiv = function (name, ai, color) {
     let c = color || getRandomColor();

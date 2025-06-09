@@ -334,7 +334,9 @@ var AI = {
                 warChance *= (civ2.rchance || 0) + 1;
             }
 
-            if (civ.mandate) {
+            const oppressedPop = civ2._poptable?.[civ.culture];
+
+            if (civ.mandate && civ.culture != civ2.culture && oppressedPop < 500000) {
                 warChance *= 0.10;
                 warChance = Math.min(warChance, 0.7);
             }
@@ -343,18 +345,26 @@ var AI = {
                 warChance *= 50;
                 warChance = Math.min(warChance, 10);
             }
-            // if (warChance > 0.25) {
-            if (civ.em / civ.ii > civ2.em / civ2.ii)
-                warChance *= 0.80;
-            else
-                warChance *= 1.2;
-            if (civ.pm / civ.ii * 0.8 > civ2.pm / civ2.ii)
-                warChance *= 0.35;
-            if (civ.pm / civ.ii > civ2.pm / civ2.ii)
-                warChance *= 0.35;
-            else
-                warChance *= 1.5;
-            // }
+            if (warChance > 0.25) {
+                if (civ.culture == civ2.culture) {
+                    warChance *= 4;
+                } else {
+                    if (civ.em / civ.ii > civ2.em / civ2.ii)
+                        warChance *= 0.80;
+                    else
+                        warChance *= 1.2;
+                    if (civ.pm / civ.ii * 0.8 > civ2.pm / civ2.ii)
+                        warChance *= 0.35;
+                    if (civ.pm / civ.ii > civ2.pm / civ2.ii)
+                        warChance *= 0.35;
+                    else
+                        warChance *= 1.5;
+
+                    if (oppressedPop > 500000) {
+                        warChance *= 1.75 + Math.min(10, Math.max(0, oppressedPop / civ.pop * 20));
+                    }
+                }
+            }
 
             warChance *= Math.min(5, Math.max(0, (civ.deposit + civ.money) / (civ.ii * civ.urban / 10 * 2)));
 

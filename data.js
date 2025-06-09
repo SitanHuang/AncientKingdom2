@@ -93,7 +93,7 @@ var types = {
     land: {
         income: function (civ) {
             civ.politic -= randn_bm() / 55;
-            civ.money += randn_bm() * 2;
+            civ.money += randn_bm() * 5;
         },
         draw: function () {
         },
