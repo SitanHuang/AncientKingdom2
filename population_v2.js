@@ -35,7 +35,7 @@ function popv2_init() {
       const culture = popv2_culture_get_or_create_civ(tile.color);
 
       // if (tile.pop) {
-      obj.totPop = obj.pop[culture] = obj.hist[culture] = Math.round(Math.max(tile.pop || 0, 20000 * res_pop_mod(row, col) * Math.random()));
+      obj.totPop = obj.pop[culture] = obj.hist[culture] = Math.round(Math.max(tile.pop || 0, 20000 * res_pop_mod(row, col) * (Math.random() + 0.5)));
       // }
 
       return obj;
@@ -52,17 +52,17 @@ function popv2_record_history(row, col) {
 }
 
 function popv2_clamp_max(row, col, max) {
-  const tile = data[row][col];
-  if (!tile || !max) return;
+  const obj = popv2.map[row][col];
+  if (!obj || !max) return;
 
-  const overflow = tile.totPop - max;
+  const overflow = obj.totPop - max;
 
   if (overflow > 0) {
     popv2_apply_delta(row, col, -overflow, { assimulationRate: 0 });
   }
 }
 
-ASSIMULATION_RATE = 0.05;
+ASSIMULATION_RATE = 0.025;
 
 function popv2_apply_delta(row, col, delta, opts={}) {
   let assimulationRate = opts.assimulationRate ?? ASSIMULATION_RATE;
@@ -80,13 +80,13 @@ function popv2_apply_delta(row, col, delta, opts={}) {
 
   const existingCultures = Object.keys(obj.hist);
 
-  delta = Math.max(delta, -obj.totPop + 1000); // clamp to prevent negative pops
+  delta = Math.max(delta, -obj.totPop + 1500); // clamp to prevent negative pops
 
   if (delta < 0) {
     assimulationRate = 0;
   }
 
-  const reservedPartial = Math.ceil(ownerCul ? delta * assimulationRate : 0);
+  const reservedPartial = Math.round(ownerCul ? delta * assimulationRate : 0);
   const reducedDelta = delta - reservedPartial;
 
   let newTotPop = 0;

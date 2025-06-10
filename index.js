@@ -295,7 +295,7 @@ move = function (cn1, pickedUp, p2, ai) {
 
         let dPop = popv2_get_totpop(row2, col2);
 
-        popv2_apply_delta(row2, col2, -dPop * Math.random() * 0.25);
+        popv2_apply_delta(row2, col2, -dPop * Math.random() * 0.10);
 
         if (c2) {
             if (result[0]) {
@@ -538,9 +538,11 @@ endTurn = function () {
 
             popv2_clamp_max(row, col, 1500000);
 
+            dPop = popv2_get_totpop(row, col);
+
             let noGrowth = true;
             d.growth = 1.001;
-            let cap = 30000 * res_pop_mod(row, col);
+            let cap = 30000;
 
             if (d && (d.type.draw.toString() == types.city.draw.toString() ||
                         d.type.draw.toString() == types.town.draw.toString() ||
@@ -549,7 +551,7 @@ endTurn = function () {
                 d.growth = dPop < 70000 ? 1.025 : 1.005;
                 nextDecline -= (dPop < 70000 ? 0.025 : 0.005) * dPop * 0.10;
                 cityCount++;
-                cap *= 20;
+                cap = 100000;
                 noGrowth = false;
             } else if (d && d.type.draw.toString() == types.finance.draw.toString()) {
                 d.growth = dPop < 100000 ? 0.045 : 0.0090;
@@ -557,21 +559,19 @@ endTurn = function () {
                 d.growth += 1;
                 nextDecline -= (dPop < 100000 ? 0.045 : 0.009) * dPop * 0.05;
                 cityCount+=2;
-                cap *= 30;
+                cap = 200000;
                 noGrowth = false;
             } else if (d && d.type.draw.toString() == types.capital.draw.toString()) {
                 d.growth = dPop < 150000 ? 1.050 : 1.01;
                 nextDecline -= (dPop < 150000 ? 0.050 : 0.01) * dPop * 0.01;
                 cityCount+=2;
-                cap *= 50;
+                cap = 500000;
                 noGrowth = false;
             } else if (d && d.type.val > 0) {
                 // nextDecline += d.type.val * (civ.ii || 100);
             }
 
-            if (noGrowth) {
-                cap *= res_pop_mod(row, col);
-            }
+            cap *= Math.pow(res_pop_mod(row, col), noGrowth ? 2 : 1);
 
             if (d.growth > 1) {
                 civ.pmb += res_pop_mod(row, col);
@@ -579,6 +579,7 @@ endTurn = function () {
 
                 d.growth -= 1;
                 d.growth *= 1 + (civ.gov.mods["PPPGR"] || 0);
+                d.growth *= Math.pow(res_pop_mod(row, col), 2);
                 d.growth += 1;
             }
 
@@ -708,13 +709,13 @@ endTurn = function () {
 
             if (change > 0) {
                 // if (!noGrowth) {
-                const baseline = 40000;
+                const baseline = 45000;
                 const refPop = Math.max(Math.min(1500000, dPop), 1000);
                 const efficiency = Math.log((refPop + baseline) / baseline) + (1 - Math.log(2));
 
-                let nchange = change * efficiency * res_econ_mod(row, col);
+                let nchange = change * Math.max(0.5, efficiency) * res_econ_mod(row, col);
                 // 2/20/24, adjusting for lower population, hence the 0.10
-                nchange *= 1 + (civ.gov.mods.EGRVG || 0) - INCOMEMOD - imodDTR + 0.15; // econ reduction factor
+                nchange *= 1 + (civ.gov.mods.EGRVG || 0) - INCOMEMOD - imodDTR; // econ reduction factor
 
                 const taxEff = regions_taxEff(civ, civName, row, col);
                 tebi += nchange;

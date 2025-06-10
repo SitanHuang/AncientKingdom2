@@ -352,11 +352,30 @@ function drawCanvas(compare, relationship, pop) {
                         const table = {};
                         poptable_hook(table);
                         poptable_add_from_pt(table, row, col);
-                        bgColor = mixColors(Object.entries(table._poptable).map(([key, val]) => {
+
+                        function norm(x, B, C) {
+                            return (2 / Math.PI) * Math.atan(x * B + C) + 1 - (2 / Math.PI) * Math.atan(B + C);
+                        }
+
+                        const colors = Object.entries(table._poptable);
+
+                        let maxKey;
+                        let maxVal = -1;
+                        colors.forEach(([key, val]) => {
+                            if (maxVal < val) {
+                                maxKey = key;
+                                maxVal = val;
+                            }
+                        });
+
+                        bgColor = mixColors(colors.map(([key, val]) => {
                             const culture = popv2_culture_reinit_culture(key);
                             return [
                                 culture.colorRGB,
-                                val / max
+                                Math.min(
+                                    0.975,
+                                    maxKey == key ? norm(val / max, 3.4, 0.4) : norm(val / max, 2, -0.7)
+                                )
                             ];
                         }));
                     }

@@ -347,7 +347,7 @@ var AI = {
             }
             if (warChance > 0.25) {
                 if (civ.culture == civ2.culture) {
-                    warChance *= 4;
+                    warChance *= 2;
                 } else {
                     if (civ.em / civ.ii > civ2.em / civ2.ii)
                         warChance *= 0.80;
@@ -361,7 +361,7 @@ var AI = {
                         warChance *= 1.5;
 
                     if (oppressedPop > 500000) {
-                        warChance *= 1.75 + Math.min(10, Math.max(0, oppressedPop / civ.pop * 20));
+                        warChance *= 1.5 + Math.min(10, Math.max(0, oppressedPop / civ.pop * 10));
                     }
                 }
             }
@@ -556,8 +556,12 @@ var AI = {
             }
         });
 
-        // TODO: should rebuild fallen cities to preserve population
+        const B = 10000;
+
         buildList.sort((a, b) =>
+            // rebuild fallen cities to preserve population:
+            Math.log((popv2_get_totpop(b[0], b[1]) + B) / B) -
+            Math.log((popv2_get_totpop(a[0], a[1]) + B) / B) +
             ((res_pop_mod(b[0], b[1]) * popMod) + (res_econ_mod(b[0], b[1]) * econMod) + Math.random() * 0.1) -
             ((res_pop_mod(a[0], a[1]) * popMod) + (res_econ_mod(a[0], a[1]) * econMod) + Math.random() * 0.1)
         ).forEach((x) => {

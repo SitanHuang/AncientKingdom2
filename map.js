@@ -162,9 +162,9 @@ function findNearbyCitiesOfLargestCiv(source, color, target) {
     const popResults = poptable_gen_table(popTable);
 
     if (popResults.length) {
-        if (popResults.find(x => x.culture == color)?.percent > 0.05) {
+        if (popResults.find(x => x.culture == color)?.percent > 0.10) {
             civs[color].culture = color;
-        } else if (popResults.find(x => x.culture == civs[color].culture)) {
+        } else if (popResults.find(x => x.culture == civs[color].culture)?.percent > 0.10) {
             // ignore; rebel has population inside this region
         } else {
             civs[color].culture = poptable_gen_table(popTable)
