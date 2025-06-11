@@ -335,7 +335,7 @@ function drawCanvas(compare, relationship, pop) {
                     else
                         context.fillStyle = 'grey';
                 } else if (pop) {
-                    const dPop = popv2_get_totpop(row, col);
+                    let dPop = popv2_get_totpop(row, col);
 
                     let bgColor;
 
@@ -353,37 +353,42 @@ function drawCanvas(compare, relationship, pop) {
                         poptable_hook(table);
                         poptable_add_from_pt(table, row, col);
 
-                        function norm(x, B, C) {
-                            return (2 / Math.PI) * Math.atan(x * B + C) + 1 - (2 / Math.PI) * Math.atan(B + C);
-                        }
-
                         const colors = Object.entries(table._poptable);
-
-                        let maxKey;
-                        let maxVal = -1;
-                        colors.forEach(([key, val]) => {
-                            if (maxVal < val) {
-                                maxKey = key;
-                                maxVal = val;
-                            }
-                        });
 
                         bgColor = mixColors(colors.map(([key, val]) => {
                             const culture = popv2_culture_reinit_culture(key);
                             return [
                                 culture.colorRGB,
-                                Math.min(
-                                    0.975,
-                                    maxKey == key ? norm(val / max, 3.4, 0.4) : norm(val / max, 2, -0.7)
-                                )
+                                val / max
                             ];
                         }));
+                    } else if (typeof gp_culture == 'string') {
+                        const table = {};
+                        poptable_hook(table);
+                        poptable_add_from_pt(table, row, col);
+
+                        const colors = Object.entries(table._poptable).filter(([key,_]) => key == gp_culture);
+
+                        dPop = table._poptable[gp_culture] || 0;
+
+                        bgColor = mixColors(colors.map(([key, val]) => {
+                            const culture = popv2_culture_reinit_culture(key);
+                            return [
+                                culture.colorRGB,
+                                val / max
+                            ];
+                        }), {
+                            minIntensity: 0,
+                            softMaxWeight: 1,
+                            intensityNorm: (x, D=0.3) =>
+                                Math.log((x + D) / D) / Math.log((1 + D) / D)
+                        });
                     }
 
                     context.fillStyle = `rgb(${bgColor.R}, ${bgColor.G}, ${bgColor.B})`;
 
                     context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-                    if (!g_bycountry && dPop > 50000) {
+                    if (!g_bycountry && (dPop > 50000 || (typeof gp_culture == 'string' && dPop > 5000))) {
                         context.font = BLOCK_SIZE / 2 + "px 'Roboto Mono'";
                         context.fillStyle = idealTextColor(bgColor);
                         if (dPop > 500) context.fillText(Math.round(dPop / 10000) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);

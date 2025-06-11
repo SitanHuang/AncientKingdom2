@@ -46,8 +46,11 @@ function popv2_init() {
 function popv2_record_history(row, col) {
   const obj = popv2.map[row][col];
 
+  obj.totHist = 0;
+
   for (const key in obj.pop) {
     obj.hist[key] = (obj.hist[key] || 0) + obj.pop[key];
+    obj.totHist += obj.hist[key];
   }
 }
 
@@ -62,10 +65,11 @@ function popv2_clamp_max(row, col, max) {
   }
 }
 
-ASSIMULATION_RATE = 0.025;
+POPV2_ASSIMULATION_RATE = 0.025;
+POPV2_HISTORICAL_MOMENTUM = 0.70;
 
 function popv2_apply_delta(row, col, delta, opts={}) {
-  let assimulationRate = opts.assimulationRate ?? ASSIMULATION_RATE;
+  let assimulationRate = opts.assimulationRate ?? POPV2_ASSIMULATION_RATE;
 
   const tile = data[row][col];
   if (!tile || !delta) return;
@@ -89,22 +93,44 @@ function popv2_apply_delta(row, col, delta, opts={}) {
   const reservedPartial = Math.round(ownerCul ? delta * assimulationRate : 0);
   const reducedDelta = delta - reservedPartial;
 
-  let newTotPop = 0;
+  const hasHist = obj.totHist > 0;
+  const percArr = Array(existingCultures.length).fill(0);
+  let percSum = 0;
 
-  for (let i = 0;i < existingCultures.length;i++) {
+  for (let i = 0; i < existingCultures.length; i++) {
     const culture = existingCultures[i];
-
     obj.pop[culture] = obj.pop[culture] || 0;
 
-    const perc = obj.pop[culture] / Math.max(obj.totPop, 1);
+    const curPerc = obj.pop[culture] / Math.max(obj.totPop, 1);
+
+    let blendedPerc = curPerc;
+    if (hasHist) {
+      const histPerc = (obj.hist[culture] || 0) / obj.totHist;
+      blendedPerc = curPerc * (1 - POPV2_HISTORICAL_MOMENTUM) +
+        histPerc * POPV2_HISTORICAL_MOMENTUM;
+    }
+
+    percArr[i] = blendedPerc;
+    percSum += blendedPerc;
+  }
+
+  if (percSum === 0) percSum = 1;
+
+  let newTotPop = 0;
+
+  for (let i = 0; i < existingCultures.length; i++) {
+    const culture = existingCultures[i];
+
+    const percUsed = hasHist ? percArr[i] / percSum : percArr[i];
+
     const partial = Math.max(
-      Math.round(reducedDelta * perc),
+      Math.round(reducedDelta * percUsed),
       -obj.pop[culture]
     );
 
     obj.pop[culture] += partial;
 
-    if (ownerCul == culture) {
+    if (ownerCul === culture) {
       obj.pop[culture] += reservedPartial;
     }
 
@@ -210,7 +236,7 @@ function poptable_debug(self) {
   );
 }
 
-function poptable_gen_Tablesort(self, $element) {
+function poptable_gen_Tablesort(self, $element, {showButton=false}={}) {
   if (!$element.data('tableSort'))
     $element.data('tableSort', new Tablesort($element[0]));
 
@@ -228,6 +254,11 @@ function poptable_gen_Tablesort(self, $element) {
       tr.append(`<td>${culture}</td>`);
       tr.append(`<td>${population}</td>`);
       tr.append(`<td>${percent}</td>`);
+      if (showButton) {
+        tr.append(`<td>
+          <button onclick="gp=!gp;gp_culture='${culture}';drawCanvas()">Show</button>
+        </td>`);
+      }
       $table.append(tr)
     });
 

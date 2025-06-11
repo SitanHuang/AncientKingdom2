@@ -1183,7 +1183,7 @@ showInfo = function () {
         `).join(""))[0];
         demoSelect.onchange = function() {
             const selectedCiv = civs[demoSelect.value];
-            poptable_gen_Tablesort(selectedCiv, $('#demoPopTable'));
+            poptable_gen_Tablesort(selectedCiv, $('#demoPopTable'), { showButton: true });
         };
 
         demoSelect.onchange();
@@ -1226,7 +1226,7 @@ prepareTurn = function () {
             income: averageData.income
         };
 
-        poptable_gen_Tablesort(averageData, $('#worldPopTable'));
+        poptable_gen_Tablesort(averageData, $('#worldPopTable'), { showButton: true });
 
         // console.log(average);
 

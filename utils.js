@@ -86,38 +86,65 @@ function getRGBComponents(color) {
   };
 }
 
+/**
+ * Consider a white canvas. Multiple colors are painted onto this white canvas.
+ * The COLOR of the result is meshed using softmax of the colors' associated
+ * weights. The INTENSITY of the result is normalized using the intensityNorm
+ * function, and clamped to [minIntensity, maxIntensity].
+ *
+ * softMaxWeight increases the effect of the largest input component having
+ * disproportionally larger probabilities relative to the other colors.
+ *
+ * Note that the sum of colors' associated weights are [0, 1]
+ */
 function mixColors(colors, {
-  baseColor=250,
-  scale = 0.55,
+  minIntensity=0,
+  maxIntensity=1,
+  softMaxWeight=2,
+  intensityNorm = (x, B = 3.4, C = 0) =>
+    (2 / Math.PI) * Math.atan(x * B + C) + 1 - (2 / Math.PI) * Math.atan(B + C)
 } = {}) {
   let totalPerc = 0;
-  for (const [_, perc] of colors) {
+  for (const [, perc] of colors) {
     totalPerc += perc;
   }
-  const whitePerc = 1 - totalPerc;
 
-  let r = 0, g = 0, b = 0;
-  for (const [color, perc] of colors) {
-    r += color.R * perc;
-    g += color.G * perc;
-    b += color.B * perc;
+  // Compute normalized intensity and clamp
+  let intensity = intensityNorm(totalPerc);
+  intensity = Math.min(maxIntensity, Math.max(minIntensity, intensity));
+
+  // No colors = pure white
+  if (totalPerc === 0) {
+    return { R: 255, G: 255, B: 255 };
   }
-  r += 255 * whitePerc;
-  g += 255 * whitePerc;
-  b += 255 * whitePerc;
 
-  r = Math.round(r);
-  g = Math.round(g);
-  b = Math.round(b);
+  // Normalize per-color weights
+  const normPercs = colors.map(([, perc]) => perc / totalPerc);
 
-  r = Math.min(255, Math.max(0, r));
-  g = Math.min(255, Math.max(0, g));
-  b = Math.min(255, Math.max(0, b));
+  // Softmax over normalized weights
+  const exps = normPercs.map(p => Math.exp(p * softMaxWeight));
+  const expSum = exps.reduce((sum, e) => sum + e, 0);
+  const softWeights = exps.map(e => e / expSum);
 
-  const toHex = (c) => {
-    const hex = c.toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  };
+  // Compute the pure-color mix
+  let rCol = 0, gCol = 0, bCol = 0;
+  for (let i = 0; i < colors.length; i++) {
+    const [color] = colors[i];
+    const w = softWeights[i];
+    rCol += color.R * w;
+    gCol += color.G * w;
+    bCol += color.B * w;
+  }
+
+  // Blend with white based on intensity
+  let r = rCol * intensity + 255 * (1 - intensity);
+  let g = gCol * intensity + 255 * (1 - intensity);
+  let b = bCol * intensity + 255 * (1 - intensity);
+
+  // Round and clamp
+  r = Math.round(Math.min(255, Math.max(0, r)));
+  g = Math.round(Math.min(255, Math.max(0, g)));
+  b = Math.round(Math.min(255, Math.max(0, b)));
 
   return { R: r, G: g, B: b };
 }
