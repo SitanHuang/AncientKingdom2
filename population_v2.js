@@ -36,7 +36,7 @@ function popv2_init() {
 
       // if (tile.pop) {
       obj.totPop = obj.pop[culture] = Math.round(Math.max(tile.pop || 0, 20000 * res_pop_mod(row, col) * (Math.random() + 0.5)));
-      obj.hist[culture] = Math.max(200000, obj.totPop) * 10;
+      obj.hist[culture] = Math.min(20000, Math.max(200000, obj.totPop * 2)) * 75 * 4;
       // }
 
       return obj;
