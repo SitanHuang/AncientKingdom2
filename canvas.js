@@ -362,6 +362,20 @@ function drawCanvas(compare, relationship, pop) {
                                 val / max
                             ];
                         }));
+                    } else if (gp_culture == 3) {
+                        const table = {};
+                        poptable_hook(table);
+                        poptable_add_hist_from_pt(table, row, col);
+
+                        const colors = Object.entries(table._poptable);
+
+                        bgColor = mixColors(colors.map(([key, val]) => {
+                            const culture = popv2_culture_reinit_culture(key);
+                            return [
+                                culture.colorRGB,
+                                val / (max_hist_val || max)
+                            ];
+                        }), { minIntensity: 0, softMaxWeight: 2 });
                     } else if (typeof gp_culture == 'string') {
                         const table = {};
                         poptable_hook(table);

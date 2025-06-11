@@ -35,7 +35,8 @@ function popv2_init() {
       const culture = popv2_culture_get_or_create_civ(tile.color);
 
       // if (tile.pop) {
-      obj.totPop = obj.pop[culture] = obj.hist[culture] = Math.round(Math.max(tile.pop || 0, 20000 * res_pop_mod(row, col) * (Math.random() + 0.5)));
+      obj.totPop = obj.pop[culture] = Math.round(Math.max(tile.pop || 0, 20000 * res_pop_mod(row, col) * (Math.random() + 0.5)));
+      obj.hist[culture] = Math.max(200000, obj.totPop) * 10;
       // }
 
       return obj;
@@ -66,7 +67,7 @@ function popv2_clamp_max(row, col, max) {
 }
 
 POPV2_ASSIMULATION_RATE = 0.025;
-POPV2_HISTORICAL_MOMENTUM = 0.70;
+POPV2_HISTORICAL_MOMENTUM = 0.80;
 
 function popv2_apply_delta(row, col, delta, opts={}) {
   let assimulationRate = opts.assimulationRate ?? POPV2_ASSIMULATION_RATE;
@@ -142,6 +143,9 @@ function popv2_apply_delta(row, col, delta, opts={}) {
 
 function popv2_get_totpop(row, col) {
   return popv2?.map?.[row]?.[col]?.totPop || 0;
+}
+function popv2_get_tothist(row, col) {
+  return popv2?.map?.[row]?.[col]?.totHist || 0;
 }
 
 POPV2_FLAG_USE_UNI_CULTURE = false;

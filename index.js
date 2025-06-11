@@ -339,6 +339,8 @@ max_econ = 0;
 max_pop_country = 200000;
 max_econ_country = 0;
 
+max_hist_val = 0;
+
 endTurn = function () {
     turn++;
     let _startTime = new Date().getTime();
@@ -490,6 +492,7 @@ endTurn = function () {
 
     max_pop = 0;
     max_econ = 0;
+    max_hist_val = 0;
 
     iterateMathRandom((row, col) => {
         let d = data[row][col];
@@ -499,6 +502,8 @@ endTurn = function () {
         max_pop = Math.max(max_pop, dPop);
         if (d?._econ)
           max_econ = Math.max(max_econ, d._econ);
+
+        max_hist_val = Math.max(max_hist_val, popv2_get_tothist(row, col));
 
         _newColorGrid[row][col] = d?.color || null;
 
