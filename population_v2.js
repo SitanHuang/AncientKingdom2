@@ -36,7 +36,7 @@ function popv2_init() {
 
       // if (tile.pop) {
       obj.totPop = obj.pop[culture] = Math.round(Math.max(tile.pop || 0, 20000 * res_pop_mod(row, col) * (Math.random() + 0.5)));
-      obj.hist[culture] = Math.min(20000, Math.max(200000, obj.totPop * 2)) * 75 * 4;
+      obj.hist[culture] = Math.min(20000, Math.max(200000, obj.totPop * 2)) * 200 * 4;
       // }
 
       return obj;
@@ -66,7 +66,7 @@ function popv2_clamp_max(row, col, max) {
   }
 }
 
-POPV2_ASSIMULATION_RATE = 0.025;
+POPV2_ASSIMULATION_RATE = 0.02;
 POPV2_HISTORICAL_MOMENTUM = 0.80;
 
 function popv2_apply_delta(row, col, delta, opts={}) {
@@ -94,9 +94,11 @@ function popv2_apply_delta(row, col, delta, opts={}) {
   const reservedPartial = Math.round(ownerCul ? delta * assimulationRate : 0);
   const reducedDelta = delta - reservedPartial;
 
-  const hasHist = obj.totHist > 0;
-  const percArr = Array(existingCultures.length).fill(0);
-  let percSum = 0;
+  const useHistorical = obj.totHist > 0 && delta > 0;
+  const weightsArr = Array(existingCultures.length).fill(0);
+  let weightsSum = 0;
+
+  // function
 
   for (let i = 0; i < existingCultures.length; i++) {
     const culture = existingCultures[i];
@@ -104,25 +106,25 @@ function popv2_apply_delta(row, col, delta, opts={}) {
 
     const curPerc = obj.pop[culture] / Math.max(obj.totPop, 1);
 
-    let blendedPerc = curPerc;
-    if (hasHist) {
+    let weight = curPerc;
+    if (useHistorical) {
       const histPerc = (obj.hist[culture] || 0) / obj.totHist;
-      blendedPerc = curPerc * (1 - POPV2_HISTORICAL_MOMENTUM) +
+      weight = curPerc * (1 - POPV2_HISTORICAL_MOMENTUM) +
         histPerc * POPV2_HISTORICAL_MOMENTUM;
     }
 
-    percArr[i] = blendedPerc;
-    percSum += blendedPerc;
+    weightsArr[i] = weight;
+    weightsSum += weight;
   }
 
-  if (percSum === 0) percSum = 1;
+  if (weightsSum === 0) weightsSum = 1;
 
   let newTotPop = 0;
 
   for (let i = 0; i < existingCultures.length; i++) {
     const culture = existingCultures[i];
 
-    const percUsed = hasHist ? percArr[i] / percSum : percArr[i];
+    const percUsed = useHistorical ? weightsArr[i] / weightsSum : weightsArr[i];
 
     const partial = Math.max(
       Math.round(reducedDelta * percUsed),

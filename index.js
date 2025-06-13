@@ -925,11 +925,7 @@ endTurn = function () {
         if (civ.ii < 200)
             rchance /= 10;
         if (civ.popchangeperc < 0)
-            rchance *= Math.pow(-civ.popchangeperc, 2.25);
-        if (civ.income < civ.ii)
-            rchance *= 1.1;
-        if (civ.deposit < civ.ii * 2)
-            rchance *= 1.2;
+            rchance *= Math.pow(-civ.popchangeperc, 2);
         if (civ.politic < 5)
             rchance *= 1.3;
         if (civ.happiness < 50)
@@ -950,7 +946,7 @@ endTurn = function () {
             rchance *= 1.5;
         if (civ.gov.cohesion < 0.45)
             rchance *= 2.5;
-        civ.rchance = rchance > civ.rchance ? rchance : (civ.rchance || 0) * 0.3 + rchance * 0.7;
+        civ.rchance = (civ.rchance || 0) * 0.3 + rchance * 0.7;
         civ.rchance *= 1 + (civ.gov.mods.ORBRD || 0);
     } else {
         civ.landsBuilt = 0;
@@ -964,8 +960,17 @@ endTurn = function () {
 
             if (occupier = civs[occupier]) {
                 // eternal unrest for perished civs
-                occupier.rchance = occupier.rchance * 1.05 + 0.0025;
+                occupier.rchance = occupier.rchance * 1.020 + 0.0025;
                 occupier._perished++;
+
+                const ownCulture = civ.culture;
+                const occupierCulture = occupier.culture;
+                const oppressedPop = occupier._poptable?.[ownCulture];
+
+                if (ownCulture != occupierCulture && oppressedPop > 1) {
+                    const mod = 1 + oppressedPop / occupier.pop;
+                    occupier.rchance *= Math.min(2, Math.max(0, mod || 0)) ** 2;
+                }
             }
         }
     }
