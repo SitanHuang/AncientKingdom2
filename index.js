@@ -955,21 +955,24 @@ endTurn = function () {
         civ.years = 0;
         civ.technology = 0;
 
-        if (civ.birth) {
-            let occupier = data[civ.birth[0]][civ.birth[1]]?.color;
+        for (const occupierName of civOrders) {
+            const occupier = civs[occupierName];
 
-            if (occupier = civs[occupier]) {
+            const ownCulture = civ.culture;
+            const occupierCulture = occupier.culture;
+            const oppressedPop = occupier._poptable?.[ownCulture];
+
+            if (occupier.ii > 0 && ownCulture != occupierCulture && oppressedPop > 100000) {
+                const perc = oppressedPop / occupier.pop;
+                const mod = 1 + perc;
+
                 // eternal unrest for perished civs
                 occupier.rchance = occupier.rchance * 1.020 + 0.0025;
                 occupier._perished++;
 
-                const ownCulture = civ.culture;
-                const occupierCulture = occupier.culture;
-                const oppressedPop = occupier._poptable?.[ownCulture];
-
-                if (ownCulture != occupierCulture && oppressedPop > 1) {
-                    const mod = 1 + oppressedPop / occupier.pop;
-                    occupier.rchance *= Math.min(2, Math.max(0, mod || 0)) ** 2;
+                if (perc > 0.05) {
+                    occupier.rchance += Math.min(1, perc) / 20;
+                    occupier.rchance *= Math.min(2, Math.max(0, mod || 0));
                 }
             }
         }
