@@ -85,7 +85,7 @@ function popv2_apply_delta(row, col, delta, opts={}) {
 
   const existingCultures = Object.keys(obj.hist);
 
-  delta = Math.max(delta, -obj.totPop + 1500); // clamp to prevent negative pops
+  delta = Math.max(delta, -obj.totPop + 2500); // clamp to prevent negative pops
 
   if (delta < 0) {
     assimulationRate = 0;

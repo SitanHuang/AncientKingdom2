@@ -753,6 +753,9 @@ endTurn = function () {
             if (change > 0) {
                 let nchange = change * dPop / 150000;
                 nchange *= 1 + (civ.gov.mods.EHPGR || 0);
+                if (civ.happiness < 75) {
+                    nchange *= Math.pow(res_pop_mod(row, col), 2);
+                }
                 civ.happiness -= change - nchange;
             };
 
