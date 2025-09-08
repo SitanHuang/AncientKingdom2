@@ -362,6 +362,8 @@ var AI = {
 
                     if (oppressedPop > 500000) {
                         warChance *= 1.5 + Math.min(10, Math.max(0, oppressedPop / civ.pop * 10));
+                    } else {
+                        warChance *= 0.50;
                     }
                 }
             }
@@ -377,7 +379,8 @@ var AI = {
             // if (((civ.income > civ2.income * 0.7 && civ.technology > civ2.technology + 1 && civ.income > 100 && civ.deposit > civ.income * 2) || civ.income > civ2.income) && civ.happiness >= 95 && Math.random() > 0.8) {
             if (Math.random() < warChance && civ.income > 100 &&
                 Math.random() < (Math.max(0.1, 1 - civ.ii / 700))) {
-                if (!declareWar(civName, cn, undefined, undefined, Math.random() < Math.sqrt(warChance) ? (1 + warChance) : 0))
+                const majorWar = civ.culture != civ2.culture && oppressedPop < 500000 ? false : (Math.random() < Math.sqrt(warChance) ? (1 + warChance) : 0);
+                if (!declareWar(civName, cn, undefined, undefined, majorWar))
                     return;
             } else if ((civ2.ii * 0.5 < civ.ii || civ2.income > civ.income) && Math.random() > 0.6)
                 alliance = true;

@@ -1,5 +1,5 @@
 _dynastyData = [[null, 0]];
-MANDATE_THRESHOLD = 0.45;
+MANDATE_THRESHOLD = 0.55;
 
 _dynastyPopReq = Infinity;
 _dynastyIncReq = Infinity;

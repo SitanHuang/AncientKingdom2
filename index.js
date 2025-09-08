@@ -1,5 +1,5 @@
 readMap();
-TIMEOUT_DELAY = 150;
+TIMEOUT_DELAY = 50;
 RCHANCEMOD = 1;
 INCOMEMOD = 0.3;
 
@@ -7,9 +7,9 @@ lazyDrawCml = false;
 
 _gallery_prev_year = 0;
 _gallery_change_cml = 0;
-GALLERY_MAX_YEARS = 12;
+GALLERY_MAX_YEARS = 16;
 GALLERY_MIN_YEARS = 0.5;
-GALLERY_TRIGGER_CHANGES = 0.2; // as percent of map size
+GALLERY_TRIGGER_CHANGES = 0.1; // as percent of map size
 
 var onRightClick = null;
 
@@ -1378,7 +1378,7 @@ prepareTurn = function () {
         AI.think(civs[civOrders[i]], civOrders[i]);
         $('#aiTime').text((new Date() - start) + 'ms');
         $('#panel').hide();
-        setTimeout(endTurn, TIMEOUT_DELAY || 150);
+        setTimeout(endTurn, TIMEOUT_DELAY || 50);
     } else {
         showInfo();
     }
