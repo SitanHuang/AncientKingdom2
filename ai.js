@@ -136,7 +136,7 @@ var AI = {
             }
         } else {
             // we're in bankrupt
-            if (civ.money < 0 && civ.newMoney < civ.oldMoney && civ.gov?.cohesion < 0.15)
+            if (civ.money < 0 && civ.newMoney < civ.oldMoney)
                 this.tryFixBankrupt(civ, civName);
 
             while (civ.deposit > 150) {
@@ -153,7 +153,7 @@ var AI = {
 
         if (deficit < 0) return;
 
-        if (civ.money < -200)
+        if (civ.money < -100)
             deficit *= Math.max(Math.abs(civ.money / deficit), 2);
 
         let toRemove = Object.keys(civ._parts.map).map(x => {
@@ -161,7 +161,7 @@ var AI = {
             return [pos[0], pos[1], data[pos[0]][pos[1]]];
         }).filter(x => {
             return x[2]._exp > 1 && (Math.random() > 0.75 || x[2].growth > 1);
-        }).sort((a, b) => (a[2].pop - b[2].pop) || (b[2]._exp - a[2]._exp));
+        }).sort((a, b) => (b[2]._exp - a[2]._exp) || (a[2].pop - b[2].pop));
 
         let totFixed = 0;
         let totDispPop = 0;
@@ -174,7 +174,7 @@ var AI = {
             x[2].type = types.land;
             if (deficit < 0)
                 break;
-            if (totDispPop / civ.pop > 0.01) // not too many population to keep rchance low
+            if (totDispPop / civ.pop > 0.10) // not too many population to keep rchance low
                 break;
         }
 
