@@ -42,7 +42,8 @@ function dynasty_assign_candidate() {
   };
 
   let popReq = _dynastyPopReq = totPop * MANDATE_THRESHOLD + 1000;
-  let incReq = _dynastyIncReq = totInc * MANDATE_THRESHOLD * 0.7;
+  // let incReq = _dynastyIncReq = totInc * MANDATE_THRESHOLD * 0.7;
+  let incReq = _dynastyIncReq = 0;
 
   // check new candidate
   for (let x of civNames) {

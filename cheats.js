@@ -86,7 +86,7 @@ applyCulture = function (name, targetCivs) {
 function forceHistory(civ, old, _new) {
     popv2.map.forEach((row, ri) => row.forEach((col, ci) => {
         if (col && data[ri][ci]?.color == civ) {
-            if (col.pop[old] > 1000) { col.hist[_new] = col.hist[_old]; col.pop[_new] = col.pop[old]; col.pop[old] = 0; col.hist[old] = 0 }
+            if (col.pop[old] > 1000) { col.hist[_new] = col.hist[old]; col.pop[_new] = col.pop[old]; col.pop[old] = 0; col.hist[old] = 0 }
         }
     }));
 }
