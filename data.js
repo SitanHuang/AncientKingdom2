@@ -102,7 +102,7 @@ var types = {
     finance: {
         defend: 35,
         income: function (civ) {
-            civ.politic += randn_bm();
+            // civ.politic += randn_bm();
             civ.money += randn_bm() * 35;
             civ.happiness += Math.max(randn_bm() * 0.12 * (1 - civ.ii / data.length / data[0].length), 0.05);
         },

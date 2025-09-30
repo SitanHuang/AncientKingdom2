@@ -160,7 +160,7 @@ var AI = {
             const pos = _regions_parseKey(x);
             return [pos[0], pos[1], data[pos[0]][pos[1]]];
         }).filter(x => {
-            return x[2]._exp > 1 && (Math.random() > 0.75 || x[2].growth > 1);
+            return x[2]?._exp > 1 && (Math.random() > 0.75 || x[2]?._exp > 10);
         }).sort((a, b) => (b[2]._exp - a[2]._exp) || (a[2].pop - b[2].pop));
 
         let totFixed = 0;

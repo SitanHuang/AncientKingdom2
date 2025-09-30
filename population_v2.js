@@ -66,6 +66,23 @@ function popv2_clamp_max(row, col, max) {
   }
 }
 
+function popv2_get_dominant_culture(row, col) {
+  const obj = popv2?.map?.[row]?.[col];
+  if (!obj || !obj.pop) return undefined;
+
+  let best;
+  let bestVal = -Infinity;
+
+  for (const [culture, val] of Object.entries(obj.pop)) {
+    if (val > bestVal) {
+      bestVal = val;
+      best = culture;
+    }
+  }
+
+  return bestVal > 0 ? best : undefined;
+}
+
 POPV2_ASSIMULATION_RATE = 0.02;
 POPV2_HISTORICAL_MOMENTUM = 0.80;
 

@@ -194,10 +194,22 @@ move = function (cn1, pickedUp, p2, ai) {
     var c1 = civs[cn1];
     var c2 = civs[cn2];
 
-    const l2DefMod = regions_defBonus(c2, cn2, row2, col2);
+    let l2DefMod = regions_defBonus(c2, cn2, row2, col2);
+
+    const l2Cult = popv2_get_dominant_culture(row2, col2);
 
     var type = $.extend(true, {}, types.military);
     type.val = pickedUp.type.val;
+
+    if (l2Cult != c1.culture) {
+        l2DefMod += 0.25;
+
+        const omvpc = 1 + (c1.gov?.mods?.OMVPC || 0);
+        c1.politic -= 0.7 * omvpc * 0.25; // 0.175
+
+        const mmvct = 1 + (c1.gov?.mods?.MMVCT || 0);
+        c1.money -= type.val / 25 * mmvct * 0.2;
+    }
 
     var result = [type.val, 0];
 
