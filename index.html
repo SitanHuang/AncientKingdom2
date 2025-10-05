@@ -368,7 +368,7 @@
 <button onclick="alert = console.log">quiteMode On</button>
 <button onclick="alert = alertCopy">quiteMode Off</button>
 <button onclick="GALLERY_MAX_YEARS = (parseFloat(prompt('GALLERY_MAX_YEARS=', GALLERY_MAX_YEARS))) || GALLERY_MAX_YEARS || 16">max int=</button>
-<button onclick="GALLERY_MIN_YEARS = (parseFloat(prompt('GALLERY_MIN_YEARS=', GALLERY_MIN_YEARS))) || GALLERY_MIN_YEARS || 0.5">min int=</button>
+<button onclick="GALLERY_MIN_YEARS = (parseFloat(prompt('GALLERY_MIN_YEARS=', GALLERY_MIN_YEARS))) || GALLERY_MIN_YEARS || 3.75">min int=</button>
 <button onclick="GALLERY_TRIGGER_CHANGES = (parseFloat(prompt('GALLERY_TRIGGER_CHANGES=', GALLERY_TRIGGER_CHANGES))) || GALLERY_TRIGGER_CHANGES || 0.1">map % change=</button>
 <button onclick="canvasScreenshot(true)">sc now</button>
 <br>
@@ -566,7 +566,7 @@ a:
 c:
 <span id="canvasTime"></span>
 <button onclick="stopIntervals()">STOP</button>
-<button onclick="TIMEOUT_DELAY = Math.max(5, (parseInt(prompt('delay=', TIMEOUT_DELAY)) | 0) || TIMEOUT_DELAY || 50)">delay=</button>
+<button onclick="TIMEOUT_DELAY = Math.max(5, (parseInt(prompt('delay=', TIMEOUT_DELAY)) | 0) || TIMEOUT_DELAY || 20)">delay=</button>
 <button onclick="AGGRESSIVENESS = (parseFloat(prompt('AGGRESSIVENESS=', AGGRESSIVENESS))) || AGGRESSIVENESS || 0.5">aggrs.=</button>
 <button onclick="RCHANCEMOD = (parseFloat(prompt('RCHANCEMOD=', RCHANCEMOD))) || RCHANCEMOD || 1">Reb md=</button>
 <button onclick="INCOMEMOD = (parseFloat(prompt('INCOMEMOD=', INCOMEMOD))) || INCOMEMOD || 0.3">GDP md=</button>

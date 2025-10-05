@@ -1,14 +1,14 @@
 readMap();
-TIMEOUT_DELAY = 50;
-RCHANCEMOD = 1;
-INCOMEMOD = 0.3;
+TIMEOUT_DELAY = 20;
+RCHANCEMOD = 0.2;
+INCOMEMOD = 0.55;
 
 lazyDrawCml = false;
 
 _gallery_prev_year = 0;
 _gallery_change_cml = 0;
 GALLERY_MAX_YEARS = 16;
-GALLERY_MIN_YEARS = 0.5;
+GALLERY_MIN_YEARS = 3.75;
 GALLERY_TRIGGER_CHANGES = 0.1; // as percent of map size
 
 var onRightClick = null;
