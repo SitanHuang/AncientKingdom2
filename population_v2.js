@@ -94,7 +94,22 @@ function popv2_apply_delta(row, col, delta, opts={}) {
 
   const ownerCul = tile.color ? popv2_culture_get_or_create_civ(tile.color) : null;
 
-  const obj = popv2.map[row][col];
+  let obj = popv2.map[row][col];
+
+  if (!obj) {
+    obj = popv2.map[row][col] = {
+      pop: {
+        // MUST have all the keys in hist, even if 0 pop
+      },
+      hist: {
+
+      },
+      totPop: 0,
+    };
+
+    obj.totPop = obj.pop[ownerCul] = Math.round(Math.max(tile.pop || 0, 20000 * res_pop_mod(row, col) * (Math.random() + 0.5)));
+    obj.hist[ownerCul] = Math.min(20000, Math.max(200000, obj.totPop * 2)) * 200 * 4;
+  }
 
   if (ownerCul) {
     obj.hist[ownerCul] = obj.hist[ownerCul] || 0;

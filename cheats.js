@@ -83,13 +83,28 @@ applyCulture = function (name, targetCivs) {
     });
 }
 
-function forceHistory(civ, old, _new) {
+function forceHistory(civ, old, _new, retain = 0.0) {
     popv2.map.forEach((row, ri) => row.forEach((col, ci) => {
         if (col && data[ri][ci]?.color == civ) {
-            if (col.pop[old] > 1000) { col.hist[_new] = col.hist[old]; col.pop[_new] = col.pop[old]; col.pop[old] = 0; col.hist[old] = 0 }
+            if (col.pop[old] > 1000) {
+                // move most of the old values to the new culture
+                const retainedPop = Math.floor(col.pop[old] * retain);
+                const retainedHist = Math.floor(col.hist[old] * retain);
+
+                const movedPop = col.pop[old] - retainedPop;
+                const movedHist = col.hist[old] - retainedHist;
+
+                col.pop[_new] = (col.pop[_new] || 0) + movedPop;
+                col.hist[_new] = (col.hist[_new] || 0) + movedHist;
+
+                // leave only the retained fraction in the old culture
+                col.pop[old] = retainedPop;
+                col.hist[old] = retainedHist;
+            }
         }
     }));
 }
+
 
 addCiv = function (name, ai, color) {
     let c = color || getRandomColor();

@@ -1,36 +1,35 @@
+function _cell_nearest_color(row, col) {
+  const colorCount = {};
 
-const [map_patch_mode_start, map_patch_mode_end] = (() => {
-  let history;
-
-  function _cell_nearest_color(row, col) {
-    const colorCount = {};
-
-    getNeighbors(row, col, (cell) => {
-      if (cell && cell.color) {
-        if (!colorCount[cell.color]) {
-          colorCount[cell.color] = 0;
-        }
-        colorCount[cell.color]++;
+  getNeighbors(row, col, (cell) => {
+    if (cell && cell.color) {
+      if (!colorCount[cell.color]) {
+        colorCount[cell.color] = 0;
       }
-    });
-
-    let mostProminentColor = null;
-    let maxCount = 0;
-    for (let color in colorCount) {
-      if (colorCount[color] > maxCount) {
-        maxCount = colorCount[color];
-        mostProminentColor = color;
-      }
+      colorCount[cell.color]++;
     }
+  });
 
-    if (mostProminentColor)
-      return { color: mostProminentColor, type: types.land };
-    else
-      return { color: null, type: null };
+  let mostProminentColor = null;
+  let maxCount = 0;
+  for (let color in colorCount) {
+    if (colorCount[color] > maxCount) {
+      maxCount = colorCount[color];
+      mostProminentColor = color;
+    }
   }
 
+  if (mostProminentColor)
+    return { color: mostProminentColor, type: types.land };
+  else
+    return { color: null, type: null };
+}
+
+const [map_patch_mode_start, map_patch_mode_end] = (() => {
+  let history = '';
+
   function map_patch_mode_start() {
-    history = _nearest_color.toString() + '\n';
+    history += '\n';
 
     buyClick = (row, col) => {
       let cell = data[row][col];
