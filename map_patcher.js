@@ -68,7 +68,7 @@ function map_patch_wholemap() {
     "(()=>{var d=window.data,b=s=>parseInt(s,36),x=(t)=>t?t.split(','):[]," +
     "n=x(\"" + n.join(",") + "\"),l=x(\"" + l.join(",") + "\"),i,t,r,c;" +
     "for(i=0;i<n.length;i++){t=n[i].split('.');r=b(t[0]);c=b(t[1]);d[r][c]=null;}" +
-    "for(i=0;i<l.length;i++){t=l[i].split('.');r=b(t[0]);c=b(t[1]);d[r][c]=_cell_nearest_color(r,c);}" +
+    "for(i=0;i<l.length;i++){t=l[i].split('.');r=b(t[0]);c=b(t[1]);d[r][c]=d[r][c]||_cell_nearest_color(r,c);}" +
     "if(typeof drawCanvas==='function')drawCanvas();})();";
 
   function copy_on_next_activation(text) {
