@@ -136,7 +136,9 @@ function popv2_apply_delta(row, col, delta, opts={}) {
     const culture = existingCultures[i];
     obj.pop[culture] = obj.pop[culture] || 0;
 
-    const curPerc = obj.pop[culture] / Math.max(obj.totPop, 1);
+    if (obj.pop[culture] > obj.totPop) popv2_recompute_totals(row, col);
+
+    const curPerc = obj.pop[culture] / Math.max(obj.totPop, 1, obj.pop[culture]);
 
     let weight = curPerc;
     if (useHistorical) {
@@ -174,6 +176,41 @@ function popv2_apply_delta(row, col, delta, opts={}) {
 
   obj.totPop = newTotPop;
 }
+
+function popv2_recompute_totals(row, col) {
+  const obj = popv2?.map?.[row]?.[col];
+  if (!obj) return;
+
+  let totPop = 0;
+  let totHist = 0;
+
+  // normalize and sum pop
+  if (obj.pop) {
+    for (const k in obj.pop) {
+      const v = Math.max(0, Math.round(obj.pop[k] || 0));
+      obj.pop[k] = v;
+      totPop += v;
+    }
+  }
+
+  // normalize and sum hist
+  if (obj.hist) {
+    for (const k in obj.hist) {
+      const v = Math.max(0, Math.round(obj.hist[k] || 0));
+      obj.hist[k] = v;
+      totHist += v;
+
+      // ensure all hist keys exist in pop
+      if (obj.pop && obj.pop[k] == null) obj.pop[k] = 0;
+    }
+  }
+
+  obj.totPop = totPop;
+  obj.totHist = totHist;
+
+  return obj;
+}
+
 
 function popv2_get_totpop(row, col) {
   return popv2?.map?.[row]?.[col]?.totPop || 0;
