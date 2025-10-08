@@ -83,7 +83,7 @@ function popv2_get_dominant_culture(row, col) {
   return bestVal > 0 ? best : undefined;
 }
 
-POPV2_ASSIMULATION_RATE = 0.02;
+POPV2_ASSIMULATION_RATE = 0.075;
 POPV2_HISTORICAL_MOMENTUM = 0.80;
 
 function popv2_apply_delta(row, col, delta, opts={}) {
