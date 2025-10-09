@@ -5,11 +5,11 @@ var BLOCK_SIZE = 20.2;
 var count = 0;
 var lazyDraw = false;
 var lazyDraw2 = false;
-var lazyDrawCount = 10;
+var lazyDrawCount = 67;
 
 var showBorder = true;
-var showStripes = true;
-var showCellBorder = true;
+var showStripes = false;
+var showCellBorder = false;
 var showYear = {
     yr: true,
     offset: 0,

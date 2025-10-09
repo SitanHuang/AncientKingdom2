@@ -1235,7 +1235,8 @@ prepareTurn = function () {
         const yearsSinceLastScreenshot = Math.floor(turn / civOrders.length) / 4 - _gallery_prev_year;
         if (
             yearsSinceLastScreenshot >= GALLERY_MAX_YEARS ||
-            (yearsSinceLastScreenshot >= GALLERY_MIN_YEARS && _gallery_change_cml >= GALLERY_TRIGGER_CHANGES)
+            (yearsSinceLastScreenshot >= GALLERY_MIN_YEARS && _gallery_change_cml >= GALLERY_TRIGGER_CHANGES) ||
+            GALLERY_DATA.length == 0
         ) {
             if (lazyDrawCml) {
                 count = 0;

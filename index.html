@@ -349,13 +349,14 @@
 <button onclick="lazyDrawCml = !lazyDrawCml;">lzdCml</button>
 <button onclick="showCellBorder = !(lazyDraw = !lazyDraw);">lzd</button>
 <button onclick="(lazyDraw2 = !lazyDraw2);">lzd2</button>
-<button onclick="lazyDrawCount = Math.max(civOrders.length, (parseInt(prompt('lazyDrawCount=', lazyDrawCount)) | 0) || lazyDrawCount || 10)">lzdrwcnt=</button>
-<button onclick="showBorder = !showBorder">border?</button>
-<button onclick="showStripes = !showStripes">stripes?</button>
-<button onclick="showYear = JSON.parse(prompt('draw yr={}', JSON.stringify(showYear)) || {yr: true,offset: 0,});drawCanvas()">yr?</button>
+<button onclick="lazyDrawCount = Math.max(civOrders.length, (parseInt(prompt('lazyDrawCount=', lazyDrawCount)) | 0) || lazyDrawCount || 67)">lzdrwcnt=</button>
+<button onclick="alert('showBorder:=' + (showBorder = !showBorder))">border?</button>
+<button onclick="alert('showStripes:=' + (showStripes = !showStripes))">stripes?</button>
+<button onclick="showYear = JSON.parse(prompt('draw yr={}', JSON.stringify(showYear || {yr: true, offset: 0})) || {yr: true,offset: 0,});drawCanvas()">yr?</button>
 <button onclick="showCellBorder = !showCellBorder">cells?</button>
 <button onclick="BLOCK_SIZE --;drawCanvas()">-</button>
 <button onclick="BLOCK_SIZE ++;drawCanvas()">+</button>
+<button onclick="alert('POPV2_FLAG_USE_UNI_CULTURE:=' + (POPV2_FLAG_USE_UNI_CULTURE=!POPV2_FLAG_USE_UNI_CULTURE))">culture?</button>
 <div id="takeControls">
 </div>
 <button onclick="download(prompt('File name', 'scenario') + '.json',
