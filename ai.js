@@ -282,9 +282,12 @@ var AI = {
                 warChance = Math.min(warChance, 0.7);
             }
 
-            if (civ.mandateInAcquirement) {
+            if (
+                civ.mandateInAcquirement ||
+                (civ.mandate && civ.culture == civ2.culture && civ2.pop > civ.pop * 0.1)
+            ) {
                 warChance *= 50;
-                warChance = Math.min(warChance, 2);
+                warChance = Math.min(warChance, 10);
             }
 
             warChance *= Math.min(5, Math.max(0, (civ.deposit + civ.money) / (civ.ii * civ.urban / 10 * 2)));
@@ -342,7 +345,10 @@ var AI = {
                 warChance = Math.min(warChance, 0.7);
             }
 
-            if (civ.mandateInAcquirement) {
+            if (
+                civ.mandateInAcquirement ||
+                (civ.mandate && civ.culture == civ2.culture && civ2.pop > civ.pop * 0.1)
+            ) {
                 warChance *= 50;
                 warChance = Math.min(warChance, 10);
             }
