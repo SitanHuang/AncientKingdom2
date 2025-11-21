@@ -934,11 +934,13 @@ endTurn = function () {
     }
 
     if (civ.ii >= 2) {
-        let rchance = (20 / Math.max(1, civ.happiness) - 0.1) + ((Math.max(0, 1 - civ.gov.cohesion)) || 0);
+        let rchance = (20 / Math.max(1, civ.happiness || 100) - 0.1) + ((Math.max(0, 1 - (civ.gov.cohesion || 1))) || 0);
         rchance *= (1 + rchance);
         rchance *= 0.0001 * (1 + civ.ii / data.length / data[0].length * 10) * (1 + civ.years / 75);
         if (civ.ii < 200)
             rchance /= 10;
+        if (civ.mandate && civ.years < 100)
+            rchance /= 2;
         if (civ.popchangeperc < 0)
             rchance *= Math.pow(-civ.popchangeperc, 2);
         if (civ.politic < 5)
@@ -961,7 +963,19 @@ endTurn = function () {
             rchance *= 1.5;
         if (civ.gov.cohesion < 0.45)
             rchance *= 2.5;
-        civ.rchance = (civ.rchance || 0) * 0.3 + rchance * 0.7;
+
+        const mandateDecayBlend = y => {
+            y -= 50;
+            // 1-0.9\left(\max\left(0,\min\left(1,\frac{x}{200}\right)\right)\right)\left(\max\left(0,\min\left(1,\frac{x}{300}\right)\right)\right)\cdot\left(3-2\left(\max\left(0,\min\left(1,\frac{x}{200}\right)\right)\right)\right)
+            return 1 - 0.9 * Math.max(0, Math.min(1, y / 200)) * Math.max(0, Math.min(1, y / 300)) * (3 - 2 * Math.max(0, Math.min(1, y / 200)));
+        };
+
+        const decayAlpha = civ.mandate ? mandateDecayBlend(civ.years) : 0.7;
+
+        civ.rchance = rchance > civ.rchance ?
+            (civ.rchance || 0) * 0.3 + rchance * 0.7 :
+            (civ.rchance || 0) * (1 - decayAlpha) + rchance * decayAlpha;
+
         civ.rchance *= 1 + (civ.gov.mods.ORBRD || 0);
     } else {
         civ.landsBuilt = 0;
