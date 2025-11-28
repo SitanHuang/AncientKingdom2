@@ -347,7 +347,7 @@ var AI = {
 
             if (
                 civ.mandateInAcquirement ||
-                (civ.mandate && civ.culture == civ2.culture && civ2.pop > civ.pop * 0.1)
+                (civ.mandate && civ.culture == civ2.culture && (civ2.pop > civ.pop * 0.05 || civ2.ii > civ.ii * 0.1))
             ) {
                 warChance *= 50;
                 warChance = Math.min(warChance, 10);
