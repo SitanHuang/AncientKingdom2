@@ -204,11 +204,19 @@ move = function (cn1, pickedUp, p2, ai) {
     if (l2Cult != c1.culture) {
         l2DefMod += 0.25;
 
+        const dom1 = c1.ii > c2.ii;
+        const dom2 = c1.pop > c2.pop;
+
         const omvpc = 1 + (c1.gov?.mods?.OMVPC || 0);
-        c1.politic -= 0.7 * omvpc * 0.25; // 0.175
+        c1.politic -= 0.7 * omvpc * 0.25 * (dom1 ? 1.7 : 1) * (dom2 ? 1.7 : 1); // 0.175
 
         const mmvct = 1 + (c1.gov?.mods?.MMVCT || 0);
-        c1.money -= type.val / 25 * mmvct * 0.2;
+        c1.money -= type.val / 25 * mmvct * 0.2 * (dom1 ? 1.7 : 1) * (dom2 ? 1.7 : 1);
+
+        c2.politic += dom1 ? 0.35 : 0
+        c2.politic += dom2 ? 0.35 : 0
+        c2.money += dom1 ? type.val / 10 : 0
+        c2.money += dom2 ? type.val / 10 : 0
     }
 
     var result = [type.val, 0];
