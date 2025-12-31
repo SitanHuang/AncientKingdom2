@@ -220,6 +220,13 @@ move = function (cn1, pickedUp, p2, ai) {
     t2 *= 1 + (c2.gov?.mods?.MCCCT || 0);
     t2 *= l2DefMod;
 
+    if (c1.mandate && c1.years > 100) {
+        t1 *= dynasty_decay_func(c1, 0.7);
+    }
+    if (c2.mandate && c2.years > 100) {
+        t2 *= dynasty_decay_func(c2, 0.7);
+    }
+
     if (l2._oldcolor == cn1) // if taking own territory back
         t1 = t1 * 1.50;
     else
@@ -728,7 +735,7 @@ endTurn = function () {
                 // if (!noGrowth) {
                 const baseline = 45000;
                 const refPop = Math.max(Math.min(1500000, dPop), 1000);
-                const efficiency = Math.log((refPop + baseline) / baseline) + (1 - Math.log(2));
+                let efficiency = Math.log((refPop + baseline) / baseline) + (1 - Math.log(2));
 
                 let nchange = change * Math.max(0.5, efficiency) * res_econ_mod(row, col);
                 // 2/20/24, adjusting for lower population, hence the 0.10
@@ -964,13 +971,7 @@ endTurn = function () {
         if (civ.gov.cohesion < 0.45)
             rchance *= 2.5;
 
-        const mandateDecayBlend = y => {
-            y -= 50;
-            // 1-0.9\left(\max\left(0,\min\left(1,\frac{x}{200}\right)\right)\right)\left(\max\left(0,\min\left(1,\frac{x}{300}\right)\right)\right)\cdot\left(3-2\left(\max\left(0,\min\left(1,\frac{x}{200}\right)\right)\right)\right)
-            return 1 - 0.9 * Math.max(0, Math.min(1, y / 200)) * Math.max(0, Math.min(1, y / 300)) * (3 - 2 * Math.max(0, Math.min(1, y / 200)));
-        };
-
-        const decayAlpha = civ.mandate ? mandateDecayBlend(civ.years) : 0.7;
+        const decayAlpha = civ.mandate ? dynasty_decay_func(civ, 0.9) : 0.7;
 
         civ.rchance = rchance > civ.rchance ?
             (civ.rchance || 0) * 0.3 + rchance * 0.7 :
@@ -1089,10 +1090,10 @@ popRebel = function (civName, target, source) {
 
     let targetBirth = civs[target].birth;
 
-    // old civ's birth is inside new nation -> need to remove birth so it
-    // doesn't cause eternal unrest in new nation
-    if (targetBirth && data[targetBirth[0]][targetBirth[1]]?.color == civName)
-        delete civs[target].birth;
+    // // old civ's birth is inside new nation -> need to remove birth so it
+    // // doesn't cause eternal unrest in new nation
+    // if (targetBirth && data[targetBirth[0]][targetBirth[1]]?.color == civName)
+    //     delete civs[target].birth;
 
     civs[target].happiness *= 0.6;
     civs[target].politic *= 0.4;

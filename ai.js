@@ -1,4 +1,4 @@
-AGGRESSIVENESS = 0.4;
+AGGRESSIVENESS = 0.12;
 
 var AI = {
     think: function(civ, civName) {

@@ -25,6 +25,10 @@ function regions_taxEff(civ, civName, row, col) {
     eff *= Math.max(0.65, civ.gov?.cohesion || 0); // gov legitmacy factor
   }
 
+  if (civ.mandate && civ.years > 100) {
+    eff *= dynasty_decay_func(civ, 0.35);
+  }
+
   return eff;
 }
 
