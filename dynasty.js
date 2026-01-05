@@ -56,8 +56,10 @@ function dynasty_assign_candidate() {
   for (let x of civNames) {
     let civ = civs[x];
     if (civ.pop > popReq && civ.incomesRA > incReq) {
-      if (prevCiv)
+      if (prevCiv && prevCiv != x)
         delete civs[prevCiv].mandate;
+      if (!civ.mandate)
+        civ.years = 1;
       civ.mandate = turn;
       return;
     }
