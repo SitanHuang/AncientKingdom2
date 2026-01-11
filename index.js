@@ -8,8 +8,8 @@ lazyDrawCml = false;
 _gallery_prev_year = 0;
 _gallery_change_cml = 0;
 GALLERY_MAX_YEARS = 16;
-GALLERY_MIN_YEARS = 3.75;
-GALLERY_TRIGGER_CHANGES = 0.1; // as percent of map size
+GALLERY_MIN_YEARS = 5.75;
+GALLERY_TRIGGER_CHANGES = 0.15; // as percent of map size
 
 var onRightClick = null;
 

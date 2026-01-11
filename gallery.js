@@ -40,15 +40,77 @@ function galleryTotalSizeMB() {
 function downloadGallery() {
   let zip = new JSZip();
 
+  const hz = 33;
+  const q = (t) => Math.round(t * hz) / hz;
+  const qUp = (t) => Math.ceil(t * hz) / hz;
+
   let ffmpegCommand = `ffmpeg \\\n`;
   let loopsCommand = ``;
   let fadeCommand = ``;
 
-  const crossFadeTime = 1;
-  let fadeOffset = 0;
+  const crossFadeTime = q(1);
+
+  // minimum "waiting" time between crossfades:
+  // existing 1s + extra 1.818s (quantized to 33hz)
+  const extraWait = qUp(1.818);
+  const minWait = qUp(1 + extraWait);
+
+  // dur = crossFadeTime + wait, so dur_min = 1 + (1 + 1.818) = 3.818 (quantized up)
+  const minDur = qUp(crossFadeTime + minWait);
+
+  // keep original cap concept, but ensure it's never below minDur
+  const maxDur = Math.max(minDur, qUp(4));
+
+  // about 2000 years in 40 min
+  const targetYears = 2000;
+  const targetSeconds = 40 * 60;
+
+  let yearsMin = Infinity;
+  let yearsMax = -Infinity;
+  for (const snapshot of GALLERY_DATA) {
+    yearsMin = Math.min(yearsMin, snapshot.year);
+    yearsMax = Math.max(yearsMax, snapshot.year);
+  }
+  let yearsSpan = Math.max(0, yearsMax - yearsMin);
+
+  let prevYear = 0;
+  let durs = [];
+  let yearDiffs = [];
 
   let i = -1;
-  let prevYear = 0;
+  for (const snapshot of GALLERY_DATA) {
+    let yearDiff = snapshot.year - prevYear;
+
+    let dur = 2 * Math.max(1, yearDiff / GALLERY_MIN_YEARS);
+    dur = Math.min(maxDur, Math.max(minDur, dur));
+    dur = qUp(dur);
+
+    yearDiffs.push(yearDiff);
+    durs.push(dur);
+
+    prevYear = snapshot.year;
+    i++;
+  }
+
+  // scale durations to fit targetSeconds when span is around targetYears (or more)
+  if (GALLERY_DATA.length > 1 && yearsSpan >= targetYears) {
+    let total = 0;
+    for (let k = 0; k < durs.length; k++) total += durs[k];
+    total = total - crossFadeTime * (durs.length - 1);
+
+    let scale = total > 0 ? (targetSeconds / total) : 1;
+
+    for (let k = 0; k < durs.length; k++) {
+      let dur = durs[k] * scale;
+      dur = Math.min(maxDur, Math.max(minDur, dur));
+      durs[k] = qUp(dur);
+    }
+  }
+
+  let fadeOffset = 0;
+
+  i = -1;
+  prevYear = 0;
   for (const snapshot of GALLERY_DATA) {
     const { filename, u8arr } = dataURLtoFile(
       snapshot.img.src,
@@ -56,15 +118,11 @@ function downloadGallery() {
     );
     zip.file(filename, u8arr);
 
-    // generate ffmpeg command
-
-    let yearDiff = snapshot.year - prevYear;
-
-    let dur = Math.min(4, 2 * Math.max(1, yearDiff / GALLERY_MIN_YEARS));
+    let dur = durs[i];
 
     loopsCommand += `-loop 1 -t ${dur} -i "${filename}" \\\n`;
 
-    fadeOffset = dur + fadeOffset - crossFadeTime;
+    fadeOffset = qUp(dur + fadeOffset - crossFadeTime);
 
     if (i < GALLERY_DATA.length - 1)
       fadeCommand += `[${i == 0 ? "0" : `v${i}`}][${i + 1}]` +
@@ -86,10 +144,12 @@ function downloadGallery() {
 
   zip.file("ffmpeg.sh", ffmpegCommand);
   zip.file("ffmpeg.bat", ffmpegCommand.replace(/ \\\n/gm, " "));
+
+  let j = -1;
   zip.file("info.json", JSON.stringify(GALLERY_DATA.map(x => {
     let obj = Object.assign({}, x);
     delete obj.img;
-    obj.fname = `#${(++i).toString().padStart(3, "0")} Year ${x.year}`;
+    obj.fname = `#${(++j).toString().padStart(3, "0")} Year ${x.year}`;
     return obj;
   })));
 
