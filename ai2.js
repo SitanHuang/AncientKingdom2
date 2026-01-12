@@ -217,7 +217,7 @@ var AI2 = (function () {
     if (hasActiveWar(civ)) reserve *= 1.3;
     reserve = Math.min(reserve, econ.money + econ.deposit);
     return {
-      reserve: reserve
+      reserve: reserve / 4
     };
   }
 
