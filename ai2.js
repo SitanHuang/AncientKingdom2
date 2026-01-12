@@ -617,6 +617,25 @@ var AI2 = (function () {
     if (built > 0) recordAction(civ, "fortify", built);
   }
 
+  function getAttackBudget(civ, budget) {
+    var reserve = budget?.reserve || 0;
+    var money = civ.money || 0;
+    var deposit = civ.deposit || 0;
+    var liquid = money + Math.max(0, deposit - reserve);
+    var spendLimit = Math.max(0, liquid - reserve * 0.6);
+    var warChest = Math.max(0, liquid - reserve);
+    var threshold = Math.max(200, (civ.ii || 1) * 3, (civ.income || 0) * 2);
+    var overkill = warChest > threshold;
+    var overkillFactor = overkill ? Math.min(2, 1 + warChest / Math.max(200, threshold)) : 1;
+    return {
+      reserve: reserve,
+      spendLimit: spendLimit,
+      warChest: warChest,
+      overkill: overkill,
+      overkillFactor: overkillFactor
+    };
+  }
+
   function defendAndMoveUnits(civ, civName, defenseChances, budget) {
     if (civ.ii / (data.length * data[0].length) > 0.5 && Math.random() < 0.9) {
       return;
@@ -630,8 +649,11 @@ var AI2 = (function () {
       return;
     }
 
-    var reserve = budget?.reserve || 0;
-    var spendLimit = Math.max(0, civ.money - Math.max(0, reserve * 0.6));
+    var attackBudget = getAttackBudget(civ, budget);
+    var reserve = attackBudget.reserve;
+    var spendLimit = attackBudget.spendLimit;
+    var overkillMode = attackBudget.overkill;
+    var overkillFactor = attackBudget.overkillFactor;
     var enemies = Object.keys(civ.war || {}).filter(k => civ.war[k] > 1);
     if (!enemies.length) return;
 
@@ -651,6 +673,20 @@ var AI2 = (function () {
     var moneySpent = -10;
     var list = getAllUnits(civName);
     var moveVal = -1;
+    var momentum = 0;
+
+    function hasEnemyNeighbor(row, col) {
+      var found = false;
+      getNeighbors(row, col, function (l2) {
+        if (found || !l2 || !l2.type) return;
+        if (!l2.color || l2.color === civName) return;
+        if (!enemyMap[l2.color]) return;
+        if (isAlliance(civ, l2.color)) return;
+        found = true;
+      });
+      return found;
+    }
+
     for (var ii = 0; ii < list.length; ii++) {
       if (civ.politic < 1) {
         fortifyIfNeeded(civ, civName, budget, []);
@@ -690,7 +726,16 @@ var AI2 = (function () {
         var defendVal = l2.type.val ? l2.type.val : l2.type.defend;
         var strategic = getStrategicValue(l2.type.defend);
         var warBias = (defenseChances && defenseChances[l2.color]) || 0;
-        var score = strategic * 12 + warBias * 18 - defendVal;
+        var frontier = 0;
+        getNeighbors(r, c, function (l3) {
+          if (!l3 || !l3.type) return;
+          if (!l3.color || l3.color === civName) return;
+          if (!enemyMap[l3.color]) return;
+          if (isAlliance(civ, l3.color)) return;
+          frontier++;
+        });
+        var efficiency = 12 / (defendVal + 6);
+        var score = strategic * 12 + warBias * 18 - defendVal + frontier * 4 + efficiency * 5;
         if (availableStrength > 0) {
           score += Math.min(25, availableStrength - defendVal);
         }
@@ -701,6 +746,7 @@ var AI2 = (function () {
           defendVal: defendVal,
           strategic: strategic,
           warBias: warBias,
+          frontier: frontier,
           score: score
         });
       });
@@ -723,11 +769,14 @@ var AI2 = (function () {
 
         var aggression = 0.45 + Math.min(0.35, target.warBias * 0.6);
         if (target.strategic >= 4) aggression += 0.1;
+        if (overkillMode) aggression += 0.15;
+        aggression += Math.min(0.2, momentum * 0.05);
         if (availableStrength > 0 &&
-          availableStrength < target.defendVal * (1.15 - aggression * 0.4)) {
+          availableStrength < target.defendVal * (1.1 - aggression * 0.5) &&
+          !overkillMode) {
           continue;
         }
-        if (availableStrength <= 0 && civ.money - reserve < 10) {
+        if (availableStrength <= 0 && !overkillMode && civ.money - reserve < 10) {
           continue;
         }
 
@@ -737,6 +786,14 @@ var AI2 = (function () {
             Math.round(target.defendVal * (0.9 + aggression * 0.4) + 4)));
           m = Math.max(m, cap);
         }
+        if (overkillMode) {
+          var overkill = Math.round(target.defendVal *
+            (1.2 + Math.min(0.8, (overkillFactor - 1) * 0.6)));
+          if (target.strategic >= 4) {
+            overkill += Math.round(target.defendVal * 0.2);
+          }
+          m = Math.max(m, overkill);
+        }
         if (moveVal > m / 2) {
           m = moveVal;
           land.type = types.land;
@@ -744,7 +801,7 @@ var AI2 = (function () {
           civ.money += m * 1.7;
         }
 
-        if (Math.random() < 0.2) moveVal = -1;
+        if (Math.random() < (overkillMode ? 0.05 : 0.2)) moveVal = -1;
         moneySpent += m * 2;
         if (moneySpent > spendLimit) {
           if (target.l2.type.defend === types.city.defend) {
@@ -756,6 +813,7 @@ var AI2 = (function () {
         }
 
         civ.logistics += m / 4;
+        prepareFunds(civ, m * 2, reserve);
         civ.money -= m * 2;
         civ.nextDecline = (civ.nextDecline || 0) + Math.max(0, m * 400 * (1 + (civ.ii || 0) / 1000));
         civ.nextDecline = Math.min(civ.pop * 0.9 || 0, civ.nextDecline);
@@ -765,11 +823,22 @@ var AI2 = (function () {
         }, [target.r, target.c], "ai");
         var val = result[0];
         if (result[1] == 0) {
-          list.push({
+          var nextItem = {
             row: target.r,
             col: target.c,
             land: data[target.r][target.c]
-          });
+          };
+          var pushForward = civ.politic > 1 && hasEnemyNeighbor(target.r, target.c) &&
+            (overkillMode || result[0] > target.defendVal * 0.7 || momentum > 1);
+          if (pushForward) {
+            list.splice(ii + 1, 0, nextItem);
+            momentum = Math.min(6, momentum + 2);
+          } else {
+            list.push(nextItem);
+            momentum = Math.min(6, momentum + 1);
+          }
+        } else {
+          momentum = Math.max(0, momentum - 1);
         }
 
         var omvpc = 1 + (civ.gov?.mods?.OMVPC || 0);
