@@ -1213,6 +1213,7 @@ endTurn = function () {
 
         civ.rchance = 0;
         civ.years = 0;
+        delete civ._hadMandate;
         civ.technology = 0;
 
         for (const occupierName of civOrders) {
@@ -1345,6 +1346,7 @@ popRebel = function (civName, target, source) {
     civ.happiness = 100;
     civ.rchance = 0;
     civ.years = 0;
+    delete civ._hadMandate;
 
     delete civ.gov;
     gov_init(civ, civName);
