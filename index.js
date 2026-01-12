@@ -42,27 +42,214 @@ var civOrders = Object.keys(civs).sort();
 var buyClick = null;
 var ACTIVE_AI = AI;
 var ACTIVE_AI_NAME = "AI1";
+var AI_MODE = (typeof AI2 !== "undefined") ? "AUTO" : "AI1";
+
+var DYNASTY_EARLY_YEARS = 100;
+var DYNASTY_MID_YEARS = 120;
+var DYNASTY_LATE_YEARS = 180;
+var AI_CYCLE_YEARS = 40;
+var AI_AUTO_REEVAL_YEARS = 2;
 
 function setActiveAI(name) {
-    if (name === "AI2" && typeof AI2 !== "undefined") {
+    if (name === "AUTO" && typeof AI2 !== "undefined") {
+        AI_MODE = "AUTO";
+        ACTIVE_AI = AI2;
+        ACTIVE_AI_NAME = "AI2";
+    } else if (name === "AI2" && typeof AI2 !== "undefined") {
+        AI_MODE = "AI2";
         ACTIVE_AI = AI2;
         ACTIVE_AI_NAME = "AI2";
     } else {
+        AI_MODE = "AI1";
         ACTIVE_AI = AI;
         ACTIVE_AI_NAME = "AI1";
     }
     var button = document.getElementById("aiToggleBtn");
     if (button) {
-        button.textContent = "AI: " + ACTIVE_AI_NAME;
+        button.textContent = "AI: " + (AI_MODE === "AUTO" ? "Auto" : ACTIVE_AI_NAME);
     }
 }
 
 function toggleAI() {
-    setActiveAI(ACTIVE_AI_NAME === "AI1" ? "AI2" : "AI1");
+    if (typeof AI2 === "undefined") {
+        setActiveAI("AI1");
+        return;
+    }
+    if (AI_MODE === "AUTO") {
+        setActiveAI("AI1");
+    } else if (AI_MODE === "AI1") {
+        setActiveAI("AI2");
+    } else {
+        setActiveAI("AUTO");
+    }
+}
+
+function getDynastyPhase(civ) {
+    if (civ.mandateInAcquirement) return "acquire";
+    if (!civ.mandate) return "none";
+    var years = civ.years || 0;
+    if (years < DYNASTY_EARLY_YEARS) return "early";
+    if (years < DYNASTY_LATE_YEARS) return "mid";
+    return "late";
+}
+
+function selectAutoAIForCiv(civ) {
+    if (typeof AI2 === "undefined") return AI;
+    var years = civ.years || 0;
+    if (Math.abs(civ._aiAutoUntil - years) > AI_CYCLE_YEARS / 2) {
+        delete civ._aiAutoUntil;
+        delete civ._aiAutoChoice;
+    }
+    if (civ._aiAutoChoice && civ._aiAutoUntil && years < civ._aiAutoUntil) {
+        return civ._aiAutoChoice === "AI2" ? AI2 : AI;
+    }
+    var phase = getDynastyPhase(civ);
+    var chanceAI2 = 0.6;
+    if (phase === "acquire") {
+        chanceAI2 = 0.9;
+    } else if (phase === "early") {
+        chanceAI2 = 0.7;
+    } else if (phase === "mid") {
+        chanceAI2 = 0.35;
+    } else if (phase === "late") {
+        chanceAI2 = 0.2;
+    } else {
+        var cycle = (years / AI_CYCLE_YEARS) % 1;
+        var cycleBias = Math.cos(cycle * Math.PI * 2) * 0.2;
+        chanceAI2 = 0.6 + cycleBias;
+    }
+    chanceAI2 = Math.min(0.9, Math.max(0.1, chanceAI2));
+    var useAI2 = Math.random() < chanceAI2;
+    civ._aiAutoChoice = useAI2 ? "AI2" : "AI1";
+    civ._aiAutoUntil = years + AI_AUTO_REEVAL_YEARS;
+    return useAI2 ? AI2 : AI;
+}
+
+function resolveAIForCiv(civ) {
+    if (AI_MODE === "AI2" && typeof AI2 !== "undefined") return AI2;
+    if (AI_MODE === "AI1" || typeof AI2 === "undefined") return AI;
+    return selectAutoAIForCiv(civ);
+}
+
+function recordAIUsage(civ, ai) {
+    civ._aiLast = ai === AI2 ? "AI2" : "AI1";
+}
+
+function getReserves(civ) {
+    return (civ.money || 0) + (civ.deposit || 0);
+}
+
+function getBudgetNet(civ) {
+    return (civ.income || 0) - ((civ.expense || 0) + (civ.govExp || 0) + (civ.spentOnUrban || 0));
+}
+
+function applyDynastyMismanagement(civ, civName) {
+    if (!civ.ai || !civ.mandate) return;
+    if (civ._aiLast !== "AI1") return;
+
+    var phase = getDynastyPhase(civ);
+    if (phase !== "mid" && phase !== "late") return;
+
+    var reserves = getReserves(civ);
+    var income = civ.income || 0;
+    var net = getBudgetNet(civ);
+    var reserveFloor = Math.max(50, (civ.ii || 0) * (civ.urban || 0) / 8);
+    var phaseFactor = phase === "late" ? 1.4 : 1;
+
+    var reserveRatio = income > 0 ? reserves / (income + 1) : 0;
+    var leakRate = 0.002 * phaseFactor + Math.min(0.012, reserveRatio / 160);
+    var leak = Math.max(0, reserves * leakRate);
+    if (leak > 0 && reserves > reserveFloor * 0.5) {
+        var fromDeposit = Math.min(civ.deposit || 0, leak * 0.65);
+        civ.deposit = (civ.deposit || 0) - fromDeposit;
+        civ.money -= (leak - fromDeposit);
+        civ.money = Math.round(civ.money * 100) / 100;
+    }
+
+    civ._mandateCrisisCooldown = civ._mandateCrisisCooldown || 0;
+    if (civ._mandateCrisisCooldown > 0) {
+        civ._mandateCrisisCooldown--;
+        return;
+    }
+
+    var weakBudget = net < 0 || reserves < reserveFloor;
+    if (!weakBudget) return;
+
+    var shockChance = 0.08 * phaseFactor + (civ.happiness < 55 ? 0.04 : 0);
+    if (Math.random() < shockChance) {
+        var shock = Math.min(reserves * 0.05 * phaseFactor + income * 0.5, reserves);
+        if (shock > 0) {
+            var fromDeposit2 = Math.min(civ.deposit || 0, shock * 0.7);
+            civ.deposit = (civ.deposit || 0) - fromDeposit2;
+            civ.money -= (shock - fromDeposit2);
+        }
+        civ.happiness = Math.max(0, civ.happiness - 4 * phaseFactor);
+        civ.rchance = Math.min(0.5, (civ.rchance || 0) * (1 + 0.15 * phaseFactor) + 0.01);
+        civ._mandateCrisisCooldown = 6 + Math.floor(Math.random() * 6);
+    }
+}
+
+function triggerMandateOpportunism(civName, civ) {
+    if (!civ.ai || !civ.mandate) return;
+
+    var phase = getDynastyPhase(civ);
+    if (phase === "early" || phase === "acquire") return;
+
+    civ._opportunismCooldown = civ._opportunismCooldown || 0;
+    if (civ._opportunismCooldown > 0) {
+        civ._opportunismCooldown--;
+        return;
+    }
+
+    var reserves = getReserves(civ);
+    var income = civ.income || 0;
+    var net = getBudgetNet(civ);
+
+    var weak = net < 0 || reserves < income * 2 || civ.happiness < 55 || civ.rchance > 0.08;
+    if (!weak) return;
+
+    var neighbors = Object.keys(civ.neighbors || {});
+    if (!neighbors.length) return;
+
+    neighbors.sort(() => Math.random() - 0.5);
+    for (var idx = 0; idx < neighbors.length; idx++) {
+        var nName = neighbors[idx];
+        var n = civs[nName];
+        if (!n || n.ii < 2) continue;
+        if (isAtWar(n, civName) || isAlliance(n, civName) || isPeace(n, civName)) continue;
+
+        var smaller = n.ii < civ.ii * 0.7 || n.pop < civ.pop * 0.7;
+        if (!smaller) continue;
+
+        var nNet = getBudgetNet(n);
+        var readiness = nNet > 0 ? 1.1 : 0.9;
+        var chance = 0.05 + (net < 0 ? 0.07 : 0) +
+            (reserves < income * 1.2 ? 0.05 : 0) +
+            (civ.rchance > 0.12 ? 0.04 : 0);
+        chance *= readiness;
+        if (Math.random() < chance) {
+            declareWar(nName, civName, true, "seizing weakness in the mandate", 0.3);
+            civ._opportunismCooldown = 8 + Math.floor(Math.random() * 6);
+            break;
+        }
+    }
 }
 
 function runActiveAIThink() {
-    ACTIVE_AI.think(civs[civOrders[i]], civOrders[i]);
+    var civ = civs[civOrders[i]];
+    var ai = resolveAIForCiv(civ);
+    recordAIUsage(civ, ai);
+    ai.think(civ, civOrders[i]);
+}
+
+setActiveAI(AI_MODE);
+
+function getAiLabel(civ) {
+    if (civ.ai || (civ.ii <= 1 && civ.technology > 0)) {
+        var useAi2 = (typeof AI2 !== "undefined") && resolveAIForCiv(civ) === AI2;
+        return useAi2 ? "AI2" : "AI1";
+    }
+    return "Human";
 }
 
 function civGetLandPrice(civ) {
@@ -921,8 +1108,10 @@ endTurn = function () {
     const puofc = 1 + (civ.gov.mods.PUOFC || 0);
     if (civ.ii > 50 && civ.urban > 55)
         civ.money -= (civ.spentOnUrban = (civ.urban - 55) * 10 * puofc);
-    civ.newMoney = civ.money;
     if (isNaN(civ.money)) civ.money = 0;
+    applyDynastyMismanagement(civ, civName);
+    if (isNaN(civ.money)) civ.money = 0;
+    civ.newMoney = civ.money;
     let polCap = Math.max(civ.ii / 10, 30);
     polCap *= 1 + (civ.gov.mods.OPPCP || 0);
     const oppgn = 1 + (civ.gov.mods.OPPGN || 0);
@@ -980,6 +1169,18 @@ endTurn = function () {
             rchance /= 10;
         if (civ.mandate && civ.years < 100)
             rchance /= 2;
+        // dont do this: we already have dynasty decay function
+        // if (civ.mandate && civ.years > DYNASTY_MID_YEARS) {
+        //     let fatigue = 1 + Math.min(1.5, (civ.years - DYNASTY_MID_YEARS) / 120);
+        //     rchance *= fatigue;
+        // }
+        if (civ.mandate) {
+            let reserves = getReserves(civ);
+            let income = civ.income || 0;
+            if (income > 0 && reserves > income * 10) {
+                rchance *= 1 + Math.min(0.6, (reserves / (income * 10) - 1) * 0.2);
+            }
+        }
         if (civ.popchangeperc < 0)
             rchance *= Math.pow(-civ.popchangeperc, 2);
         if (civ.politic < 5)
@@ -1042,6 +1243,8 @@ endTurn = function () {
 
     civ.rchance *= 1 + civ.rchance;
     civ.rchance = Math.min(0.50, civ.rchance);
+
+    triggerMandateOpportunism(civName, civ);
 
     document.getElementById('tickTime').innerText = 'Tick: ' + (new Date().getTime() - _startTime).toFixed("0") + 'ms';
     prepareTurn();
@@ -1434,8 +1637,10 @@ prepareTurn = function () {
     civ.newMoney = civ.money;
     if (civs[civOrders[i]].ai || (civs[civOrders[i]].ii <= 1 && civs[civOrders[i]].technology > 0)) {
         let start = new Date();
-        ACTIVE_AI.think(civs[civOrders[i]], civOrders[i]);
-        ACTIVE_AI.think(civs[civOrders[i]], civOrders[i]);
+        var ai = resolveAIForCiv(civs[civOrders[i]]);
+        recordAIUsage(civs[civOrders[i]], ai);
+        ai.think(civs[civOrders[i]], civOrders[i]);
+        ai.think(civs[civOrders[i]], civOrders[i]);
         $('#aiTime').text((new Date() - start) + 'ms');
         $('#panel').hide();
         setTimeout(endTurn, TIMEOUT_DELAY || 50);
@@ -1462,7 +1667,7 @@ inspectWarRecs = function () {
     let civ = civs[civOrders[i]];
     let civName = civOrders[i];
 
-    ACTIVE_AI.calculateWarChances(civ, civName);
+    resolveAIForCiv(civ).calculateWarChances(civ, civName);
 
     if (!window.tableSetup3) {
         window.tableSetup3 = new Tablesort($('#warchanceTable')[0]);
@@ -1570,6 +1775,7 @@ refreshTable = function () {
         if (civ.mandateInAcquirement)
             tr.css("font-style", "italic");
         tr.append(`<td>${civName}</td>`);
+        tr.append(`<td>${getAiLabel(civ)}</td>`);
         const culture = popv2_culture_get_culture_obj(civName);
 
         if ((!civ.ai) || civ.ii >= 5)

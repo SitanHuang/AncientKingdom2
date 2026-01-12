@@ -573,7 +573,7 @@ c:
 <button onclick="RCHANCEMOD = (parseFloat(prompt('RCHANCEMOD=', RCHANCEMOD))) || RCHANCEMOD || 1">Reb md=</button>
 <button onclick="INCOMEMOD = (parseFloat(prompt('INCOMEMOD=', INCOMEMOD))) || INCOMEMOD || 0.3">GDP md=</button>
 <button onclick="MANDATE_THRESHOLD = (parseFloat(prompt('MANDATE_THRESHOLD=', MANDATE_THRESHOLD))) || MANDATE_THRESHOLD || 0.55">dyn. thre=</button>
-<button id="aiToggleBtn" onclick="toggleAI()">AI: AI1</button>
+<button id="aiToggleBtn" onclick="toggleAI()">AI: Auto</button>
 <div id="heatmap" style="width: 700px;height: 700px">
 </div>
 <br>
@@ -591,6 +591,7 @@ c:
 <table id="statsTable" style="text-align: right;">
 <thead>
 <th data-sort-method='none'>Name</th>
+<th role="columnheader">AI</th>
 <th role="columnheader">Culture</th>
 <th role="columnheader" data-sort-method=number>Area</th>
 <th role="columnheader" data-sort-method=number class="extra">pm</th>

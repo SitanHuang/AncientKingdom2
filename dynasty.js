@@ -58,8 +58,11 @@ function dynasty_assign_candidate() {
     if (civ.pop > popReq && civ.incomesRA > incReq) {
       if (prevCiv && prevCiv != x)
         delete civs[prevCiv].mandate;
-      if (!civ.mandate)
+      if (!civ.mandate) {
         civ.years = 1;
+        delete civ._aiAutoUntil;
+        delete civ._aiAutoChoice;
+      }
       civ.mandate = turn;
       return;
     }
