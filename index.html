@@ -39,6 +39,7 @@
     <script src="canvas.js"></script>
     <script src="gallery.js"></script>
     <script src="ai.js"></script>
+    <script src="ai2.js"></script>
     <script src="relationships.js"></script>
     <script src="population_v2.js"></script>
     <script src="serializer.js"></script>
@@ -201,7 +202,7 @@
     <button onclick="newArmy()">Create Army</button>
     <button onclick="research()">Research</button>
     <button onclick="civs[civOrders[i]].ai = true">set AI</button>
-    <button onclick="AI.think(civs[civOrders[i]], civOrders[i]);">AI think</button>
+    <button onclick="runActiveAIThink()">AI think</button>
     <br>
     <button onclick="tryDeclareWar()">War</button>
     <button onclick="tryDeclareMajWar()">Major War</button>
@@ -572,6 +573,7 @@ c:
 <button onclick="RCHANCEMOD = (parseFloat(prompt('RCHANCEMOD=', RCHANCEMOD))) || RCHANCEMOD || 1">Reb md=</button>
 <button onclick="INCOMEMOD = (parseFloat(prompt('INCOMEMOD=', INCOMEMOD))) || INCOMEMOD || 0.3">GDP md=</button>
 <button onclick="MANDATE_THRESHOLD = (parseFloat(prompt('MANDATE_THRESHOLD=', MANDATE_THRESHOLD))) || MANDATE_THRESHOLD || 0.55">dyn. thre=</button>
+<button id="aiToggleBtn" onclick="toggleAI()">AI: AI1</button>
 <div id="heatmap" style="width: 700px;height: 700px">
 </div>
 <br>

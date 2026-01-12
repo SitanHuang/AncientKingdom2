@@ -40,6 +40,30 @@ var i = -1;
 var civOrders = Object.keys(civs).sort();
 
 var buyClick = null;
+var ACTIVE_AI = AI;
+var ACTIVE_AI_NAME = "AI1";
+
+function setActiveAI(name) {
+    if (name === "AI2" && typeof AI2 !== "undefined") {
+        ACTIVE_AI = AI2;
+        ACTIVE_AI_NAME = "AI2";
+    } else {
+        ACTIVE_AI = AI;
+        ACTIVE_AI_NAME = "AI1";
+    }
+    var button = document.getElementById("aiToggleBtn");
+    if (button) {
+        button.textContent = "AI: " + ACTIVE_AI_NAME;
+    }
+}
+
+function toggleAI() {
+    setActiveAI(ACTIVE_AI_NAME === "AI1" ? "AI2" : "AI1");
+}
+
+function runActiveAIThink() {
+    ACTIVE_AI.think(civs[civOrders[i]], civOrders[i]);
+}
 
 function civGetLandPrice(civ) {
     return Math.min(800, Math.ceil(
@@ -1410,8 +1434,8 @@ prepareTurn = function () {
     civ.newMoney = civ.money;
     if (civs[civOrders[i]].ai || (civs[civOrders[i]].ii <= 1 && civs[civOrders[i]].technology > 0)) {
         let start = new Date();
-        AI.think(civs[civOrders[i]], civOrders[i]);
-        AI.think(civs[civOrders[i]], civOrders[i]);
+        ACTIVE_AI.think(civs[civOrders[i]], civOrders[i]);
+        ACTIVE_AI.think(civs[civOrders[i]], civOrders[i]);
         $('#aiTime').text((new Date() - start) + 'ms');
         $('#panel').hide();
         setTimeout(endTurn, TIMEOUT_DELAY || 50);
@@ -1438,7 +1462,7 @@ inspectWarRecs = function () {
     let civ = civs[civOrders[i]];
     let civName = civOrders[i];
 
-    AI.calculateWarChances(civ, civName);
+    ACTIVE_AI.calculateWarChances(civ, civName);
 
     if (!window.tableSetup3) {
         window.tableSetup3 = new Tablesort($('#warchanceTable')[0]);
