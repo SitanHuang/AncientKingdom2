@@ -45,10 +45,10 @@ var ACTIVE_AI_NAME = "AI1";
 var AI_MODE = (typeof AI2 !== "undefined") ? "AUTO" : "AI1";
 
 var DYNASTY_EARLY_YEARS = 100;
-var DYNASTY_MID_YEARS = 120;
-var DYNASTY_LATE_YEARS = 180;
+var DYNASTY_MID_YEARS = 150;
+var DYNASTY_LATE_YEARS = 200;
 var AI_CYCLE_YEARS = 40;
-var AI_AUTO_REEVAL_YEARS = 4;
+var AI_AUTO_REEVAL_YEARS = 7;
 
 function setActiveAI(name) {
     if (name === "AUTO" && typeof AI2 !== "undefined") {
