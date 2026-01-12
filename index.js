@@ -48,7 +48,7 @@ var DYNASTY_EARLY_YEARS = 100;
 var DYNASTY_MID_YEARS = 120;
 var DYNASTY_LATE_YEARS = 180;
 var AI_CYCLE_YEARS = 40;
-var AI_AUTO_REEVAL_YEARS = 2;
+var AI_AUTO_REEVAL_YEARS = 4;
 
 function setActiveAI(name) {
     if (name === "AUTO" && typeof AI2 !== "undefined") {
@@ -105,7 +105,7 @@ function selectAutoAIForCiv(civ) {
     }
     var phase = getDynastyPhase(civ);
     var chanceAI2 = 0.6;
-    if (phase === "acquire") {
+    if (phase === "acquire" || civ.years <= 20) {
         chanceAI2 = 0.9;
     } else if (phase === "early") {
         chanceAI2 = 0.7;
@@ -1169,11 +1169,6 @@ endTurn = function () {
             rchance /= 10;
         if (civ.mandate && civ.years < 100)
             rchance /= 2;
-        // dont do this: we already have dynasty decay function
-        // if (civ.mandate && civ.years > DYNASTY_MID_YEARS) {
-        //     let fatigue = 1 + Math.min(1.5, (civ.years - DYNASTY_MID_YEARS) / 120);
-        //     rchance *= fatigue;
-        // }
         if (civ.mandate) {
             let reserves = getReserves(civ);
             let income = civ.income || 0;
