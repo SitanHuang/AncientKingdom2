@@ -105,14 +105,16 @@ function selectAutoAIForCiv(civ) {
     }
     var phase = getDynastyPhase(civ);
     var chanceAI2 = 0.6;
-    if (phase === "acquire" || civ.years <= 20) {
+    if (civ.years > 400) {
+        chanceAI2 = 0.05;
+    } else if (phase === "late" || civ.years > 300) {
+        chanceAI2 = 0.2;
+    } else if (phase === "acquire" || civ.years <= 20) {
         chanceAI2 = 0.9;
     } else if (phase === "early") {
         chanceAI2 = 0.7;
     } else if (phase === "mid") {
         chanceAI2 = 0.35;
-    } else if (phase === "late") {
-        chanceAI2 = 0.2;
     } else {
         var cycle = (years / AI_CYCLE_YEARS) % 1;
         var cycleBias = Math.cos(cycle * Math.PI * 2) * 0.2;
