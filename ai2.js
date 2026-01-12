@@ -137,13 +137,13 @@ var AI2 = (function () {
   }
 
   function updateMandate(civ) {
-    if (civ.pop > _dynastyPopReq * 0.7 && !civ.mandate && Math.random() < 0.1) {
+    if (civ.pop > _dynastyPopReq * 0.6 && !civ.mandate && Math.random() < 0.2) {
       civ.mandateInAcquirement = 30 * 4;
     }
     if (civ.mandateInAcquirement) {
       civ.mandateInAcquirement--;
     }
-    if (!civ.mandateInAcquirement || civ.mandate || civ.pop < _dynastyPopReq * 0.6) {
+    if (!civ.mandateInAcquirement || civ.mandate || civ.pop < _dynastyPopReq * 0.5) {
       delete civ.mandateInAcquirement;
     }
   }

@@ -45,6 +45,7 @@ function dynasty_assign_candidate() {
     if (civ.mandate) {
       prevCiv = x;
       prevTUrn = civ.mandate;
+      civ._hadMandate = true;
     }
   };
 
@@ -59,11 +60,14 @@ function dynasty_assign_candidate() {
       if (prevCiv && prevCiv != x)
         delete civs[prevCiv].mandate;
       if (!civ.mandate) {
-        civ.years = 1;
+        if (!civ._hadMandate) {
+          civ.years = 1;
+        }
         delete civ._aiAutoUntil;
         delete civ._aiAutoChoice;
       }
       civ.mandate = turn;
+      civ._hadMandate = true;
       return;
     }
   }
