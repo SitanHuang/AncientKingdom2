@@ -31,7 +31,8 @@ var AI2 = (function () {
     var budget = planBudget(civ, econ);
     civ._aiBudget = budget;
 
-    if (econ.money < 0 && civ.newMoney < civ.oldMoney) {
+    var isBankrupt = econ.money < (civ.ii || 0) * 2 && civ.newMoney < civ.oldMoney;
+    if (isBankrupt) {
       queueAction(civ, {
         id: "fix-bankrupt",
         type: "fix-bankrupt",
@@ -39,6 +40,7 @@ var AI2 = (function () {
         blocking: true,
         ttl: 3,
         run: function () {
+          tryDisbandUnits(civ, civName, econ, budget, { mode: "bankrupt" });
           tryFixBankrupt(civ, civName);
           recordAction(civ, "fix-bankrupt");
           return true;
@@ -57,6 +59,10 @@ var AI2 = (function () {
 
     buildEconomicQueue(civ, civName, econ, budget, threats);
     processQueue(civ, civName, budget);
+
+    if (!isBankrupt && !hasActiveWar(civ) && econ.net < 0 && econ.money < budget.reserve * 0.5) {
+      tryDisbandUnits(civ, civName, econ, budget, { mode: "trim" });
+    }
 
     if (hasActiveWar(civ)) {
       defendAndMoveUnits(civ, civName, defenseChances, budget);
@@ -952,6 +958,141 @@ var AI2 = (function () {
   function hasActiveWar(civ) {
     if (!civ.war) return false;
     return Object.values(civ.war).some(x => x > 1);
+  }
+
+  function estimateMilitaryUpkeep(civ, val) {
+    var mukct = 1 + (civ.gov?.mods?.MUKCT || 0);
+    return val / 4 * mukct;
+  }
+
+  function tryDisbandUnits(civ, civName, econ, budget, opts) {
+    var mode = opts?.mode || "trim";
+    var list = getAllUnits(civName);
+    if (!list || !list.length) return 0;
+
+    var atWar = hasActiveWar(civ);
+    var enemyMap = {};
+    if (atWar && civ.war) {
+      for (var k in civ.war) {
+        if (civ.war[k] > 1) enemyMap[k] = true;
+      }
+    }
+    var hasEnemies = Object.keys(enemyMap).length > 0;
+
+    function hasEnemyNeighbor(row, col) {
+      var found = false;
+      getNeighbors(row, col, function (l2) {
+        if (found || !l2 || !l2.color || l2.color === civName) return;
+        if (hasEnemies && !enemyMap[l2.color]) return;
+        if (isAlliance(civ, l2.color)) return;
+        found = true;
+      });
+      return found;
+    }
+
+    function hasBorderNeighbor(row, col) {
+      var found = false;
+      getNeighbors(row, col, function (l2) {
+        if (found || !l2 || !l2.color || l2.color === civName) return;
+        if (isAlliance(civ, l2.color)) return;
+        found = true;
+      });
+      return found;
+    }
+
+    var candidates = list.map(function (item) {
+      var land = item.land;
+      if (!land || !land.type || !land.type.val || land.color !== civName) return null;
+      var enemyNeighbor = hasEnemyNeighbor(item.row, item.col);
+      var border = enemyNeighbor ? true : hasBorderNeighbor(item.row, item.col);
+      return {
+        row: item.row,
+        col: item.col,
+        land: land,
+        val: land.type.val || 0,
+        pop: land.pop || 0,
+        enemyNeighbor: enemyNeighbor,
+        border: border
+      };
+    }).filter(Boolean);
+
+    if (!candidates.length) return 0;
+
+    var moneyLoss = Math.max(0, (civ.oldMoney || 0) - (civ.newMoney || 0));
+    var target = 0;
+    if (mode === "bankrupt") {
+      target = Math.max(30, moneyLoss * 1.2 + Math.max(0, -civ.money));
+    } else {
+      var net = econ ? econ.net : ((civ.income || 0) - (civ.expense || 0));
+      target = Math.max(8, Math.max(0, -net) * 0.4);
+    }
+
+    var minGarrison = atWar ? 6 : 4;
+    var minFrontline = atWar ? 12 : minGarrison;
+    var allowFrontline = mode === "bankrupt" && civ.money < 0;
+    var allowBorder = mode === "bankrupt" || !atWar;
+
+    candidates.sort(function (a, b) {
+      if (a.enemyNeighbor !== b.enemyNeighbor) return a.enemyNeighbor ? 1 : -1;
+      if (a.border !== b.border) return a.border ? 1 : -1;
+      if (a.pop !== b.pop) return a.pop - b.pop;
+      return b.val - a.val;
+    });
+
+    var saved = 0;
+    var removed = 0;
+    var reduced = 0;
+    for (var i = 0; i < candidates.length; i++) {
+      var unit = candidates[i];
+      if (unit.enemyNeighbor && !allowFrontline) continue;
+      if (unit.border && !allowBorder) continue;
+
+      var val = unit.val;
+      if (val <= 0) continue;
+
+      if (mode !== "bankrupt") {
+        var trimTo = unit.enemyNeighbor ? minFrontline : minGarrison;
+        if (val <= trimTo) continue;
+        unit.land.type.val = trimTo;
+        var oVal = unit.land.type.oVal;
+        if (oVal == null || isNaN(oVal) || oVal > trimTo) {
+          unit.land.type.oVal = trimTo;
+        }
+        saved += estimateMilitaryUpkeep(civ, val - trimTo);
+        reduced += (val - trimTo);
+      } else {
+        if (unit.enemyNeighbor) {
+          var keep = Math.max(minFrontline, 1);
+          if (val <= keep) continue;
+          unit.land.type.val = keep;
+          var oVal2 = unit.land.type.oVal;
+          if (oVal2 == null || isNaN(oVal2) || oVal2 > keep) {
+            unit.land.type.oVal = keep;
+          }
+          saved += estimateMilitaryUpkeep(civ, val - keep);
+          reduced += (val - keep);
+        } else {
+          unit.land.type = types.land;
+          saved += estimateMilitaryUpkeep(civ, val);
+          removed++;
+        }
+      }
+
+      if (saved >= target) break;
+    }
+
+    if (removed || reduced) {
+      recordAction(civ, "disband-units", {
+        mode: mode,
+        removed: removed,
+        reduced: reduced,
+        saved: Math.round(saved * 10) / 10
+      });
+      console.log("AI: Disband units for ", civName,
+        "mode=", mode, "removed", removed, "reduced", reduced, "saved~", Math.round(saved * 10) / 10);
+    }
+
+    return saved;
   }
 
   function tryFixBankrupt(civ, civName) {
