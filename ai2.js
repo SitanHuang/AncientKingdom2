@@ -9,6 +9,20 @@ var AI2 = (function () {
 
   var QUEUE_LIMIT = 12;
   var WAR_PLAN_TTL = 10;
+  // Functions restored by serializer.js have their source, but not this IIFE's
+  // closure. Keep an identity-only registry so those functions are never run.
+  var liveQueueRuns = typeof WeakSet === "function" ? new WeakSet() : [];
+
+  function registerQueueRun(run) {
+    if (typeof run !== "function") return;
+    if (liveQueueRuns.add) liveQueueRuns.add(run);
+    else liveQueueRuns.push(run);
+  }
+
+  function isLiveQueueRun(run) {
+    if (typeof run !== "function") return false;
+    return liveQueueRuns.has ? liveQueueRuns.has(run) : liveQueueRuns.indexOf(run) >= 0;
+  }
 
   function think(civ, civName) {
     if (civ.ii < 2) return;
@@ -246,8 +260,20 @@ var AI2 = (function () {
   }
 
   function queueAction(civ, action) {
+    var existingIndex = civ._aiQueue.findIndex(function (item) {
+      return item.id === action.id;
+    });
+    registerQueueRun(action.run);
+    if (existingIndex >= 0) {
+      // Refresh persisted actions with a callback that owns the current
+      // runtime's closure. Preserve the remaining lifetime of the action.
+      if (civ._aiQueue[existingIndex].ttl != null) {
+        action.ttl = civ._aiQueue[existingIndex].ttl;
+      }
+      civ._aiQueue[existingIndex] = action;
+      return;
+    }
     if (civ._aiQueue.length >= QUEUE_LIMIT) return;
-    if (civ._aiQueue.some(x => x.id === action.id)) return;
     civ._aiQueue.push(action);
   }
 
@@ -276,7 +302,12 @@ var AI2 = (function () {
       if (item.ttl == null) item.ttl = 6;
       item.ttl--;
       return item;
-    }).filter(item => item.ttl > 0);
+    }).filter(function (item) {
+      // A deserialized callback is detached from prepareFunds and every other
+      // lexical dependency. Discard it; buildEconomicQueue will recreate any
+      // still-relevant action with a live callback.
+      return item.ttl > 0 && isLiveQueueRun(item.run);
+    });
 
     queue.sort(function (a, b) {
       return (b.priority || 0) - (a.priority || 0);

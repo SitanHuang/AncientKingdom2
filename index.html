@@ -47,6 +47,9 @@
     <script src="msgbox.js"></script>
     <script src="tablesort.min.js"></script>
     <script src="tablesort.number.min.js"></script>
+
+    <script src="loaders.js"></script>
+
     <link rel="stylesheet" href="css/gallery.css">
     <meta name="viewport" content="width=device-width">
     <style>
@@ -362,10 +365,10 @@
 </div>
 <button onclick="download(prompt('File name', 'scenario') + '.json',
     serialize({data, civs, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0}))">Export</button>
-<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back);showYear=o.showYear;data = o.data;popv2 = o.popv2;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage</button>
-<button onclick="localStorage.back = serialize({data, civs, turn, popv2, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage</button>
-<button onclick="delete window.heatmapdata; o = eval('o = ' + localStorage.back2);showYear=o.showYear;data = o.data;popv2 = o.popv2;civs = o.civs;MESSAGES = o.msg || MESSAGES;AGGRESSIVENESS = o.agr || AGGRESSIVENESS;RCHANCEMOD = o.rmod || RCHANCEMOD;INCOMEMOD = o.imod || INCOMEMOD;MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;civOrders = Object.keys(civs).sort();turn = o.turn || 0;showInfo();drawCanvas()">Load localStorage2</button>
-<button onclick="localStorage.back2 = serialize({data, civs, turn, popv2, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage2</button>
+<button onclick="delete window.heatmapdata; load_gamesave({localstorageKey: 'back'})">Load localStorage</button>
+<button onclick="localStorage.back = serialize({data, civs, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage</button>
+<button onclick="delete window.heatmapdata; load_gamesave({localstorageKey: 'back2'})">Load localStorage2</button>
+<button onclick="localStorage.back2 = serialize({data, civs, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage2</button>
 <input type="file" id="file"><br>
 <button onclick="alert = console.log">quiteMode On</button>
 <button onclick="alert = alertCopy">quiteMode Off</button>
@@ -391,7 +394,9 @@
     function withdraw() {
     xxx = parseInt(prompt('how much?'));
         civ = civs[civOrders[i]];
-        if (civ.deposit < -50) {
+        const edpmx = 1 + (civ.gov?.mods?.EDPMX || 0);
+        let depositCap = civ.ii * civ.urban * edpmx / 10 || 0;
+        if ((civ.deposit - xxx) < depositCap * 0.5) {
             alert('Your credit is too low.');
             return;
         }
