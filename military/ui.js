@@ -178,20 +178,22 @@
         return stats;
     }
 
-    function appendStats(container, stats, enemyScale) {
+    function appendStats(container, stats, enemyScale, isEnemy) {
         stats = displayedStats(stats, enemyScale);
         container.appendChild(stat("Men", number(stats.manpower) + " / " + number(stats.maxManpower)));
-        container.appendChild(stat("Requested", number(Math.max(0, stats.requestedManpower))));
-        container.appendChild(stat("Recovered", number(stats.recoveredLastTurn)));
+        if (!isEnemy) {
+            container.appendChild(stat("Requested", number(Math.max(0, stats.requestedManpower))));
+            container.appendChild(stat("Recovered", number(stats.recoveredLastTurn)));
+            container.appendChild(stat("Moves", number(stats.movesRemaining, 0) + " / " + number(stats.moveLimit, 0)));
+            if (stats.upkeep !== undefined) container.appendChild(stat("Upkeep", "$" + number(stats.upkeep, 2)));
+        }
         container.appendChild(stat("Experience", number(stats.experience, 2)));
         container.appendChild(stat("Morale", number(stats.morale, 2)));
         container.appendChild(stat("Entrenchment", number(stats.entrenchment, 2)));
         container.appendChild(stat("Attack", number(stats.attack, 1)));
         container.appendChild(stat("Defense", number(stats.defense, 1)));
-        container.appendChild(stat("Moves", number(stats.movesRemaining, 0) + " / " + number(stats.moveLimit, 0)));
         if (stats.buildingBonus > 1) container.appendChild(stat("Building defense", "+" + percent(stats.buildingBonus - 1)));
         if (stats.encirclement !== undefined) container.appendChild(stat("Encirclement", percent(1 - stats.encirclement)));
-        if (stats.upkeep !== undefined) container.appendChild(stat("Upkeep", "$" + number(stats.upkeep, 2)));
     }
 
     function rangeBar(label, range, domainMaximum, color) {
@@ -226,8 +228,8 @@
         } else {
             var intel = enemyIntel(divisions, actual);
             var estimated = intel.stats;
-            appendStats(grid, estimated);
-            stackSummary.appendChild(make("div", "military-intel-note", "Enemy count is exact. Estimates refresh each quarter."));
+            appendStats(grid, estimated, undefined, true);
+            // stackSummary.appendChild(make("div", "military-intel-note", "Enemy count is exact. Estimates refresh each quarter."));
             var intelRows = make("div", "military-intel");
             intelRows.appendChild(rangeBar("Men", intel.manpower, actual.maxManpower, civColor(divisions[0].civ)));
             intelRows.appendChild(rangeBar("Morale", intel.morale, 2, "#b17b22"));

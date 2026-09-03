@@ -392,7 +392,7 @@
         civ = civs[civOrders[i]];
         const edpmx = 1 + (civ.gov?.mods?.EDPMX || 0);
         let depositCap = civ.ii * civ.urban * edpmx / 10 || 0;
-        if ((civ.deposit - xxx) < depositCap * 0.5) {
+        if ((civ.deposit - xxx) < -depositCap * 0.5) {
             alert('Your credit is too low.');
             return;
         }

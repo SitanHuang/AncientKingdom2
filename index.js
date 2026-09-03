@@ -280,7 +280,6 @@ function civGetLandPrice(civ) {
 }
 
 buy = function (type, price) {
-    $('#panel').hide();
     var civName = civOrders[i];
     var civ = civs[civName];
     if (civ.money < price) {
@@ -296,6 +295,7 @@ buy = function (type, price) {
         buyClick = null;
         return;
     }
+    $('#panel').hide();
 
     drawCanvas(function (row, col) {
         var land = data[row][col];
