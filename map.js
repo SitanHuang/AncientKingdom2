@@ -109,8 +109,7 @@ function findNearbyCitiesOfLargestCiv(source, color, target) {
             if (land
                 && land.color == target
                 && land.type
-                && land.type.draw.toString() != types.land.draw.toString()
-                && !land.type.val) {
+                && cellTypeId(land.type) != 'land') {
                     cities.push([row, col]);
                 }
         }

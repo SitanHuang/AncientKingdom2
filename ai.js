@@ -403,101 +403,6 @@ var AI = {
             }
         }
 
-        var moneySpent = -10;
-        var list = getAllUnits(civName);
-        var moveVal = -1;
-        for (var ii = 0; ii < list.length; ii++) {
-
-            if (civ.politic < 1) {
-                return;
-            }
-
-            var item = list[ii];
-            var row = item.row;
-            var col = item.col;
-            var land = item.land;
-
-            if (land.type.val) {
-                if (land.type.val > 10)
-                    moveVal = land.type.val;
-                else {
-                    moveVal += land.type.val;
-                    land.type = types.land;
-                }
-                if (Math.random() < 0.1 || (Math.random() < 0.1 && land.type.val > 25))
-                    land.type = types.land;
-            }
-
-            var neighbor = false;
-
-            getNeighbors(row, col, function(l2, r, c) {
-                if (l2) {
-                    if (l2.color != civName && l2.type) {
-                        let isAl = isAlliance(civ, l2.color);
-                        if (isAl) return;
-                        if (!isAtWar(civ, l2.color)) {
-                            return;
-                        }
-                        neighbor = true;
-                        if (civ.politic < 1) {
-                            return;
-                        }
-                        if (l2.type.defend == types.land.defend && Math.random() < 0.5 && moneySpent + 35 < maxMoney && land.type.defend != types.fort.defend) {
-                            civ.money -= 25 * (civ.ii > 225 ? 1.5 : 1);
-                            moneySpent += 25 * (civ.ii > 225 ? 1.5 : 1);
-                            land.type = (civ.ii > 225 ? types.headquarter : types.fort);
-                            return;
-                        }
-                        var m = l2.type.val ? l2.type.val + Math.round(Math.random() * 15) : l2.type.defend + Math.round(Math.random() * 15);
-                        if (moveVal > m / 2) {
-                            m = moveVal;
-                            land.type = types.land;
-                            moneySpent -= m + m / 4;
-                            civ.money += m * 1.7;
-                        }
-                        if (Math.random() < 0.2)
-                            moveVal = -1;
-                        moneySpent += m * 2;
-                        if (moneySpent > maxMoney) {
-                            if (l2.type.defend == types.city.defend) {
-                                moneySpent -= m * 2 - 2;
-                                m = 1;
-                            } else
-                                return;
-                        }
-                        civ.logistics += m / 4;
-                        civ.money -= m * 2;
-                        civ.nextDecline = (civ.nextDecline || 0) + Math.max(0, m * 400 * (1 + (civ.ii || 0) / 1000));
-                        civ.nextDecline = Math.min(civ.pop * 0.9 || 0, civ.nextDecline);
-                        var result = move(civOrders[i], {
-                            civ: civName,
-                            type: {
-                                val: m
-                            }
-                        }, [r, c], 'ai');
-                        var val = result[0];
-                        if (result[1] == 0 /* && (Math.random() < 0.45 || l2.type.defend == types.land.defend)*/
-                        ) {
-                            list.push({
-                                row: r,
-                                col: c,
-                                land: data[r][c]
-                            })
-                        }
-
-                        const omvpc = 1 + (civ.gov?.mods?.OMVPC || 0);
-                        civ.politic -= 0.7 * omvpc;
-                        const mmvct = 1 + (civ.gov?.mods?.MMVCT || 0);
-                        civ.money -= val / 25 * mmvct;
-                    }
-                }
-            })
-
-            if (!neighbor && (land.type.defend == types.fort.defend || land.type.defend == types.headquarter.defend) && Math.random() < 0.2) {
-                land.type = types.land;
-            }
-        }
-
     },
     tryBuild: function(civ, civName, maxMoney, type, price, econMod=1, popMod=1, cityOveride=false) {
         var moneySpent = price;
@@ -514,11 +419,11 @@ var AI = {
             if (land &&
                 (// !land.color || <- disallow building on unowned land
                     (land.type && land.color == civName
-                        && land.type.defend != types.capital.defend
-                        && land.type.defend != types.school.defend
-                        && land.type.defend != types.finance.defend
-                        && (cityOveride || land.type.defend != types.city.defend)))) {
-                if (land.type && land.color == civName && land.type.defend == types.fort.defend)
+                        && cellTypeId(land.type) != 'capital'
+                        && cellTypeId(land.type) != 'school'
+                        && cellTypeId(land.type) != 'finance'
+                        && (cityOveride || cellTypeId(land.type) != 'city')))) {
+                if (land.type && land.color == civName && cellTypeId(land.type) == 'fort')
                     return;
                 var bool = false;
                 var built = false;
@@ -530,35 +435,35 @@ var AI = {
                             return;
                         if (l && l.color != civName)
                             built = true;
-                        if (l && l.type && l.type.defend == types.land.defend && Math.random() > 0.70)
+                        if (l && l.type && cellTypeId(l.type) == 'land' && Math.random() > 0.70)
                             built = built;
                         else if (l?.type &&
-                            l.type.defend != types.land.defend &&
-                            l.type.defend != types.capital.defend &&
-                            l.type.defend != types.school.defend &&
-                            l.type.defend != types.finance.defend &&
-                            l.type.defend != types.fort.defend &&
-                            l.type.defend != types.gate.defend)
+                            cellTypeId(l.type) != 'land' &&
+                            cellTypeId(l.type) != 'capital' &&
+                            cellTypeId(l.type) != 'school' &&
+                            cellTypeId(l.type) != 'finance' &&
+                            cellTypeId(l.type) != 'fort' &&
+                            cellTypeId(l.type) != 'gate')
                             built = civ.urban < 30 ?
                                         true :
                                         (civ.urban < 50 &&
-                                    (type == types.finance || (Math.random() > 0.6 && type == types.school) || l.type.defend == types.capital.defend) ?
+                                    (type == types.finance || (Math.random() > 0.6 && type == types.school) || cellTypeId(l.type) == 'capital') ?
                                             Math.random() > 0.6 : true);
                     });
                     if (l2 && l2.color == civName) {
-                        if (l2 && l2.type && l2.type.defend == types.capital.defend)
+                        if (l2 && l2.type && cellTypeId(l2.type) == 'capital')
                             capital = built = true;
                         bool = true;
                         if (l2.type &&
-                            l2.type.defend != types.land.defend &&
-                            l2.type.defend != types.capital.defend &&
-                            l2.type.defend != types.school.defend)
-                            built = l2.type.defend == types.city.defend && cityOveride ? built : true;
+                            cellTypeId(l2.type) != 'land' &&
+                            cellTypeId(l2.type) != 'capital' &&
+                            cellTypeId(l2.type) != 'school')
+                            built = cellTypeId(l2.type) == 'city' && cityOveride ? built : true;
                     } else if (l2 && l2.color != civName) {
                         neighbor = true;
                     }
                 });
-                if (neighbor && land.color == civName && type.defend == types.fort.defend && Math.random() > 0.6) {
+                if (neighbor && land.color == civName && cellTypeId(type) == 'fort' && Math.random() > 0.6) {
                     buildList.push([row, col]);
                 } else if (bool && !built && !capital) {
                     buildList.push([row, col]);

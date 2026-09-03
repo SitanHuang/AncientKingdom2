@@ -13,6 +13,7 @@
     <!--<script src="map.jpg.js"></script>-->
 <!--    <script src="europe.jpg.js"></script> -->
     <link rel="stylesheet" href="d3_timeseries.min.css">
+    <link rel="stylesheet" href="military/ui.css">
     <script charset="utf-8" src="d3.v4.js"></script>
     <script charset="utf-8" src="d3_timeseries.min.js"></script>
 
@@ -42,6 +43,12 @@
     <script src="ai2.js"></script>
     <script src="relationships.js"></script>
     <script src="population_v2.js"></script>
+    <script src="military/state.js"></script>
+    <script src="military/recruitment.js"></script>
+    <script src="military/combat.js"></script>
+    <script src="military/movement.js"></script>
+    <script src="military/ai.js"></script>
+    <script src="military/ui.js"></script>
     <script src="serializer.js"></script>
     <script src="cheats.js"></script>
     <script src="msgbox.js"></script>
@@ -168,10 +175,11 @@
 <body>
 <canvas moz-opaque></canvas>
 <br>
-<button onclick="$('#panel').show();drawCanvas();onClickTemp=null;showInfo()">menu</button>
+<button onclick="window.militaryPanelPinned=true;$('#panel').show();drawCanvas();onClickTemp=null;showInfo()">menu</button>
+<button onclick="window.militaryPanelPinned=true;$('#panel').show();drawCanvas();onClickTemp=null;showInfo();document.getElementById('military-recruitment-anchor').scrollIntoView()">military</button>
 <button onclick="endTurn()">end turn</button>
 <div id="panel">
-    <button onclick="$('#panel').hide()">hide menu</button>
+    <button onclick="window.militaryPanelPinned=false;$('#panel').hide()">hide menu</button>
     <button onclick="manageGov(civOrders[i], true)">government</button>
     <button onclick="endTurn()">end turn</button>
     <div id="turn">
@@ -189,20 +197,7 @@
     <button onclick="buy(types.fort, 25)">fort ($25)</button>
     <button onclick="buy(types.headquarter, 45)">headquarter ($45)</button>
     <br>
-    <button onclick="
-        val = parseInt(prompt('How many?', '1'));
-        military = $.extend(true, {}, types.military);
-        military.val = val;
-        military.defend = val;
-        if (!isNaN(val)) {
-            let civ = civs[civOrders[i]];
-            civ.military += val;
-            civ.nextDecline = (civ.nextDecline || 0) + Math.max(0, val * 400 * (1 + (civ.ii || 0) / 1000));
-            civ.nextDecline = Math.min(civ.pop * 0.9 || 0, civ.nextDecline);
-            buy(military, val * 2);
-        };
-    ">Recruit ($n * 2)</button>
-    <button onclick="newArmy()">Create Army</button>
+    <div id="military-recruitment-anchor"></div>
     <button onclick="research()">Research</button>
     <button onclick="civs[civOrders[i]].ai = true">set AI</button>
     <button onclick="runActiveAIThink()">AI think</button>
@@ -358,17 +353,18 @@
 <button onclick="alert('showStripes:=' + (showStripes = !showStripes))">stripes?</button>
 <button onclick="showYear = JSON.parse(prompt('draw yr={}', JSON.stringify(showYear || {yr: true, offset: 0})) || {yr: true,offset: 0,});drawCanvas()">yr?</button>
 <button onclick="showCellBorder = !showCellBorder">cells?</button>
+<button onclick="MilitaryUI.setUnitMarkersVisible(!MilitaryUI.areUnitMarkersVisible())">units?</button>
 <button onclick="BLOCK_SIZE --;drawCanvas()">-</button>
 <button onclick="BLOCK_SIZE ++;drawCanvas()">+</button>
 <button onclick="alert('POPV2_FLAG_USE_UNI_CULTURE:=' + (POPV2_FLAG_USE_UNI_CULTURE=!POPV2_FLAG_USE_UNI_CULTURE))">culture?</button>
 <div id="takeControls">
 </div>
 <button onclick="download(prompt('File name', 'scenario') + '.json',
-    serialize({data, civs, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0}))">Export</button>
+    serialize({data, civs, military, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0}))">Export</button>
 <button onclick="delete window.heatmapdata; load_gamesave({localstorageKey: 'back'})">Load localStorage</button>
-<button onclick="localStorage.back = serialize({data, civs, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage</button>
+<button onclick="localStorage.back = serialize({data, civs, military, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage</button>
 <button onclick="delete window.heatmapdata; load_gamesave({localstorageKey: 'back2'})">Load localStorage2</button>
-<button onclick="localStorage.back2 = serialize({data, civs, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage2</button>
+<button onclick="localStorage.back2 = serialize({data, civs, military, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage2</button>
 <input type="file" id="file"><br>
 <button onclick="alert = console.log">quiteMode On</button>
 <button onclick="alert = alertCopy">quiteMode Off</button>
@@ -421,61 +417,6 @@
       }, 1);
     }
 
-    function newArmy() {
-        var base = parseInt(prompt('What is the main force amount?', '23'));
-        var change = parseInt(prompt('What is the diversity of hierarchy?', '6'));
-        var civName = civOrders[i];
-        var civ = civs[civName];
-        var list = [];
-        var sum = 0;
-        for (var ii = base;ii > -10;ii -= change) {
-            var iii = ii > 0 ? ii : 1;
-            sum += iii;
-            list.push(iii);
-        }
-        if (civ.money < sum * 2) {
-            alert('Not enough money!');
-            return;
-        }
-        $('#panel').hide();
-        onClickTemp = function (row, col) {
-            var emptyCells = [];
-            for (var r = 0;r < data.length;r++) {
-                var rowData = data[r];
-                for (var c = 0;c < rowData.length;c++) {
-                    var cell = rowData[c];
-                    if (cell && cell.color == civName && cell.type.defend == types.land.defend) {
-                        var a = c - col;
-                        var b = r - row;
-
-                        var distance = Math.sqrt( a*a + b*b );
-                        emptyCells.push([distance, r, c]);
-                        if (emptyCells.length > list.length) {
-                            emptyCells = emptyCells.sort(function (x,y) {
-                                return x[0] > y[0]
-                            });
-                            emptyCells.pop();
-                        }
-                    }
-                }
-            }
-            if (list.length > emptyCells.length) {
-                alert('Not enough space!');
-                return;
-            }
-
-            for (var ii = 0;ii < list.length;ii++) {
-                var military = $.extend(true, {}, types.military);
-                military.val = list[ii];
-                military.defend = list[ii];
-                data[emptyCells[ii][1]][emptyCells[ii][2]].type = military;
-            }
-            civ.money -= sum * 2;
-            civ.politic += 3;
-            civ.military += sum;
-            drawCanvas();
-        };
-    }
     function readSingleFile(evt) {
         //Retrieve the first (and only!) File from the FileList object
         var f = evt.target.files[0];
@@ -490,12 +431,19 @@
                 data = scenario.data;
                 popv2 = scenario.popv2;
                 civs = scenario.civs;
+                military = scenario.military || {};
                 RCHANCEMOD = scenario.rmod || RCHANCEMOD;
                 AGGRESSIVENESS = scenario.agr || AGGRESSIVENESS;
                 INCOMEMOD = scenario.imod || INCOMEMOD;
                 MANDATE_THRESHOLD = scenario.mthre || MANDATE_THRESHOLD;
                 civOrders = Object.keys(civs).sort();
                 i = 0;
+                popv2_init();
+                Military.init(military);
+                Military.migrateLegacyCells();
+                normalizeCellTypes();
+                MilitaryUI.clearSelection();
+                MilitaryUI.refresh();
                 drawCanvas();
                 showInfo()
                 scenario = null;

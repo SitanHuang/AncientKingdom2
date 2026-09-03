@@ -15,125 +15,6 @@ var showYear = {
     offset: 0,
 };
 
-var newtypes = {
-    capital: {
-        income: function (civ) {
-            civ.politic += Math.random() * 10;
-            civ.money += Math.random() * 35;
-        },
-        draw: function (x, y) {
-            var context = canvas.getContext('2d');
-            context.font = BLOCK_SIZE / 2 + "px 'Roboto Mono'";
-            context.fillStyle = civs[data[y][x].color].fontColor;
-            context.fillText("京", x * BLOCK_SIZE + BLOCK_SIZE / 4, y * BLOCK_SIZE + BLOCK_SIZE / 1.5);
-        },
-        oldDraw: types.capital.draw,
-        defend: 55
-    },
-    headquarter: {
-        income: function (civ) {
-            civ.politic += Math.random() * 2;
-            civ.money -= Math.random() * 35;
-        },
-        draw: function (x, y) {
-            var context = canvas.getContext('2d');
-            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
-            context.fillStyle = civs[data[y][x].color].fontColor;
-            context.fillText("统", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
-        },
-        defend: 75
-    },
-    land: {
-        income: function (civ) {
-            civ.politic -= Math.random() / 55;
-            civ.money += Math.random() / 2;
-        },
-        draw: function () {
-        },
-        defend: 1
-    },
-    finance: {
-        defend: 35,
-        income: function (civ) {
-            civ.politic += Math.random();
-            civ.money += Math.random() * 35;
-            civ.happiness += 0.55;
-        },
-        draw: function (x, y) {
-            var context = canvas.getContext('2d');
-            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
-            context.fillStyle = civs[data[y][x].color].fontColor;
-            context.fillText("经", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
-        }
-    },
-    city: {
-        defend: 25,
-        income: function (civ) {
-            civ.politic += Math.random() / 4;
-            civ.money += Math.random() * 7;
-        },
-        draw: function (x, y) {
-            var context = canvas.getContext('2d');
-            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
-            context.fillStyle = civs[data[y][x].color].fontColor;
-            context.fillText("市", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
-        }
-    },
-    town: {
-        defend: 15,
-        income: function (civ) {
-            civ.politic += Math.random() / 7;
-            civ.money += Math.random() * 5;
-        },
-        draw: function (x, y) {
-            var context = canvas.getContext('2d');
-            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
-            context.fillStyle = civs[data[y][x].color].fontColor;
-            context.fillText("T", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
-        }
-    },
-    gate: {
-        income: function (civ) {
-            civ.politic += Math.random() / 65;
-            civ.money -= Math.random() / 7;
-        },
-        draw: function (x, y) {
-            var context = canvas.getContext('2d');
-            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
-            context.fillStyle = civs[data[y][x].color].fontColor;
-            context.fillText("G", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
-        },
-        defend: 5
-    },
-    fort: {
-        income: function (civ) {
-            civ.politic += Math.random() / 10;
-            civ.money -= Math.random() * 2;
-        },
-        draw: function (x, y) {
-            var context = canvas.getContext('2d');
-            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
-            context.fillStyle = civs[data[y][x].color].fontColor;
-            context.fillText("#", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
-        },
-        defend: 60
-    },
-    military: {
-        val: 1,
-        income: function (civ) {
-            civ.politic += Math.random();
-            const mukct = 1 + (civ.gov.mods.MUKCT || 0);
-            civ.money -= this.val / 4 * mukct;
-        },
-        draw: function (x, y) {
-            var context = canvas.getContext('2d');
-            context.font = BLOCK_SIZE - 3 + "px 'Roboto Mono'";
-            context.fillStyle = civs[data[y][x].color].fontColor;
-            context.fillText(this.val, x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
-        }
-    }
-};
-
 function canvasScreenshot(force) {
     if (force) {
         const [ old, old2 ] = [lazyDraw, lazyDraw2];
@@ -452,9 +333,9 @@ function drawCanvas(compare, relationship, pop) {
                     else if (BLOCK_SIZE >= 14 &&
                         (_draw.toString() == types.finance.draw.toString() || _draw.toString() == types.school.draw.toString() || bold))
                         draw(col, row);
-                    else if (d.type.defend == types.capital.defend) {
+                    else if (cellTypeId(d.type) == 'capital') {
                         draw(col, row);
-                    } else if (d.type.val || _draw.toString() == types.headquarter.draw.toString())
+                    } else if (_draw.toString() == types.headquarter.draw.toString())
                         draw(col, row);
                     else if (_draw.toString() != types.land.draw.toString()) {
                         let x = col;
@@ -545,7 +426,7 @@ function drawCanvas(compare, relationship, pop) {
                     l[color].rightmost = Math.max(l[color].rightmost, col);
                     l[color].upmost = Math.min(l[color].upmost, row);
                     l[color].downmost = Math.max(l[color].downmost, row);
-                    if (d.type.defend == types.capital.defend) {
+                    if (cellTypeId(d.type) == 'capital') {
                         l[color].capital = [col * BLOCK_SIZE, row * BLOCK_SIZE];
                     } else {
                         l[color].x_points.push(col);
@@ -620,6 +501,8 @@ function drawCanvas(compare, relationship, pop) {
         context.fillText(yearText, BLOCK_SIZE * 0.1, BLOCK_SIZE * 0.5 + font_size / 2);
     }
 
+    if (typeof MilitaryUI != 'undefined') MilitaryUI.drawOverlay(context, BLOCK_SIZE);
+
     // BLOCK_SIZE -= 0.17;
     $('#canvasTime').text((new Date() - start) + 'ms');
 }
@@ -642,90 +525,31 @@ function onClick(row, col) {
         return;
     }
 
-    var land = data[row][col];
-
-    if (window.pickedUp && window.pickedUp.civ == civName
-        && window.pickedUp.type.val) {
-        if (land == null) {
-            alert('Land is null.');
-            return;
-        }
-        var bool = false;
-        getNeighbors(row, col, function (land) {
-            if (land && land.color == civName) {
-                bool = true;
-            }
-        });
-        if (!bool) {
-            alert('Land is not adjacent to your territory.');
-            return;
-        } else if (!isAtWar(civ, land.color) && civName != land.color) {
-            alert("Occupant is not at war with you.");
-            return;
-        } else if (pickedUp.row && pickedUp.col &&
-          Math.hypot(pickedUp.row - row, pickedUp.col - col) > 5) {
-          alert("The target is out of range.");
-          return;
-        } else {
-            var val = move(civOrders[i], window.pickedUp, [row, col])[0];
-
-            const omvpc = 1 + (civ.gov.mods.OMVPC || 0);
-            civ.politic -= 0.7 * omvpc;
-            const mmvct = 1 + (civ.gov.mods.MMVCT || 0);
-            civ.money -= val / 4 * mmvct;
-            civ.logistics += val / 4 * mmvct;
-            //alert('Politic - .55, money - ' + val / 2);
-            delete window.pickedUp;
-            drawCanvas();
-            return;
-        }
-    } else {
-        delete window.pickedUp;
-    }
+    var land = data[row] && data[row][col];
+    if (typeof MilitaryUI != 'undefined' && MilitaryUI.onTileClick(row, col)) return;
 
     if (civ.technology == -1) {
         if (land == null) {
-            alert('Land is null, please reselect.')
+            alert('Land is null, please reselect.');
         } else if (land.color != null) {
-            alert('Land is occupied, please reselect.')
+            alert('Land is occupied, please reselect.');
         } else {
-            getNeighbors(row, col, function (land, row, col) {
-                land.color = civName;
-                land.type = types.land;
-                getNeighbors(row, col, function(land) {
-                    land.color = civName;
-                    land.type = types.land
-                })
+            getNeighbors(row, col, function (neighbor, neighborRow, neighborCol) {
+                neighbor.color = civName;
+                neighbor.type = types.land;
+                getNeighbors(neighborRow, neighborCol, function (outerNeighbor) {
+                    outerNeighbor.color = civName;
+                    outerNeighbor.type = types.land;
+                });
             });
-            data[row][col] = {
-                color: civName,
-                type: types.capital
-            };
+            data[row][col] = { color: civName, type: types.capital };
             civ.birth = [row, col];
             civ.money = 50;
             civ.politic = 0;
             civ.technology = 1;
             showInfo();
         }
-    } else if (land.type.val > 0 && land.color == civName) {
-        if (civ.politic < 1) {
-            alert('Not enough political power.');
-            return;
-        }
-        window.pickedUp = {
-            civ: land.color,
-            type: { val: land.type.val, oVal: land.type.oVal ? land.type.oVal : land.type.val },
-            row: row,
-            col: col
-        };
-        land.type = types.land;
-        drawCanvas(function (r, c) {
-            return Math.hypot(row - r, col - c) <= 5;
-        });
-        return;
-    } else {
-        alert('No operations expected on this land.')
     }
 
-    drawCanvas()
+    drawCanvas();
 }

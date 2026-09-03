@@ -5,15 +5,42 @@
 
     <link rel="stylesheet"
           href="https://fonts.googleapis.com/css?family=Roboto+Mono">
+    <link rel="stylesheet" href="military/ui.css">
 
     <script src="jquery.js"></script>
+    <script src="d3.v4.js"></script>
+    <script src="d3_timeseries.min.js"></script>
+    <script src="history_chart.js"></script>
     <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js"></script>-->
     <script src="map.jpg.js"></script>
     <!--<script src="europe.jpg.js"></script>-->
+    <script src="utils.js"></script>
+    <script src="colorScale.js"></script>
+    <script src="gov/names.data.js"></script>
+    <script src="gov/persons.js"></script>
+    <script src="gov/gov.js"></script>
+    <script src="gov/ui.js"></script>
+    <script src="gov/scenarios.js"></script>
     <script src="data.js"></script>
     <script src="map.js"></script>
+    <script src="resources.js"></script>
+    <script src="regions.js"></script>
+    <script src="dynasty.js"></script>
     <script src="canvas.js"></script>
+    <script src="gallery.js"></script>
     <script src="ai.js"></script>
+    <script src="ai2.js"></script>
+    <script src="relationships.js"></script>
+    <script src="population_v2.js"></script>
+    <script src="military/state.js"></script>
+    <script src="military/recruitment.js"></script>
+    <script src="military/combat.js"></script>
+    <script src="military/movement.js"></script>
+    <script src="military/ai.js"></script>
+    <script src="military/ui.js"></script>
+    <script src="msgbox.js"></script>
+    <script src="tablesort.min.js"></script>
+    <script src="tablesort.number.min.js"></script>
     <script src="index.js"></script>
     <script src="serializer.js"></script>
     <style>
@@ -62,13 +89,7 @@
     <button onclick="buy(types.town, 35)">Build town ($35)</button>
     <button onclick="buy(types.gate, 25)">Build gate ($25)</button>
     <button onclick="buy(types.fort, 45)">Build fort ($45)</button>
-    <button onclick="
-        val = parseInt(prompt('How many?', '1'));
-        military = $.extend(true, {}, types.military);
-        military.val = val;
-        military.defend = val;
-        buy(military, val * 2)
-    ">Recruit ($n * 2)</button>
+    <button onclick="placeDivision()">Place division</button>
     <button onclick="research()">Research</button>
     <button onclick="civs[civOrders[i]].ai = true">set AI</button>
     <button onclick="AI.think(civs[civOrders[i]], civOrders[i]);">AI think</button>
@@ -76,7 +97,7 @@
 <div id="takeControls">
 </div>
 <button onclick="download(prompt('File name', 'scenario') + '.json',
-    serialize({data: data, civs: civs}, {space: 0}))">Export(JSON)</button>
+    serialize({data: data, civs: civs, military: military}, {space: 0}))">Export(JSON)</button>
 <input type="file" id="file" accept="application/json">
 <script>
     function readSingleFile(evt) {
@@ -90,6 +111,11 @@
                 var scenario = eval('(' + contents + ')');
                 data = scenario.data;
                 civs = scenario.civs;
+                military = scenario.military || {};
+                popv2_init();
+                Military.init(military);
+                Military.migrateLegacyCells();
+                normalizeCellTypes();
                 endTurn();
                 scenario = null;
             };

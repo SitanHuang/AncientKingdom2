@@ -11,6 +11,33 @@ function addBlock() {
         drawCanvas();
     }
 }
+function placeDivision() {
+    var civName = civOrders[i];
+    var name = prompt('Division name');
+    var manpower = parseInt(prompt('Manpower', '10000'));
+    if (!name || !Number.isFinite(manpower) || manpower < 1) return;
+    $('#panel').hide();
+    window.onClickTemp = function (row, col) {
+        var cell = data[row] && data[row][col];
+        if (!cell || cell.color != civName) {
+            alert('Select territory owned by ' + civName + '.');
+            return;
+        }
+        Military._addDivision({
+            civ: civName,
+            name: name,
+            row: row,
+            col: col,
+            manpower: manpower,
+            maxManpower: manpower,
+            experience: 1,
+            morale: 1,
+            entrenchment: 1
+        });
+        MilitaryUI.selectTile(row, col);
+        drawCanvas();
+    };
+}
 buy = function (type, price) {
     $('#panel').hide();
     var civName = civOrders[i];
@@ -47,7 +74,7 @@ buy = function (type, price) {
             if (!bool) {
                 alert('Land is not adjacent to your territory.')
             } else {
-                if (type.defend == types.land.defend) {
+                if (cellTypeId(type) == 'land') {
                     getNeighbors(row, col, function(l, r, c) {
                         if (!l.color) {
                             data[r][c] = {
@@ -106,6 +133,8 @@ prepareTurn = function () {
     if (i >= civOrders.length)
         i = 0;
 
+    Military.beginTurn(civOrders[i]);
+    MilitaryUI.refresh();
     showInfo();
 
     document.getElementById('year').innerText = 'Year: ' + (Math.floor(turn / civOrders.length) / 4);

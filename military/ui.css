@@ -1,0 +1,350 @@
+.military-unit-panel {
+    position: fixed;
+    z-index: 30;
+    top: max(0.75rem, env(safe-area-inset-top));
+    right: max(0.75rem, env(safe-area-inset-right));
+    width: min(29rem, calc(100vw - 1.5rem));
+    max-height: calc(100vh - 1.5rem);
+    overflow: auto;
+    box-sizing: border-box;
+    padding: 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+    border-radius: 0.45rem;
+    background: rgba(244, 244, 244, 0.96);
+    box-shadow: 0 0.25rem 1.25rem rgba(0, 0, 0, 0.32);
+    color: #222;
+    text-transform: none;
+}
+
+.military-unit-panel[hidden] {
+    display: none;
+}
+
+.military-panel-header,
+.military-panel-title,
+.military-unit-heading,
+.military-unit-detail-heading,
+.military-unit-actions,
+.military-form-row,
+.military-setting-row,
+.military-queue-actions,
+.military-overlay-setting,
+.military-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.military-panel-header {
+    justify-content: space-between;
+    margin-bottom: 0.55rem;
+}
+
+.military-panel-header h3,
+.military-recruitment h3,
+.military-recruitment h4 {
+    margin: 0;
+}
+
+.military-stack-summary {
+    padding: 0.55rem;
+    margin-bottom: 0.55rem;
+    border-radius: 0.3rem;
+    background: rgba(0, 0, 0, 0.065);
+}
+
+.military-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.25rem 0.6rem;
+    margin-top: 0.4rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.military-stat-grid span {
+    min-width: 0;
+}
+
+.military-unit-list {
+    display: grid;
+    gap: 0.28rem;
+}
+
+.military-unit-row {
+    overflow: hidden;
+    padding: 0.35rem 0.4rem 0;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    border-radius: 0.3rem;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.military-unit-owned {
+    cursor: pointer;
+}
+
+.military-unit-owned:hover,
+.military-unit-owned:focus-visible {
+    border-color: rgba(0, 0, 0, 0.55);
+    background: #fff;
+    outline: none;
+}
+
+.military-unit-enemy {
+    cursor: default;
+}
+
+.military-unit-heading {
+    justify-content: space-between;
+    min-height: 1.7rem;
+}
+
+.military-panel-title,
+.military-unit-heading strong {
+    min-width: 0;
+}
+
+.military-unit-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.military-unit-icon {
+    display: inline-grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    border: 1px solid rgba(0, 0, 0, 0.45);
+    border-radius: 0.15rem;
+    font-weight: 700;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.military-unit-actions {
+    flex: 0 0 auto;
+}
+
+.military-unit-actions button,
+.military-queue-actions button {
+    padding: 0.15rem 0.35rem;
+}
+
+.military-unit-row .military-unit-actions button {
+    width: 1.55rem;
+    height: 1.55rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.military-unit-status-bars {
+    display: grid;
+    gap: 2px;
+    margin: 0.25rem -0.4rem 0;
+}
+
+.military-unit-status {
+    display: block;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.14);
+}
+
+.military-unit-status-fill {
+    display: block;
+    height: 100%;
+    min-width: 1px;
+}
+
+.military-unit-detail {
+    position: fixed;
+    z-index: 31;
+    width: min(22rem, calc(100vw - 1rem));
+    box-sizing: border-box;
+    padding: 0.7rem;
+    border: 1px solid rgba(0, 0, 0, 0.4);
+    border-radius: 0.4rem;
+    background: rgba(250, 250, 250, 0.98);
+    box-shadow: 0 0.3rem 1.2rem rgba(0, 0, 0, 0.35);
+    color: #222;
+    pointer-events: none;
+    text-transform: none;
+}
+
+.military-unit-detail[hidden] {
+    display: none;
+}
+
+.military-unit-detail.is-pinned {
+    pointer-events: auto;
+}
+
+.military-unit-detail-heading,
+.military-section-heading {
+    justify-content: space-between;
+}
+
+.military-unit-detail-actions {
+    margin-top: 0.65rem;
+    text-align: right;
+}
+
+.military-intel {
+    margin-top: 0.45rem;
+}
+
+.military-intel-row {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.military-range-bar {
+    position: relative;
+    height: 0.55rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.13);
+}
+
+.military-range-band {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    min-width: 2px;
+    border-radius: inherit;
+    background: #a86e15;
+}
+
+.military-range-midpoint {
+    position: absolute;
+    top: -0.12rem;
+    width: 2px;
+    height: 0.8rem;
+    background: #2f210d;
+}
+
+.military-recruitment {
+    padding: 0.65rem 0;
+    margin: 0.55rem 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+    text-transform: none;
+}
+
+.military-section-heading {
+    margin-top: 0.65rem;
+}
+
+.military-settings,
+.military-recruit-form {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0.5rem 0;
+}
+
+.military-recruit-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.military-recruit-fields {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.military-recruit-fields .military-form-row {
+    min-width: 0;
+}
+
+.military-recruit-fields .military-form-row:first-child {
+    flex: 1 1 auto;
+}
+
+.military-recruit-fields label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+.military-setting-row label,
+.military-form-row label {
+    min-width: 8.5rem;
+}
+
+.military-recruitment input[type="number"] {
+    width: 7.5rem;
+}
+
+.military-recruitment input[type="text"] {
+    width: 10rem;
+    max-width: 42vw;
+}
+
+.military-recruit-fields input[type="text"] {
+    min-width: 5rem;
+}
+
+.military-queue-table {
+    width: 100%;
+    margin-top: 0.45rem;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+}
+
+.military-queue-table th,
+.military-queue-table td {
+    padding: 0.25rem 0.35rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.13);
+    text-align: right;
+}
+
+.military-queue-table th:first-child,
+.military-queue-table td:first-child {
+    text-align: left;
+}
+
+.military-queue-actions {
+    justify-content: flex-end;
+}
+
+.military-location-hint,
+.military-intel-note,
+.military-empty-queue {
+    color: #666;
+    font-size: 0.9em;
+}
+
+@media (max-width: 560px) {
+    .military-unit-panel {
+        top: max(0.35rem, env(safe-area-inset-top));
+        right: max(0.35rem, env(safe-area-inset-right));
+        width: calc(100vw - 0.7rem);
+        max-height: 55vh;
+    }
+
+    .military-unit-detail {
+        max-height: 45vh;
+        overflow: auto;
+    }
+
+    .military-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .military-queue-table th:nth-child(3),
+    .military-queue-table td:nth-child(3) {
+        display: none;
+    }
+}

@@ -1,0 +1,6 @@
+- using blocWar and AI doesn't move its units to attack (ignores war status)
+- recovery number always 0
+- on rebels or annex(), should transfer unit ownership
+- AI should try to have at least one unit over the entire border with perceived threats, instead of just few important cells, and try not to leave border unguarded; at war time, moving around allows units to attack undefended tiles instead of a stand off
+- the old AI balance of when to declare war seems to be changed, and somehow AI become more conservative
+- forts without defenders should impose attrition via attack damage to invaders

@@ -14,6 +14,17 @@ GALLERY_TRIGGER_CHANGES = 0.15; // as percent of map size
 var onRightClick = null;
 
 ready = function () {
+    Military.init(military);
+    Military.migrateLegacyCells();
+    normalizeCellTypes();
+    MilitaryUI.init({
+        military: Military,
+        recruitmentTarget: '#military-recruitment-anchor',
+        getActiveCiv: function () { return civOrders[i]; },
+        redraw: drawCanvas,
+        notify: alert
+    });
+    onRightClick = MilitaryUI.onTileRightClick;
     drawCanvas();
 
     $('canvas').bind('wheel', function (e) {_gallery_change_cml
@@ -27,6 +38,7 @@ ready = function () {
     }).click(function (e) {
         onClick(Math.floor(e.pageY / BLOCK_SIZE), Math.floor(e.pageX / BLOCK_SIZE));
     }).on("contextmenu", function(e) {
+        e.preventDefault();
         if (onRightClick) {
             onRightClick(Math.floor(e.pageY / BLOCK_SIZE), Math.floor(e.pageX / BLOCK_SIZE));
         }
@@ -242,6 +254,7 @@ function runActiveAIThink() {
     var ai = resolveAIForCiv(civ);
     recordAIUsage(civ, ai);
     ai.think(civ, civOrders[i]);
+    MilitaryAI.think(civ, civOrders[i]);
 }
 
 setActiveAI(AI_MODE);
@@ -310,7 +323,7 @@ buy = function (type, price) {
             if (!bool) {
                 alert('Land is not adjacent to your territory.')
             } else {
-                if (type.defend == types.land.defend) {
+                if (cellTypeId(type) == 'land') {
                     civ.landsBuilt = (civ.landsBuilt || 0) + 1;
 
                     getNeighbors(row, col, function (l, r, c) {
@@ -364,213 +377,22 @@ research = function () {
     showInfo();
 };
 
-battle = function (m1, m2, t1, t2) {
-    t1 = Math.sqrt(t1);
-    t2 = Math.sqrt(t2);
-    var eM1 = m1 * t1;
-    var eM2 = m2 * t2;
-    var factor = eM2 / eM1;
-    m1 = Math.floor((eM1 - eM2 * factor) / t1);
-    m2 = Math.floor((eM2 - eM1 / factor) / t2);
-    return [Math.max(m1, 0), Math.max(m2, 0)];
-};
-
 tryDeclareWar = function () {
-    let c2 = prompt("To who?");
-    if (!c2) return;
-    let ii;
-    for (ii = 0;ii < 1000 && !declareWar(civOrders[i], c2);ii++) ;
-    if (ii < 1000)
-        alert("Successful.");
-    else
-        alert("Failed.");
+    var target = prompt("To who?");
+    if (!target) return;
+    var attempts;
+    for (attempts = 0; attempts < 1000 && !declareWar(civOrders[i], target); attempts++);
+    alert(attempts < 1000 ? "Successful." : "Failed.");
 };
+
 tryDeclareMajWar = function () {
-    let c2 = prompt("To who?");
-    if (!c2) return;
-    let ii;
-    for (ii = 0; ii < 1000 && !declareWar(civOrders[i], c2, undefined, undefined, 1.1); ii++);
-    if (ii < 1000)
-        alert("Successful.");
-    else
-        alert("Failed.");
+    var target = prompt("To who?");
+    if (!target) return;
+    var attempts;
+    for (attempts = 0; attempts < 1000 && !declareWar(civOrders[i], target, undefined, undefined, 1.1); attempts++);
+    alert(attempts < 1000 ? "Successful." : "Failed.");
 };
 
-move = function (cn1, pickedUp, p2, ai) {
-    var row2 = p2[0];
-    var col2 = p2[1];
-
-    var l2 = data[row2][col2];
-    var ddffeend = l2.type.draw.toString();
-
-    var cn2 = l2.color;
-    var c1 = civs[cn1];
-    var c2 = civs[cn2];
-
-    let l2DefMod = regions_defBonus(c2, cn2, row2, col2);
-
-    const l2Cult = popv2_get_dominant_culture(row2, col2);
-
-    var type = $.extend(true, {}, types.military);
-    type.val = pickedUp.type.val;
-
-    if (l2Cult != c1.culture) {
-        l2DefMod += 0.25;
-
-        const dom1 = c1.ii > c2.ii;
-        const dom2 = c1.pop > c2.pop;
-
-        const omvpc = 1 + (c1.gov?.mods?.OMVPC || 0);
-        c1.politic -= 0.7 * omvpc * 0.25 * (dom1 ? 1.7 : 1) * (dom2 ? 1.7 : 1); // 0.175
-
-        const mmvct = 1 + (c1.gov?.mods?.MMVCT || 0);
-        c1.money -= type.val / 25 * mmvct * 0.2 * (dom1 ? 1.7 : 1) * (dom2 ? 1.7 : 1);
-
-        c2.politic += dom1 ? 0.35 : 0
-        c2.politic += dom2 ? 0.35 : 0
-        c2.money += dom1 ? type.val / 10 : 0
-        c2.money += dom2 ? type.val / 10 : 0
-    }
-
-    var result = [type.val, 0];
-
-    var t1 = c1.technology;
-    var t2 = c2.technology;
-
-    t1 *= 1 + (c1.gov?.mods?.MCCCT || 0);
-    t2 *= 1 + (c2.gov?.mods?.MCCCT || 0);
-    t2 *= l2DefMod;
-
-    if (c1.mandate && c1.years > 100) {
-        t1 *= dynasty_decay_func(c1, 0.7);
-    }
-    if (c2.mandate && c2.years > 100) {
-        t2 *= dynasty_decay_func(c2, 0.7);
-    }
-
-    if (l2._oldcolor == cn1) // if taking own territory back
-        t1 = t1 * 1.50;
-    else
-        t1 = t1 * 0.75;
-
-    if (cn1 == cn2) {
-        if (data[row2][col2].type.val)
-            data[row2][col2].type.val += type.val;
-        else
-            data[row2][col2].type = type;
-        if (!ai) drawCanvas();
-        return result;
-    } else if (!c2) {
-        data[row2][col2].type = type;
-        data[row2][col2].color = cn1;
-    } else if (typeof l2.type.val == 'undefined') {
-        result = battle(pickedUp.type.val, l2.type.defend, t1, t2);
-    } else {
-        var m1 = pickedUp.type.val;
-        var m2 = l2.type.val / 2;
-
-        var eM1 = m1 * t1;
-        var eM2 = m2 * t2;
-
-        if (eM1 > eM2) {
-            m1 = Math.ceil(pickedUp.type.val / 5);
-            m2 = Math.ceil(l2.type.val / 5);
-            m1s = pickedUp.type.val - m1;
-            m2s = l2.type.val - m2;
-            result = battle(m1, m2, t1, t2);
-            c2.money -= result[0] / 25;
-            c2.logistics += result[0] / 25;
-            m1 = m1s + result[0];
-            m2 = m2s + result[1];
-            var broke = false;
-            getNeighbors(row2, col2, function (u, r, c) {
-                if (broke) return;
-                if (u && u.color && u.color == cn2 && u.type.defend == types.land.defend) {
-                    type = $.extend(true, {}, types.military);
-                    type.val = m2;
-                    type.oVal = pickedUp.type.oVal;
-                    data[r][c].type = type;
-                    broke = true;
-                }
-            });
-            type = $.extend(true, {}, types.military);
-            type.val = m1;
-            type.oVal = pickedUp.type.oVal;
-            let target = data[row2][col2];
-            target.type = type;
-            target.color = cn1;
-            if (!target._oct || target._oct <= 0 || !target._oldcolor)
-              target._oldcolor = cn2;
-            target._oct = (target._oct || ((c1?.war[cn2] || c2?.war[cn1]) + 2.5) || 3) + 1;
-            return [m1, m2];
-        } else {
-            result = battle(m1, m2, t1, t2);
-        }
-
-        m1 = Math.floor((eM1 - eM2) / t1);
-        m2 = Math.floor((eM2 - eM1) / t2);
-        // return [Math.max(m1, 0), Math.max(m2, 0)];
-
-    }
-
-    if (result) {
-        if (result[1] == 0) {
-            type.val = result[0];
-            type.oVal = pickedUp.type.oVal;
-
-            if (result[0] == 0) {
-                type = types.land;
-            }
-
-            let target = data[row2][col2];
-            target.type = type;
-            target.color = cn1;
-            if (!target._oct || target._oct <= 0 || !target._oldcolor)
-              target._oldcolor = cn2;
-            target._oct = (target._oct || ((c1?.war[cn2] || c2?.war[cn1]) + 2.5) || 3) + 1;
-        } else if (result[1] > 0) {
-            type.val = result[1];
-            data[row2][col2].type = type;
-        }
-
-        let dPop = popv2_get_totpop(row2, col2);
-
-        popv2_apply_delta(row2, col2, -dPop * Math.random() * 0.10);
-
-        if (c2) {
-            if (result[0]) {
-              c2.money -= result[0] / 25;
-              c2.logistics = c2.logistics ? c2.logistics + result[0] / 25 : result[0] / 25;
-
-              let rate = Math.min(0.99, Math.max(0.8, 1 - result[0] * 500 * (1 + (c1.ii || 0) / 1000) / c1.pop)) || 0.97;
-              let rate2 = Math.min(0.99, Math.max(0.8, 1 - dPop / c2.pop)) || 0.97;
-              c2.happiness *= rate2;
-              c2._hapDec *= rate2;
-              c1.happiness *= rate;
-              c1._hapDec *= rate;
-            }
-            if (((c2.money + c2.deposit < -100 || c2.politic < 0) && Math.random() < Math.min(1, 1 - c2.happiness / 100) * 0.3
-                && c2.ii < 150 && c2.military < 50 && c2.deposit + c2.money < (c2.ii * c2.urban / 10) * 0.6) ||
-                (ddffeend == types.capital.draw.toString() && Math.random() < 0.1 && c2.ii < 250)) {
-                for (var row = 0; row < data.length; row++) {
-                    var rowData = data[row];
-                    for (var col = 0; col < rowData.length; col++) {
-                        var land = data[row][col];
-                        if (land && land.color == cn2 && Math.random() < 0.9 &&
-                            (land.type.defend != types.city.defend || Math.random() < 0.7)) {
-                            land.color = cn1;
-                            if (!land._oct || land._oct <= 0 || !land._oldcolor)
-                              land._oldcolor = cn2;
-                            land._oct = (land._oct || ((c1?.war[cn2] || c2?.war[cn1]) + 2.5) || 3) + 1;
-                        }
-                    }
-                }
-            }
-        }
-    }
-if (!ai) drawCanvas();
-    return result;
-};
 turn = 0;
 averageData = {income: 0, happiness: 0, logistics: 0, technology: 0, ii: 0, politic: 0, money: 0, population: 0}
 poptable_hook(averageData);
@@ -586,7 +408,7 @@ endTurn = function () {
     let _startTime = new Date().getTime();
     var civName = civOrders[i];
     var civ = civs[civName];
-    civ.military = 0;
+    Military.updateCivTotal(civName);
     civ.years = civ.years ? civ.years + 0.25 : 0.25;
     civ.technology = Math.max(Math.round(civ.technology * 1000) / 1000, 1);
     civ.money = !Number.isFinite(civ.money) || Number.isNaN(civ.money) ? 0 : civ.money;
@@ -812,8 +634,6 @@ endTurn = function () {
                 cityCount+=2;
                 cap = 500000;
                 noGrowth = false;
-            } else if (d && d.type.val > 0) {
-                // nextDecline += d.type.val * (civ.ii || 100);
             }
 
             cap *= Math.pow(res_pop_mod(row, col), noGrowth ? 2 : 1);
@@ -833,9 +653,9 @@ endTurn = function () {
 
                 let init;
                 if (turn <= civOrders.length * 2)
-                    init = d.type.defend * 5000 * Math.random() * (res_pop_mod(row, col) + 0.3) * res_pop_mod(row, col);
+                    init = d.type.initialPopulationWeight * 5000 * Math.random() * (res_pop_mod(row, col) + 0.3) * res_pop_mod(row, col);
                 else
-                    init = d.type.defend * 2500 * Math.random() * Math.pow(res_pop_mod(row, col), 2);
+                    init = d.type.initialPopulationWeight * 2500 * Math.random() * Math.pow(res_pop_mod(row, col), 2);
 
                 popv2_apply_delta(row, col, init);
                 dPop = popv2_get_totpop(row, col);
@@ -922,6 +742,9 @@ endTurn = function () {
             popv2_apply_delta(row, col, -dPop * 0.04);
             popv2_apply_delta(row, col, dPop * 0.04);
 
+            var militaryGrowth = Military.offerGrowth(civName, row, col, Math.max(0, Math.round(delta)));
+            delta -= militaryGrowth.diverted;
+            d._militaryGrowth = militaryGrowth.diverted;
             popv2_apply_delta(row, col, Math.round(delta + 1));
 
             popv2_record_history(row, col);
@@ -1002,19 +825,6 @@ endTurn = function () {
             ii++;
             if (d._oldcolor && d._oldcolor != d.color)
                 occupiedII++;
-        }
-        if (d.type.val <= 0) d.type = types.land;
-        if (d.type.val && d.color == civName) {
-            civ.military += d.type.val;
-            if (isNaN(d.type.oVal)) {
-                d.type.oVal = d.type.val;
-            }
-            if (civ.money > d.type.val / 2
-                && d.type.oVal >= d.type.val) {
-                d.type.val += 5;
-                civ.money -= 0.55;
-                expense += 0.55;
-            }
         }
     });
 
@@ -1113,6 +923,10 @@ endTurn = function () {
     if (isNaN(civ.money)) civ.money = 0;
     applyDynastyMismanagement(civ, civName);
     if (isNaN(civ.money)) civ.money = 0;
+    var militaryUpkeep = Military.processUpkeep(civName);
+    if (militaryUpkeep.ok) {
+        civ.expense = Math.round((civ.expense + militaryUpkeep.paid) * 100) / 100;
+    }
     civ.newMoney = civ.money;
     let polCap = Math.max(civ.ii / 10, 30);
     polCap *= 1 + (civ.gov.mods.OPPCP || 0);
@@ -1247,8 +1061,6 @@ endTurn = function () {
     document.getElementById('tickTime').innerText = 'Tick: ' + (new Date().getTime() - _startTime).toFixed("0") + 'ms';
     prepareTurn();
 
-
-    delete window.pickedUp;
 };
 
 // if civ doesnt have birth, will assign birth
@@ -1386,6 +1198,17 @@ popRebel = function (civName, target, source) {
 
 showInfo = function () {
     var civ = civs[civOrders[i]];
+    var divisions = Military.getDivisions(civOrders[i]);
+    var recruitQueues = Military.getQueues(civOrders[i]);
+    var activeManpower = divisions.reduce(function (sum, division) { return sum + division.manpower; }, 0);
+    var queuedManpower = recruitQueues.reduce(function (sum, queue) { return sum + queue.manpower; }, 0);
+    var requestedManpower = divisions.concat(recruitQueues).reduce(function (sum, formation) {
+        return sum + Math.max(0, formation.maxManpower - formation.manpower);
+    }, 0);
+    var recoveredManpower = divisions.concat(recruitQueues).reduce(function (sum, formation) {
+        return sum + (formation.recoveredLastTurn || 0);
+    }, 0);
+    var upkeep = civ.militaryUpkeep || { needed: Military.getUpkeep(civOrders[i]), paid: 0, fundedRatio: 1, deserted: 0 };
     var tributeToOthersText = "<div style='max-height: 5em;overflow: auto;border: 1px dashed grey;'>";
     var tributeToOther = civ.tributeToOther || {};
     var tributeToMe = civ.tributeToMe || {};
@@ -1404,7 +1227,10 @@ showInfo = function () {
 //         tributeToMeText += ` + Tribute ${Math.round(tributeToMe[x] * 100) / 100} from ${x}\n`;
 //     });
 
-    $('#panel').show().children('div').hide();
+    if (!civ.ai) $('#panel').show();
+    // else $('#panel').hide();
+    $('#panel').children('div').not('#military-recruitment-anchor').hide();
+    $('#military-recruitment-anchor').show();
     $('#panel button.buyLand').text(`land $${civGetLandPrice(civs[civOrders[i]])}`);
     $('#turn').html('<h2></h2>');
     const edpmx = 1 + (civ.gov?.mods?.EDPMX || 0);
@@ -1425,7 +1251,8 @@ showInfo = function () {
                     "Political Powers: " + civ.politic + (civ._polFromAllies ? ` (${Math.round(civ._polFromAllies * 100) / 100} from allies) \n` : '\n') +
                     `Legitimacy: ${Math.round(civ.gov?.cohesion * 10000) / 100}\n` +
                     "Population: " + civ.pop + ` (+${civ.popchange}, +${civ.popchangeperc}%, 4-turn RA=+${civ.popchangepercRA}%)\n` +
-                    "Military(Until last turn): " + civ.military + "\n" +
+                    `Military: ${Math.round(activeManpower)} men in ${divisions.length} divisions; ${Math.round(queuedManpower)} training in ${recruitQueues.length} queues\n` +
+                    `Military requests: ${Math.round(requestedManpower)}; recovered/trained: +${Math.round(recoveredManpower)}; upkeep: $${Math.round(upkeep.paid * 100) / 100}/$${Math.round(upkeep.needed * 100) / 100} (${Math.round(upkeep.fundedRatio * 100)}% funded, ${Math.round(upkeep.deserted || 0)} deserted)\n` +
                     `Happiness: ${Math.round(civ.happiness * 100) / 100} % (Rebellion chance: ${Math.round(civ.rchance * 100000) / 1000}%; x${Math.round((civ._hapDec) * 100) / 100} from unnatural deaths; ${civ._perished || 0} rebel movements)\n` +
                     "Urbanization: " + civ.urban + "% (" + civ.cityCount + ")\n" +
                     `Migrants: ${civ.migrantsOutTotal} total displaced, ${civ.migrantsOutSuccessful} migrated out, ${civ.migrantsIn} in; net=${civ.migrantsIn - civ.migrantsOutSuccessful} <button onclick="manageMigrants()">Manage</button>\n` +
@@ -1465,6 +1292,7 @@ showInfo = function () {
 
         demoSelect.onchange();
     }
+    MilitaryUI.refreshRecruitment();
 };
 
 let _populationData = [];
@@ -1633,15 +1461,19 @@ prepareTurn = function () {
         poptable_hook(averageData);
     }
     let civ = civs[civOrders[i]];
+    Military.beginTurn(civOrders[i]);
+    MilitaryUI.refresh();
     civ.newMoney = civ.money;
     if (civs[civOrders[i]].ai || (civs[civOrders[i]].ii <= 1 && civs[civOrders[i]].technology > 0)) {
+        $('#panel').hide();
         let start = new Date();
         var ai = resolveAIForCiv(civs[civOrders[i]]);
         recordAIUsage(civs[civOrders[i]], ai);
         ai.think(civs[civOrders[i]], civOrders[i]);
         ai.think(civs[civOrders[i]], civOrders[i]);
+        MilitaryAI.think(civs[civOrders[i]], civOrders[i]);
         $('#aiTime').text((new Date() - start) + 'ms');
-        $('#panel').hide();
+        if (!window.militaryPanelPinned) $('#panel').hide();
         setTimeout(endTurn, TIMEOUT_DELAY || 50);
     } else {
         showInfo();

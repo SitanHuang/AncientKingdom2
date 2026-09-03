@@ -65,7 +65,8 @@ function regions_genCountryParts(civ, civName) {
   let supplyCenter = null;
 
   // if birth place is owned, then birth place region is capital region
-  const useBirth = civ.birth && data[civ.birth[0]][civ.birth[1]].color == civName;
+  const useBirth = civ.birth && data[civ.birth[0]] && data[civ.birth[0]][civ.birth[1]] &&
+    data[civ.birth[0]][civ.birth[1]].color == civName;
 
   // find all provinces of a civ
   for (let r = 0; r < data.length; r++) {
@@ -115,7 +116,7 @@ function regions_genCountryParts(civ, civName) {
         econTot += tile._econ || 0;
         if (useBirth ?
           civ.birth[0] == parsedKey[0] && civ.birth[1] == parsedKey[1] :
-          tile.type.draw.toString() == types.capital.draw.toString()) {
+          cellTypeId(tile.type) == 'capital') {
             capital = true;
           supplyCenter = parsedKey;
         }
@@ -153,6 +154,15 @@ function regions_genCountryParts(civ, civName) {
       if (region.pop > largestPop[1])
         largestPop = [parts.length - 1, region.pop];
     }
+  }
+
+  if (!parts.length) {
+    return civ._parts = {
+      map: civProvs,
+      parts: parts,
+      lastUpdated: 0,
+      supplyCenter: null,
+    };
   }
 
   if (!capitalFound) {
