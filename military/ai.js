@@ -59,6 +59,8 @@ var MilitaryAI = (function () {
     // Restore the line immediately.
     stationDivisions(civ, civName, militaryPlan, state);
     attackRound(civ, civName, state);
+    attackRound(civ, civName, state);
+    attackRound(civ, civName, state);
 
     return state.plan;
   }

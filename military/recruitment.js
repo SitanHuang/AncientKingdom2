@@ -164,8 +164,9 @@ var Military = (function (api) {
     var recovered = 0;
     var recruited = 0;
     requests.forEach(function (request) {
+      if (Math.random() < 0.35) return;
       var target = request.target;
-      var gained = Math.min(request.deficit, request.growth * request.multiplier);
+      var gained = Math.min(request.deficit, request.growth * request.multiplier) * 0.7;
       if (!gained) return;
       var oldManpower = target.manpower;
       target.manpower += gained;
