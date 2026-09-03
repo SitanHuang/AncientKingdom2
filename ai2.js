@@ -637,12 +637,12 @@ var AI2 = (function () {
   }
 
   function fortifyIfNeeded(civ, civName, budget, threats) {
-    if (civ.politic > 2 && (civ.happiness > 70 && civ.rchance < 0.03)) return;
-    if (!threats.length && Math.random() > 0.3) return;
-    if (!canAfford(civ, 25, budget.reserve)) return;
-    prepareFunds(civ, 25, budget.reserve);
-    var built = tryBuild(civ, civName, Math.max(25, civ.money / 4), types.fort, 25, -1, -1);
-    if (built > 0) recordAction(civ, "fortify", built);
+    // if (civ.politic > 2 && (civ.happiness > 70 && civ.rchance < 0.03)) return;
+    // if (!threats.length && Math.random() > 0.3) return;
+    // if (!canAfford(civ, 25, budget.reserve)) return;
+    // prepareFunds(civ, 25, budget.reserve);
+    // var built = tryBuild(civ, civName, Math.max(25, civ.money / 4), types.fort, 25, -1, -1);
+    // if (built > 0) recordAction(civ, "fortify", built);
   }
 
   function getAttackBudget(civ, budget) {

@@ -27,7 +27,7 @@ declareWar = function(civName1, civName2, ig, par, majorWar) {
     let maxII = Math.max(civ1.ii, civ2.ii) || 50;
     let turnsForFullII = maxII / 10;
 
-    let turns = 4 + Math.round(Math.random() * 4) +
+    let turns = 8 + Math.round(Math.random() * 4) +
         (Math.ceil(randn_bm() * turnsForFullII * 0.6)) +
         Math.ceil((majorWar || 0) * (randn_bm() * turnsForFullII * 2.4));
 

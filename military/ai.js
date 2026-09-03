@@ -2,7 +2,7 @@ var MilitaryAI = (function () {
   var MAX_ACTIONS = 128;
   var MIN_DIVISION_MANPOWER = 1000;
   var MAX_DIVISION_MANPOWER = 20000;
-  var MAX_DIVISIONS = 64;
+  var MAX_DIVISIONS = 128;
 
   var ADJECTIVES = [
     "Ashen", "Bronze", "Crimson", "Dawn", "Emerald", "Golden",
@@ -42,14 +42,23 @@ var MilitaryAI = (function () {
     trimUnaffordableForces(civ, civName, militaryPlan, state);
     deployQueues(civ, civName, militaryPlan, state);
     createRecruitQueues(civ, civName, militaryPlan, state);
-    stationDivisions(civ, civName, militaryPlan, state);
 
-    // Movement changes both the friendly line and the enemy's exposed tiles.
-    // Recalculate before raising emergency forces or selecting an attack.
+    // Deployment/recruitment changed available forces.
     militaryPlan = plan(civ, civName);
     state.plan = militaryPlan;
+
     emergencyConscript(civ, civName, militaryPlan, state);
-    attack(civ, civName, state);
+
+    // Use available movement for one coordinated offensive round.
+    attackRound(civ, civName, state);
+
+    // Territory/front geometry may have changed.
+    militaryPlan = plan(civ, civName);
+    state.plan = militaryPlan;
+
+    // Restore the line immediately.
+    stationDivisions(civ, civName, militaryPlan, state);
+    attackRound(civ, civName, state);
 
     return state.plan;
   }
@@ -66,10 +75,14 @@ var MilitaryAI = (function () {
     var highestPeacetimeRisk = 0;
 
     fronts.forEach(function (front) {
-      front.postCount = Math.ceil(front.tiles.length / 4);
-      front.posts = choosePosts(front, front.postCount, civName);
-      front.enemyManpower = adjacentEnemyManpower(front, civName);
       front.diplomaticRisk = diplomaticRisk(civ, front.neighbor);
+
+      // buildFronts() already filters out sufficiently safe allies.
+      // Every remaining border tile should be treated as a coverage post.
+      front.postCount = front.tiles.length;
+      front.posts = front.tiles.slice();
+
+      front.enemyManpower = adjacentEnemyManpower(front, civName);
       front.neighborPotential = mobilizationPotential(civs[front.neighbor], front.neighbor);
       front.relativeStrength = relativeStrength(civ, civs[front.neighbor]);
       if (front.atWar) {
@@ -119,8 +132,7 @@ var MilitaryAI = (function () {
     var desiredCount = Math.min(
       desiredRawCount,
       Math.floor(targetManpower / MIN_DIVISION_MANPOWER),
-      MAX_DIVISIONS,
-      Math.max(1, Math.ceil((civ.ii || 0) / 2))
+      MAX_DIVISIONS
     );
     var activeManpower = sum(divisions, "manpower");
     var activeCapacity = sum(divisions, "maxManpower");
@@ -408,36 +420,75 @@ var MilitaryAI = (function () {
     });
 
     var keep = {};
+
+    var warAssignments = assignments.filter(function (assignment) {
+      return assignment.front.atWar;
+    });
+
+    var uncoveredWarCount = warAssignments.filter(function (assignment) {
+      return assignment.stationed.length === 0;
+    }).length;
+
     assignments.forEach(function (assignment) {
-      var keptManpower = 0;
-      assignment.stationed.slice().sort(function (a, b) {
-        return (b.experience || 1) - (a.experience || 1);
-      }).forEach(function (division, index) {
-        if (index === 0 || keptManpower < assignment.targetManpower * 0.75) {
-          keep[division.id] = true;
-          keptManpower += division.manpower || 0;
-        }
+      if (!assignment.stationed.length) return;
+
+      // Active war fronts take precedence over peacetime borders.
+      // If any war post is empty, troops on non-war borders are released
+      // into the mobile pool.
+      if (militaryPlan.atWar &&
+        uncoveredWarCount > 0 &&
+        !assignment.front.atWar) {
+        return;
+      }
+
+      var best = assignment.stationed.slice().sort(function (a, b) {
+        return (b.experience || 1) - (a.experience || 1) ||
+          (b.manpower || 0) - (a.manpower || 0);
+      })[0];
+
+      keep[best.id] = true;
+    });
+
+    // assignment.manpower/count originally included divisions that we have
+    // now declared mobile. Recalculate them from the units actually staying.
+    assignments.forEach(function (assignment) {
+      var staying = assignment.stationed.filter(function (division) {
+        return !!keep[division.id];
       });
+
+      assignment.stationed = staying;
+      assignment.manpower = sum(staying, "manpower");
+      assignment.count = staying.length;
     });
 
     var mobile = divisions.filter(function (division) {
-      return !keep[division.id] && (division.movesRemaining == null || division.movesRemaining > 0);
+      return !keep[division.id] &&
+        (division.movesRemaining == null || division.movesRemaining > 0);
     });
 
     assignments.sort(function (a, b) {
-      return Number(b.urgent && b.count === 0) - Number(a.urgent && a.count === 0) ||
-        Number(b.urgent) - Number(a.urgent) ||
+      if (Math.random() < 0.25) return Math.random() - 0.5;
+      return Number(b.front.atWar && b.count === 0) -
+        Number(a.front.atWar && a.count === 0) ||
+        Number(b.urgent && b.count === 0) -
+        Number(a.urgent && a.count === 0) ||
         Number(b.front.atWar) - Number(a.front.atWar) ||
+        Number(b.urgent) - Number(a.urgent) ||
         a.count - b.count ||
         assignmentRatio(a) - assignmentRatio(b);
     });
 
     while (mobile.length && assignments.length && actionAvailable(state)) {
       assignments.sort(function (a, b) {
-        return Number(b.urgent && b.count === 0) - Number(a.urgent && a.count === 0) ||
-          Number(b.urgent) - Number(a.urgent) ||
+        if (Math.random() < 0.25) return Math.random() - 0.5;
+        return Number(b.front.atWar && b.count === 0) -
+          Number(a.front.atWar && a.count === 0) ||
+          Number(b.urgent && b.count === 0) -
+          Number(a.urgent && a.count === 0) ||
           Number(b.front.atWar) - Number(a.front.atWar) ||
-          a.count - b.count || assignmentRatio(a) - assignmentRatio(b);
+          Number(b.urgent) - Number(a.urgent) ||
+          a.count - b.count ||
+          assignmentRatio(a) - assignmentRatio(b);
       });
       var destination = assignments[0];
       mobile.sort(function (a, b) {
@@ -446,9 +497,20 @@ var MilitaryAI = (function () {
       var division = mobile.pop();
       var moved = moveToward(division, destination.post, civName);
       if (moved) {
-        destination.count++;
-        destination.manpower += division.manpower || 0;
-        record(state, "station", {
+        var arrived = Military.getDivisionsAt(
+          destination.post.row,
+          destination.post.col,
+          civName
+        ).some(function (item) {
+          return item.id === division.id;
+        });
+
+        if (arrived) {
+          destination.count++;
+          destination.manpower += division.manpower || 0;
+        }
+
+        record(state, arrived ? "station" : "redeploy", {
           division: division.id,
           front: destination.front.id,
           row: destination.post.row,
@@ -456,9 +518,22 @@ var MilitaryAI = (function () {
         });
       }
 
-      if (assignments.every(function (assignment) {
-        return assignment.count > 0 && assignmentRatio(assignment) >= 0.75;
-      })) break;
+      if (militaryPlan.atWar) {
+        var warSatisfied = assignments
+          .filter(function (assignment) {
+            return assignment.front.atWar;
+          })
+          .every(function (assignment) {
+            return assignment.count > 0;
+          });
+
+        if (warSatisfied && !mobile.length) break;
+      } else {
+        if (assignments.every(function (assignment) {
+          return assignment.count > 0 &&
+            assignmentRatio(assignment) >= 0.75;
+        })) break;
+      }
     }
   }
 
@@ -591,31 +666,45 @@ var MilitaryAI = (function () {
     return urgent;
   }
 
-  function attack(civ, civName, state) {
+  function attackRound(civ, civName, state) {
     var attempted = {};
+    var usedAttackers = {};
+
     while (actionAvailable(state)) {
-      var candidates = getAttackCandidates(civ, civName, attempted);
+      var candidates = getAttackCandidates(civ, civName, attempted, usedAttackers);
+
       if (!candidates.length) break;
+
       var choice = candidates[0];
-      var attemptKey = choice.row + ":" + choice.col + ":" + choice.attackers.map(function (d) {
-        return d.id;
-      }).join(",");
+
+      var attackerIds = choice.attackers.map(function (division) {
+        return division.id;
+      });
+
+      var attemptKey =
+        choice.row + ":" +
+        choice.col + ":" +
+        attackerIds.join(",");
+
       attempted[attemptKey] = true;
 
-      var result = Military.attack(
-        choice.attackers.map(function (division) { return division.id; }),
-        choice.row,
-        choice.col,
-        { ai: true, enemyCiv: choice.enemyCiv }
-      );
-      if (succeeded(result)) {
-        record(state, "attack", {
-          row: choice.row,
-          col: choice.col,
-          ratio: choice.ratio,
-          enemy: choice.enemyCiv
-        });
+      var result = Military.attack(attackerIds, choice.row, choice.col, { ai: true, enemyCiv: choice.enemyCiv });
+
+      if (!succeeded(result)) {
+        continue;
       }
+
+      // A division gets one offensive operation per round.
+      attackerIds.forEach(function (id) {
+        usedAttackers[id] = true;
+      });
+
+      record(state, "attack", {
+        row: choice.row,
+        col: choice.col,
+        ratio: choice.ratio,
+        enemy: choice.enemyCiv
+      });
     }
   }
 
