@@ -281,6 +281,10 @@
             var deselect = button("×", "deselect", division.id);
             deselect.title = "Deselect";
             deselect.setAttribute("aria-label", "Deselect " + divisionName(division));
+            var select = button("✓", "select", division.id);
+            select.title = "Select";
+            select.setAttribute("aria-label", "Select " + divisionName(division));
+            actions.appendChild(select);
             actions.appendChild(deselect);
             heading.appendChild(actions);
         }
@@ -423,6 +427,11 @@
         } else if (action === "deselect") {
             if (pinnedDetailId === target.dataset.value) hideUnitDetail(true);
             selectedIds = selectedIds.filter(function (id) { return String(id) !== target.dataset.value; });
+            renderSelection();
+            redraw();
+        } else if (action === "select") {
+            if (pinnedDetailId !== target.dataset.value) hideUnitDetail(true);
+            selectedIds = selectedIds.filter(function (id) { return String(id) === target.dataset.value; });
             renderSelection();
             redraw();
         }

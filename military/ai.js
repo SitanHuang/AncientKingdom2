@@ -105,9 +105,9 @@ var MilitaryAI = (function () {
     var availableIncome = getAvailableIncome(civ);
     var settings = Military.getSettings(civName);
     var upkeepShare = settings.maxUpkeepShare;
-    var incomeCeiling = availableIncome * (atWar ? 0.60 : 0.30) / upkeepPerMan;
+    var incomeCeiling = availableIncome * (atWar ? 0.90 : 0.70) / upkeepPerMan;
     var cashCeiling = Math.max(0, civ.money || 0) * upkeepShare / upkeepPerMan;
-    var populationCeiling = Math.max(0, civ.pop || 0) * (atWar ? 0.08 : 0.03);
+    var populationCeiling = Math.max(0, civ.pop || 0) * (atWar ? 0.35 : 0.15);
     var targetManpower = Math.max(0, Math.min(
       rawTarget,
       incomeCeiling,
@@ -265,11 +265,17 @@ var MilitaryAI = (function () {
 
   function adjacentEnemyManpower(front, civName) {
     var seen = {};
+    var seenCivs = {};
     var total = 0;
     front.tiles.forEach(function (tile) {
       tile.enemyTiles.forEach(function (pos) {
         Military.getDivisionsAt(pos[0], pos[1]).forEach(function (division) {
           if (division.civ === civName || seen[division.id]) return;
+          if (!seenCivs[division.civ]) {
+            let enemyCiv = civs[division.civ];
+            total += (enemyCiv.military / (1 + Object.keys(enemyCiv.neighbors || {}).length)) || 0;
+          }
+          seenCivs[division.civ] = true;
           seen[division.id] = true;
           total += division.manpower || 0;
         });
@@ -795,7 +801,7 @@ var MilitaryAI = (function () {
     var quartersRemaining = Math.max(0, -5 - relation);
     var expiryPressure = 1 / (1 + quartersRemaining / 8);
     if (relation % 1 === 0) return 0.04 + expiryPressure * 0.50;
-    return 0.10 + expiryPressure * 0.85;
+    return 0.25 + expiryPressure * 0.85;
   }
 
   function mobilizationPotential(civ, civName) {

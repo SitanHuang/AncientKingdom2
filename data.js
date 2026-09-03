@@ -82,7 +82,7 @@ var types = {
     },
     headquarter: {
         id: 'headquarter',
-        defenseBonus: 0.75,
+        defenseBonus: 2.00,
         initialPopulationWeight: 75,
         strategicValue: 4,
         income: function (civ) {
@@ -195,7 +195,7 @@ var types = {
     },
     fort: {
         id: 'fort',
-        defenseBonus: 0.60,
+        defenseBonus: 1.00,
         initialPopulationWeight: 60,
         strategicValue: 3.2,
         income: function (civ) {
