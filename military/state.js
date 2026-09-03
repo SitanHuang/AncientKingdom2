@@ -154,11 +154,12 @@ var Military = (function (api) {
 
   function menPerLegacyUnit(civ) {
     if (typeof civ == "string") civ = civs[civ];
-    return 400 * (1 + ((civ && civ.ii) || 0) / 1000);
+    return 600 * (1 + ((civ && civ.ii) || 0) / 25);
+    // return 400 * (1 + ((civ && civ.ii) || 0) / 1000);
   }
 
   function legacyEquivalent(civ, manpower) {
-    return manpower / menPerLegacyUnit(civ);
+    return manpower / menPerLegacyUnit(civ) * Math.max(1, (1.0 + manpower * (0.9 + ((civ && civ.ii) || 0) / 10) / ((civ.pop || 0) + 1))) ** 10;
   }
 
   function getPartKey(civName, row, col) {

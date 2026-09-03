@@ -60,7 +60,7 @@ var MilitaryAI = (function () {
     stationDivisions(civ, civName, militaryPlan, state);
     attackRound(civ, civName, state);
     attackRound(civ, civName, state);
-    attackRound(civ, civName, state);
+    // attackRound(civ, civName, state);
 
     return state.plan;
   }

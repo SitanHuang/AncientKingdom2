@@ -307,11 +307,11 @@ var Military = (function (api) {
     var sum = Math.max(1, attackerPower + defenderPower);
     var balance = (attackerPower - defenderPower) / sum;
     attackers.forEach(function (division) {
-      division.experience = api.clamp(division.experience + 0.01 * defenderPower / sum, 1, 4);
+      division.experience = api.clamp(division.experience + 0.1 * defenderPower / sum, 1, 4);
       division.morale = api.clamp(division.morale + balance * 0.5, 0.05, 2);
     });
     defenders.forEach(function (division) {
-      division.experience = api.clamp(division.experience + 0.01 * attackerPower / sum, 1, 4);
+      division.experience = api.clamp(division.experience + 0.1 * attackerPower / sum, 1, 4);
       division.morale = api.clamp(division.morale - balance * 0.5, 0.05, 2);
     });
   }
