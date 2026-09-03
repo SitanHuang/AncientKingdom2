@@ -110,9 +110,8 @@ var MilitaryAI = (function () {
     var populationCeiling = Math.max(0, civ.pop || 0) * (atWar ? 0.35 : 0.15);
     var targetManpower = Math.max(0, Math.min(
       rawTarget,
-      incomeCeiling,
-      cashCeiling,
-      populationCeiling
+      atWar ? (incomeCeiling + cashCeiling) / 1.5 : incomeCeiling * 0.75 + cashCeiling * 0.25,
+      populationCeiling + (civ.military || 0)
     ));
 
     var frontlineCount = neutralPosts + warPosts;

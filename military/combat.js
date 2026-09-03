@@ -367,6 +367,10 @@ var Military = (function (api) {
       (defender && defender.war && defender.war[attackerName])) + 2.5) || 3) + 1;
     if (attacker._parts) attacker._parts.lastUpdated = 4;
     if (defender && defender._parts) defender._parts.lastUpdated = 4;
+
+    const dPop = popv2_get_totpop(row, col);
+    popv2_apply_delta(row, col, Math.floor(-dPop * 0.25));
+    defender.nextDecline = (defender.nextDecline || 0) + dPop * 0.25;
   }
 
   function applyBattleConsequences(attackerName, defenderName, row, col, attackers, captured) {

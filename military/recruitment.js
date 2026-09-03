@@ -171,8 +171,13 @@ var Military = (function (api) {
       target.manpower += gained;
       target.experience = (oldManpower * (target.experience || 1) + gained) / target.manpower;
       target.recoveredLastTurn = (target.recoveredLastTurn || 0) + gained;
-      if (request.multiplier == 2) recruited += gained;
-      else recovered += gained;
+      if (request.multiplier == 2) {
+        recruited += gained;
+        civs[civName].nextDecline = (civs[civName].nextDecline || 0) + gained * 0.5;
+      } else {
+        recovered += gained;
+        civs[civName].nextDecline = (civs[civName].nextDecline || 0) + gained;
+      }
     });
     api.updateCivTotal(civName);
 
