@@ -121,6 +121,9 @@ are grouped by the civilization's current contiguous territory partition:
   partition.
 - A deployed division has a one-man base yield per assigned growth.
 - A queue has a two-man base yield per assigned growth.
+- Reinforcements joining a deployed division have `0.5` experience, blended
+  with the experience of its existing manpower. Queue recruits retain their
+  normal training experience.
 - Each request's success chance is `75% * local tax efficiency`. A successful
   request receives 70% of its base yield. Capital-area formations retain the
   normal 75% chance, while poorly administered locations recover less reliably.
@@ -207,8 +210,9 @@ At the start of a civilization's turn:
 Orders execute immediately. Friendly and allowed allied movement uses
 four-direction breadth-first pathfinding and costs no money or political power.
 Each traversed tile consumes one move. When several selected divisions are
-ordered, every eligible division moves and exhausted/out-of-range divisions are
-left behind.
+ordered, each division follows the route as far as its remaining movement
+allows, stopping at the closest reachable point to the requested tile. Fully
+exhausted divisions are left behind.
 
 `Military.setAlliedAccessResolver(fn)` is the extension point for allowing a
 civilization's divisions into allied territory. Until a resolver is installed,
@@ -364,6 +368,10 @@ interrupted.
 The top-right list follows the compact Rhine-style presentation:
 
 - Each row shows the civilization icon and division name.
+- A player can mark a division as part of the red army from its pinned detail
+  panel. Red-army unit icons and map indicators use a red border. AI countries
+  automatically assign their top 20% of divisions by experience to the red
+  army (with morale and manpower as tie breakers).
 - The green HP-style bar represents current morale/readiness, with normal morale
   (`1`) treated as full visual health.
 - The orange bar represents current manpower divided by maximum manpower.

@@ -172,8 +172,10 @@ var Military = (function (api) {
       var gained = Math.min(request.deficit, request.growth * request.multiplier) * 0.7;
       if (!gained) return;
       var oldManpower = target.manpower;
+      var gainedExperience = request.multiplier == 2 ? 1 : 0.5;
       target.manpower += gained;
-      target.experience = (oldManpower * (target.experience || 1) + gained) / target.manpower;
+      target.experience = (oldManpower * (target.experience || 1) + gained * gainedExperience) /
+        target.manpower;
       target.recoveredThisTurn = (target.recoveredThisTurn || 0) + gained;
       if (request.multiplier == 2) {
         recruited += gained;

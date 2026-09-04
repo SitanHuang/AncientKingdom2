@@ -29,19 +29,27 @@ ready = function () {
 
     $('canvas').bind('wheel', function (e) {_gallery_change_cml
         e.preventDefault();
-        if (e.originalEvent.wheelDelta / 120 > 0) {
+        var wheelEvent = e.originalEvent || e;
+        var zoomIn = wheelEvent.deltaY != null ? wheelEvent.deltaY < 0 : wheelEvent.wheelDelta > 0;
+        if (zoomIn) {
             BLOCK_SIZE++;
         } else {
-            BLOCK_SIZE--;
+            BLOCK_SIZE = Math.max(1, BLOCK_SIZE - 1);
         }
         drawCanvas()
     }).click(function (e) {
-        onClick(Math.floor(e.pageY / BLOCK_SIZE), Math.floor(e.pageX / BLOCK_SIZE));
+        var cell = canvasEventToCell(e);
+        if (cell) onClick(cell.row, cell.col);
     }).on("contextmenu", function(e) {
         e.preventDefault();
-        if (onRightClick) {
-            onRightClick(Math.floor(e.pageY / BLOCK_SIZE), Math.floor(e.pageX / BLOCK_SIZE));
+        var cell = canvasEventToCell(e);
+        if (cell && onRightClick) {
+            onRightClick(cell.row, cell.col);
         }
+    });
+
+    window.addEventListener('resize', function () {
+        if (getCanvasPixelRatio() !== canvasDevicePixelRatio) drawCanvas();
     });
 
     prepareTurn();

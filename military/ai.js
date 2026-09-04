@@ -62,9 +62,22 @@ var MilitaryAI = (function () {
     stationDivisions(civ, civName, militaryPlan, state);
     attackRound(civ, civName, state);
     attackRound(civ, civName, state);
+    markEliteArmy(civName);
     // attackRound(civ, civName, state);
 
     return state.plan;
+  }
+
+  function markEliteArmy(civName) {
+    var divisions = Military.getDivisions(civName).slice().sort(function (a, b) {
+      return (b.experience || 1) - (a.experience || 1) ||
+        (b.morale || 1) - (a.morale || 1) ||
+        (b.manpower || 0) - (a.manpower || 0);
+    });
+    var eliteCount = divisions.length ? Math.max(1, Math.ceil(divisions.length * 0.2)) : 0;
+    divisions.forEach(function (division, index) {
+      Military.setDivisionArmy(division.id, index < eliteCount ? "red" : null);
+    });
   }
 
   function plan(civ, civName) {

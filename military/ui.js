@@ -86,6 +86,12 @@
         return division.name || "Division " + division.id;
     }
 
+    function nextDivisionName(name) {
+        return name.replace(/([^\d])(\d+)(?!.*\d)/, function (_, prefix, number) {
+            return prefix + (Number(number) + 1);
+        });
+    }
+
     function getSelectedDivisions() {
         var divisions = [];
         selectedIds.forEach(function (id) {
@@ -238,10 +244,12 @@
         stackSummary.insertBefore(grid, stackSummary.children[1] || null);
     }
 
-    function unitIcon(civName) {
+    function unitIcon(civName, armyColor) {
         var icon = make("span", "military-unit-icon", (civName || "?").charAt(0).toUpperCase());
         icon.style.backgroundColor = civColor(civName);
         icon.style.color = civTextColor(civName);
+        if (armyColor === "red") icon.style.borderColor = "red";
+        if (armyColor) icon.style.borderWidth = '3px';
         icon.title = civName;
         return icon;
     }
@@ -272,7 +280,7 @@
         }
         var heading = make("div", "military-unit-heading");
         var title = make("strong", "military-panel-title");
-        title.appendChild(unitIcon(division.civ));
+        title.appendChild(unitIcon(division.civ, division.armyColor));
         title.appendChild(make("span", "military-unit-name", divisionName(division)));
         heading.appendChild(title);
 
@@ -325,7 +333,7 @@
         unitDetail.replaceChildren();
         var heading = make("div", "military-unit-detail-heading");
         var title = make("strong", "military-panel-title");
-        title.appendChild(unitIcon(division.civ));
+        title.appendChild(unitIcon(division.civ, division.armyColor));
         title.appendChild(make("span", "military-unit-name", divisionName(division)));
         heading.appendChild(title);
         if (pinned) heading.appendChild(button("Close", "close-detail"));
@@ -335,6 +343,8 @@
         unitDetail.appendChild(grid);
         if (pinned) {
             var actions = make("div", "military-unit-detail-actions");
+            actions.appendChild(button(division.armyColor === "red" ? "Remove from red army" : "Mark as red army",
+                "toggle-red-army", division.id));
             actions.appendChild(button("Disband division", "disband", division.id));
             unitDetail.appendChild(actions);
         }
@@ -465,6 +475,12 @@
         if (!target) return;
         if (target.dataset.action === "close-detail") {
             hideUnitDetail(true);
+        } else if (target.dataset.action === "toggle-red-army") {
+            var armyDivision = api.getDivision(target.dataset.value);
+            if (!armyDivision || armyDivision.civ !== activeCivName()) return;
+            api.setDivisionArmy(armyDivision.id, armyDivision.armyColor === "red" ? null : "red");
+            renderSelection();
+            redraw();
         } else if (target.dataset.action === "disband") {
             var division = api.getDivision(target.dataset.value);
             if (division && global.confirm("Disband " + divisionName(division) + " and return its manpower to population?")) {
@@ -555,6 +571,7 @@
 
     function actionMessage(result) {
         if (!result) return;
+        if (result.reason === "out-of-range") return;
         if (result.ok === false || result.error) notify(resultReason(result) || result.error);
     }
 
@@ -574,7 +591,16 @@
             result = api.moveDivisions(ids, row, col, { human: true, partial: true });
         }
         actionMessage(result);
-        selectionAfterAction(row, col);
+        if (!enemies.length && result && result.moved && result.moved.length) {
+            selectedIds = [];
+            selectedTile = null;
+            hideUnitDetail(true);
+            renderSelection();
+            refreshRecruitment();
+            redraw();
+        } else {
+            selectionAfterAction(row, col);
+        }
         if (enemies.length && result && result.ok && typeof global.showInfo === "function" &&
             global.civs[activeCiv] && !global.civs[activeCiv].ai) global.showInfo();
         return true;
@@ -692,9 +718,7 @@
             if (!recruitResult.ok) {
                 notify(resultReason(recruitResult));
             } else {
-                recruitmentPanel.querySelector(".military-recruit-name").value = recruitName.replace(/([^\d])(\d+)(?!.*\d)/, (_, prefix, n) =>
-                    prefix + (Number(n) + 1)
-                );
+                recruitmentPanel.querySelector(".military-recruit-name").value = nextDivisionName(recruitName);
             }
         } else if (action === "conscript") {
             var conscriptCap = Number(recruitmentPanel.querySelector(".military-conscript-men").value);
@@ -710,7 +734,7 @@
             var conscriptResult = api.conscript(civName, placementTile.row, placementTile.col, conscriptCap, { name: conscriptName });
             if (!conscriptResult.ok) notify(resultReason(conscriptResult));
             else {
-                recruitmentPanel.querySelector(".military-conscript-name").value = "";
+                recruitmentPanel.querySelector(".military-conscript-name").value = nextDivisionName(conscriptName);
                 selectTile(placementTile.row, placementTile.col);
             }
         } else if (action === "deploy") {
@@ -830,13 +854,17 @@
         totals.forEach(function (total) {
             var groups = {};
             total.divisions.forEach(function (division) {
-                groups[division.civ] = (groups[division.civ] || 0) + 1;
+                (groups[division.civ] || (groups[division.civ] = [])).push(division);
             });
 
             var size = Math.max(6, Math.min(13, blockSize * 0.42));
             var visible = Object.keys(groups).slice(0, 3);
             visible.forEach(function (civName, index) {
-                var count = groups[civName];
+                var divisions = groups[civName];
+                divisions.sort(function (a, b) {
+                    return Number(b.armyColor === "red") - Number(a.armyColor === "red");
+                });
+                var count = divisions.length;
                 var layers = Math.min(4, count);
                 var offset = Math.max(1.25, size * 0.13);
                 var x = total.col * blockSize + blockSize - size - 1 - index * Math.max(3, size * 0.58);
@@ -846,7 +874,7 @@
                     var layerY = y - layer * offset;
                     context.fillStyle = civColor(civName);
                     context.fillRect(layerX, layerY, size, size);
-                    context.strokeStyle = civTextColor(civName);
+                    context.strokeStyle = divisions[layer].armyColor === "red" ? "red" : civTextColor(civName);
                     context.lineWidth = Math.max(1, size * 0.09);
                     context.strokeRect(layerX + context.lineWidth / 2, layerY + context.lineWidth / 2,
                         size - context.lineWidth, size - context.lineWidth);

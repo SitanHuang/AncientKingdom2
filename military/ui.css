@@ -192,6 +192,10 @@
     text-align: right;
 }
 
+.military-unit-detail-actions button + button {
+    margin-left: 0.4rem;
+}
+
 .military-intel {
     margin-top: 0.45rem;
 }

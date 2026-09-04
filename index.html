@@ -352,7 +352,7 @@
 <button onclick="alert('showBorder:=' + (showBorder = !showBorder))">border?</button>
 <button onclick="alert('showStripes:=' + (showStripes = !showStripes))">stripes?</button>
 <button onclick="showYear = JSON.parse(prompt('draw yr={}', JSON.stringify(showYear || {yr: true, offset: 0})) || {yr: true,offset: 0,});drawCanvas()">yr?</button>
-<button onclick="showCellBorder = !showCellBorder">cells?</button>
+<button onclick="showCellBorder = !showCellBorder; drawCanvas();">cells?</button>
 <button onclick="MilitaryUI.setUnitMarkersVisible(!MilitaryUI.areUnitMarkersVisible())">units?</button>
 <button onclick="BLOCK_SIZE --;drawCanvas()">-</button>
 <button onclick="BLOCK_SIZE ++;drawCanvas()">+</button>

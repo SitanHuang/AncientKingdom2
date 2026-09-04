@@ -43,6 +43,7 @@ var Military = (function (api) {
     division.pendingMovePenalty = division.pendingMovePenalty || 0;
     division.recoveredLastTurn = division.recoveredLastTurn || 0;
     division.recoveredThisTurn = division.recoveredThisTurn || 0;
+    if (division.armyColor !== "red") delete division.armyColor;
     return division;
   }
 
@@ -136,6 +137,15 @@ var Military = (function (api) {
     indexDirty = true;
     updateCivTotal(division.civ);
     return division;
+  }
+
+  function setDivisionArmy(id, color) {
+    var division = military.divisions[id];
+    if (!division) return { ok: false, reason: "missing-division" };
+    if (color == null || color === "none") delete division.armyColor;
+    else if (color === "red") division.armyColor = color;
+    else return { ok: false, reason: "invalid-army-color" };
+    return { ok: true, division: division, armyColor: division.armyColor || null };
   }
 
   function removeQueue(id) {
@@ -321,6 +331,7 @@ var Military = (function (api) {
   api.getQueues = getQueues;
   api.getDivision = function (id) { return military.divisions[id]; };
   api.getQueue = function (id) { return military.queues[id]; };
+  api.setDivisionArmy = setDivisionArmy;
   api.resolveDivisions = resolveDivisions;
   api.menPerLegacyUnit = menPerLegacyUnit;
   api.legacyEquivalent = legacyEquivalent;

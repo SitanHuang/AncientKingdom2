@@ -113,6 +113,19 @@ test('legacy serialized types and military cells migrate to current objects', ()
   assert.deepEqual(ctx.military.futureSetting, { enabled: true });
 });
 
+test('division army designation accepts red or none and survives state access', () => {
+  const ctx = world();
+  const division = ctx.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 1000
+  });
+
+  assert.equal(ctx.Military.setDivisionArmy(division.id, 'red').ok, true);
+  assert.equal(ctx.Military.getDivision(division.id).armyColor, 'red');
+  assert.equal(ctx.Military.setDivisionArmy(division.id, null).ok, true);
+  assert.equal(ctx.Military.getDivision(division.id).armyColor, undefined);
+  assert.equal(ctx.Military.setDivisionArmy(division.id, 'blue').ok, false);
+});
+
 test('all bundled saves load with canonical building types and migrated divisions', () => {
   const saves = fs.readdirSync(root).filter(file => file.endsWith('.json'));
   saves.forEach(file => {
@@ -230,6 +243,20 @@ test('conscription uses the country conversion and cannot exceed ten percent per
   assert.equal(ctx.Military.getSettings('A').conscriptedThisTurn, 0);
 });
 
+test('deployed reinforcements join with 0.5 experience', () => {
+  const ctx = world();
+  ctx.Math.random = () => 0.5;
+  const division = ctx.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 2000, experience: 1.2
+  });
+
+  ctx.Military.offerGrowth('A', 0, 0, 100);
+
+  const gained = 35;
+  assert.equal(division.manpower, 1000 + gained);
+  assert.equal(division.experience, (1000 * 1.2 + gained * 0.5) / (1000 + gained));
+});
+
 test('pooled upkeep includes queues and applies fixed desertion when underfunded', () => {
   const ctx = world();
   ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 10000, maxManpower: 10000 });
@@ -280,7 +307,7 @@ test('upkeep scales quadratically above 550000 total active and queued manpower'
   assert.equal(ctx.Military.getUpkeep('A'), 11000);
 });
 
-test('friendly path movement moves eligible divisions and skips exhausted ones for free', () => {
+test('friendly path movement stops each division at its closest reachable point for free', () => {
   const ctx = world();
   const first = ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 5000, maxManpower: 5000, movesRemaining: 5 });
   const second = ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 5000, maxManpower: 5000, movesRemaining: 1 });
@@ -288,12 +315,29 @@ test('friendly path movement moves eligible divisions and skips exhausted ones f
   const politic = ctx.civs.A.politic;
   const result = ctx.Military.moveDivisions([first.id, second.id], 2, 1, { human: true, partial: true });
 
-  assert.deepEqual(Array.from(result.moved), [first.id]);
-  assert.deepEqual(Array.from(result.skipped), [second.id]);
+  assert.deepEqual(Array.from(result.moved), [first.id, second.id]);
+  assert.deepEqual(Array.from(result.skipped), []);
   assert.equal(first.row, 2);
   assert.equal(first.col, 1);
+  assert.equal(second.row, 1);
+  assert.equal(second.col, 0);
+  assert.equal(second.movesRemaining, 0);
   assert.equal(ctx.civs.A.money, money);
   assert.equal(ctx.civs.A.politic, politic);
+});
+
+test('friendly path movement leaves only fully exhausted divisions behind', () => {
+  const ctx = world();
+  const division = ctx.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 5000, maxManpower: 5000, movesRemaining: 0
+  });
+  const result = ctx.Military.moveDivisions([division.id], 2, 1);
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'out-of-range');
+  assert.deepEqual(Array.from(result.skipped), [division.id]);
+  assert.equal(division.row, 0);
+  assert.equal(division.col, 0);
 });
 
 test('hostile stack attack is charged once and cannot annihilate a weak attacker', () => {

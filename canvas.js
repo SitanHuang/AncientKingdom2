@@ -15,6 +15,63 @@ var showYear = {
     offset: 0,
 };
 
+var canvasPixelRatio = 1;
+var canvasDevicePixelRatio = 1;
+
+function getCanvasPixelRatio() {
+    return Math.max(1, Number(window.devicePixelRatio) || 1);
+}
+
+function sizeCanvasForDisplay(canvasElement, logicalWidth, logicalHeight, logicalPixelUnit) {
+    var ratio = getCanvasPixelRatio();
+    // Align map-cell edges to physical pixels. Fractional backing-pixel edges can
+    // expose antialiased seams between adjacent fills at small BLOCK_SIZE values.
+    if (logicalPixelUnit > 0) {
+        ratio = Math.max(1, Math.ceil(logicalPixelUnit * ratio)) / logicalPixelUnit;
+    }
+    canvasElement.style.width = logicalWidth + "px";
+    canvasElement.style.height = logicalHeight + "px";
+    canvasElement.width = Math.round(logicalWidth * ratio);
+    canvasElement.height = Math.round(logicalHeight * ratio);
+    canvasPixelRatio = ratio;
+    canvasDevicePixelRatio = getCanvasPixelRatio();
+    return {
+        x: canvasElement.width / logicalWidth,
+        y: canvasElement.height / logicalHeight
+    };
+}
+
+function canvasEventToCell(event) {
+    if (!canvas) return null;
+    var rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    var original = event.originalEvent || event;
+    var clientX = original.clientX;
+    var clientY = original.clientY;
+    if (clientX == null || clientY == null) return null;
+    var x = (clientX - rect.left) * (BLOCK_SIZE * data[0].length) / rect.width;
+    var y = (clientY - rect.top) * (BLOCK_SIZE * data.length) / rect.height;
+    var row = Math.floor(y / BLOCK_SIZE);
+    var col = Math.floor(x / BLOCK_SIZE);
+    if (row < 0 || col < 0 || row >= data.length || col >= data[row].length) return null;
+    return { row: row, col: col };
+}
+
+function drawCellGrid(context, rows, cols, blockSize, canvasScale) {
+    var desiredWidth = Math.min(1, blockSize * 0.15);
+    var verticalWidth = Math.max(1, Math.round(desiredWidth * canvasScale.x)) / canvasScale.x;
+    var horizontalWidth = Math.max(1, Math.round(desiredWidth * canvasScale.y)) / canvasScale.y;
+    context.save();
+    context.fillStyle = "rgba(0, 0, 0, 0.28)";
+    for (var col = 1; col < cols; col++) {
+        context.fillRect(col * blockSize, 0, verticalWidth, rows * blockSize);
+    }
+    for (var row = 1; row < rows; row++) {
+        context.fillRect(0, row * blockSize, cols * blockSize, horizontalWidth);
+    }
+    context.restore();
+}
+
 function canvasScreenshot(force) {
     if (force) {
         const [ old, old2 ] = [lazyDraw, lazyDraw2];
@@ -28,6 +85,8 @@ function canvasScreenshot(force) {
     const image = document.createElement('img');
     image.src = data;
     image.rel = "preload";
+    image.width = Math.round(parseFloat(canvas.style.width) || canvas.clientWidth);
+    image.height = Math.round(parseFloat(canvas.style.height) || canvas.clientHeight);
 
     GALLERY_DATA.push({
         img: image,
@@ -131,21 +190,21 @@ function drawCanvas(compare, relationship, pop) {
     if (gp) pop=1;
     if ((lazyDraw || lazyDraw2) && count++ % lazyDrawCount != 0) return;
     //BLOCK_SIZE += 0.17;
-    if (showCellBorder)
-        BLOCK_SIZE = Math.floor(BLOCK_SIZE) + 0.27;
-    else
-        BLOCK_SIZE = Math.floor(BLOCK_SIZE);
+    BLOCK_SIZE = Math.max(1, Math.floor(BLOCK_SIZE));
     if (BLOCK_SIZE != _canvas_cache.prevBS)
         _canvas_cache = {
             prevBS: BLOCK_SIZE,
             patterns: {}
         };
     canvas = $('canvas')[0];
-    canvas.height = BLOCK_SIZE * data.length;
-    canvas.width = BLOCK_SIZE * data[0].length;
+    var logicalWidth = BLOCK_SIZE * data[0].length;
+    var logicalHeight = BLOCK_SIZE * data.length;
+    var canvasScale = sizeCanvasForDisplay(canvas, logicalWidth, logicalHeight, BLOCK_SIZE);
     var context = canvas.getContext('2d', {antialias: false, depth: false});
+    context.setTransform(canvasScale.x, 0, 0, canvasScale.y, 0, 0);
+    context.imageSmoothingEnabled = false;
     context.fillStyle = "white";
-    context.fillRect(0, 0, BLOCK_SIZE * data[0].length, BLOCK_SIZE * data.length);
+    context.fillRect(0, 0, logicalWidth, logicalHeight);
 
     for (var row = 0;row < data.length;row++) {
         var rowData = data[row];
@@ -354,6 +413,10 @@ function drawCanvas(compare, relationship, pop) {
                 }
             }
         }
+    }
+
+    if (showCellBorder) {
+        drawCellGrid(context, data.length, data[0].length, BLOCK_SIZE, canvasScale);
     }
 
     context.fillStyle = 'rgb(0, 0, 0)';

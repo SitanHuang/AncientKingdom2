@@ -81,16 +81,22 @@ var Military = (function (api) {
     var moved = [];
     var skipped = [];
     divisions.forEach(function (division) {
-      var path = findPath(civName, [division.row, division.col], [row, col], division.movesRemaining);
+      var path = findPath(civName, [division.row, division.col], [row, col]);
       if (!path) {
         skipped.push(division.id);
         return;
       }
-      if (path.length) {
-        division.movesRemaining -= path.length;
+      var steps = Math.min(path.length, Math.max(0, Math.floor(division.movesRemaining)));
+      if (path.length && !steps) {
+        skipped.push(division.id);
+        return;
+      }
+      if (steps) {
+        var destination = path[steps - 1];
+        division.movesRemaining -= steps;
         division.entrenchment = 1;
         division.movedThisTurn = true;
-        api._moveDivision(division, row, col);
+        api._moveDivision(division, destination[0], destination[1]);
       }
       moved.push(division.id);
     });
