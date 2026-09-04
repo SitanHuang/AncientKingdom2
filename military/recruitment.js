@@ -137,7 +137,8 @@ var Military = (function (api) {
         target: request.target,
         deficit: deficit,
         growthNeeded: Math.ceil(deficit / request.multiplier),
-        multiplier: request.multiplier
+        multiplier: request.multiplier,
+        recruited: request.recruited
       };
     }).filter(function (request) { return request.deficit > 0; });
 
@@ -167,17 +168,19 @@ var Military = (function (api) {
     var recruited = 0;
     requests.forEach(function (request) {
       var target = request.target;
-      var recoveryChance = 0.75 * getTaxEfficiency(civName, target.row, target.col);
+      var recoveryChance = request.recruited
+        ? 0.75 * getTaxEfficiency(civName, target.row, target.col)
+        : getRecoveryChance(civName, target.row, target.col);
       if (Math.random() >= recoveryChance) return;
       var gained = Math.min(request.deficit, request.growth * request.multiplier) * 0.7;
       if (!gained) return;
       var oldManpower = target.manpower;
-      var gainedExperience = request.multiplier == 2 ? 1 : 0.5;
+      var gainedExperience = request.recruited ? 1 : 0.9;
       target.manpower += gained;
       target.experience = (oldManpower * (target.experience || 1) + gained * gainedExperience) /
         target.manpower;
       target.recoveredThisTurn = (target.recoveredThisTurn || 0) + gained;
-      if (request.multiplier == 2) {
+      if (request.recruited) {
         recruited += gained;
         civs[civName].nextDecline = (civs[civName].nextDecline || 0) + gained * 0.5;
       } else {
@@ -196,16 +199,37 @@ var Military = (function (api) {
     };
   }
 
+  function getRecoveryMultiplier(civName) {
+    var civ = civs[civName];
+    if (!civ) return 1;
+    return 1 + 100 / api.menPerLegacyUnit(civ);
+  }
+
+  function getRecoveryChance(civName, row, col) {
+    var civ = civs[civName];
+    if (!civ) return 0;
+    var countryScale = api.clamp(0.5 + 300 / api.menPerLegacyUnit(civ), 0.5, 1);
+    return 0.75 * countryScale * getTaxEfficiency(civName, row, col);
+  }
+
   function getGrowthRequests(civName, partKey) {
     if (!growthRequests[civName]) {
       var byPart = growthRequests[civName] = {};
       api.getDivisions(civName).forEach(function (division) {
         var key = api.getPartKey(civName, division.row, division.col);
-        (byPart[key] || (byPart[key] = [])).push({ target: division, multiplier: 1 });
+        (byPart[key] || (byPart[key] = [])).push({
+          target: division,
+          multiplier: getRecoveryMultiplier(civName),
+          recruited: false
+        });
       });
       api.getQueues(civName).forEach(function (queue) {
         var key = api.getPartKey(civName, queue.row, queue.col);
-        (byPart[key] || (byPart[key] = [])).push({ target: queue, multiplier: 2 });
+        (byPart[key] || (byPart[key] = [])).push({
+          target: queue,
+          multiplier: 2,
+          recruited: true
+        });
       });
     }
     return growthRequests[civName][partKey] || [];
@@ -305,6 +329,8 @@ var Military = (function (api) {
   api.returnPopulation = returnPopulation;
   api.offerGrowth = offerGrowth;
   api.divertGrowth = offerGrowth;
+  api.getRecoveryMultiplier = getRecoveryMultiplier;
+  api.getRecoveryChance = getRecoveryChance;
   api.resetGrowthRequests = resetGrowthRequests;
   api.getTaxEfficiency = getTaxEfficiency;
   api.getUpkeepScale = getUpkeepScale;

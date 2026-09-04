@@ -184,10 +184,10 @@ test('completed recovery remains visible for one turn instead of being cleared b
 
   ctx.Military.offerGrowth('A', 0, 0, 100);
   assert.equal(division.recoveredLastTurn, 0);
-  assert.equal(division.recoveredThisTurn, 35);
+  assert.equal(division.recoveredThisTurn, 70);
 
   ctx.Military.beginTurn('A');
-  assert.equal(division.recoveredLastTurn, 35);
+  assert.equal(division.recoveredLastTurn, 70);
   assert.equal(division.recoveredThisTurn, 0);
 
   ctx.Military.beginTurn('A');
@@ -208,8 +208,65 @@ test('local tax efficiency reduces recovery and training success chance', () => 
   const recoveredDivision = succeeded.Military._addDivision({
     civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 2000
   });
-  assert.equal(succeeded.Military.offerGrowth('A', 0, 0, 100).recovered, 35);
-  assert.equal(recoveredDivision.manpower, 1035);
+  assert.equal(succeeded.Military.offerGrowth('A', 0, 0, 100).recovered, 70);
+  assert.equal(recoveredDivision.manpower, 1070);
+});
+
+test('small-country recovery can exceed diverted growth and fades toward baseline', () => {
+  const small = world();
+  small.Math.random = () => 0.5;
+  const smallDivision = small.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 2000
+  });
+  const smallResult = small.Military.offerGrowth('A', 0, 0, 100);
+
+  const large = world();
+  large.civs.A.ii = 100;
+  large.Math.random = () => 0.4;
+  const largeDivision = large.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 2000
+  });
+  const largeResult = large.Military.offerGrowth('A', 0, 0, 100);
+
+  assert.equal(small.Military.getRecoveryMultiplier('A'), 2);
+  assert.equal(smallResult.diverted, 50);
+  assert.equal(smallResult.recovered, 70);
+  assert.ok(smallResult.recovered > smallResult.diverted);
+  assert.ok(large.Military.getRecoveryMultiplier('A') < 1.1);
+  assert.ok(largeResult.recovered < smallResult.recovered);
+  assert.equal(smallDivision.manpower, 1070);
+  assert.ok(largeDivision.manpower > 1035 && largeDivision.manpower < 1040);
+});
+
+test('recovery chance declines below baseline as country size grows', () => {
+  const small = world();
+  small.civs.A.ii = 50;
+  small.Math.random = () => 0.7;
+  const smallDivision = small.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 2000
+  });
+
+  const large = world();
+  large.civs.A.ii = 100;
+  large.Math.random = () => 0.7;
+  const largeDivision = large.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 2000
+  });
+
+  const largeTraining = world();
+  largeTraining.civs.A.ii = 100;
+  largeTraining.Math.random = () => 0.5;
+  const queue = largeTraining.Military.createRecruitQueue('A', 2000).queue;
+  largeTraining.Military.offerGrowth('A', 0, 0, 100);
+
+  assert.equal(small.Military.getRecoveryChance('A', 0, 0), 0.75);
+  assert.ok(large.Military.getRecoveryChance('A', 0, 0) < 0.75);
+  const smallRecovery = small.Military.offerGrowth('A', 0, 0, 100).recovered;
+  assert.ok(Math.abs(smallRecovery - 50 * (1 + 1 / 6) * 0.7) < 1e-12);
+  assert.equal(large.Military.offerGrowth('A', 0, 0, 100).recovered, 0);
+  assert.ok(Math.abs(smallDivision.manpower - (1000 + smallRecovery)) < 1e-12);
+  assert.equal(largeDivision.manpower, 1000);
+  assert.equal(queue.manpower, 70);
 });
 
 test('casualty reports combine the last completed turn with current actions', () => {
@@ -252,7 +309,7 @@ test('deployed reinforcements join with 0.5 experience', () => {
 
   ctx.Military.offerGrowth('A', 0, 0, 100);
 
-  const gained = 35;
+  const gained = 70;
   assert.equal(division.manpower, 1000 + gained);
   assert.equal(division.experience, (1000 * 1.2 + gained * 0.5) / (1000 + gained));
 });

@@ -119,14 +119,32 @@ are grouped by the civilization's current contiguous territory partition:
   or supply center.
 - Available growth is divided proportionally among all requests in that
   partition.
-- A deployed division has a one-man base yield per assigned growth.
+- A deployed division's yield applies the existing small-country scale:
+
+  ```text
+  recovery multiplier = 1 + 100 / men per legacy unit
+  ```
+
+  This is bounded at `2` for a zero-county country and approaches the one-man
+  baseline as the country grows. After the normal 70% recovery factor, the
+  smallest countries can therefore recover up to 1.4 men per assigned growth.
 - A queue has a two-man base yield per assigned growth.
 - Reinforcements joining a deployed division have `0.5` experience, blended
   with the experience of its existing manpower. Queue recruits retain their
   normal training experience.
-- Each request's success chance is `75% * local tax efficiency`. A successful
-  request receives 70% of its base yield. Capital-area formations retain the
-  normal 75% chance, while poorly administered locations recover less reliably.
+- A deployed division's recovery chance also applies country scale:
+
+  ```text
+  country chance factor = clamp(0.5 + 300 / men per legacy unit, 0.5, 1)
+  success chance        = 75% * country chance factor * local tax efficiency
+  ```
+
+  Countries through 50 counties retain the 75% baseline. The chance
+  then declines smoothly with country size toward a 37.5% floor before local
+  efficiency, preventing large countries from replenishing as reliably without
+  making recovery negligible. Training queues retain their existing
+  `75% * local tax efficiency` chance. A successful request receives 70% of its
+  scaled yield.
 - Successful deployed reinforcement adds all gained men to `nextDecline`;
   successful queue training adds half of its gained men.
 
