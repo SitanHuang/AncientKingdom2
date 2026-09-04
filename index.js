@@ -936,7 +936,7 @@ endTurn = function () {
         civ.expense = Math.round((civ.expense + militaryUpkeep.paid) * 100) / 100;
     }
     civ.newMoney = civ.money;
-    let polCap = Math.max(civ.ii / 10, 30);
+    let polCap = Math.max(civ.ii / 35, 30);
     polCap *= 1 + (civ.gov.mods.OPPCP || 0);
     const oppgn = 1 + (civ.gov.mods.OPPGN || 0);
     civ.politic = Math.max(Math.min(Math.round((civ.politic * (civ.happiness / 100) + 5 * oppgn) * 100) / 100 + (civ.money / 250 + (civ.gov.cohesion - 1) * 5) * oppgn, polCap), -50);

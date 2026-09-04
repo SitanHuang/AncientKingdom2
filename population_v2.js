@@ -223,9 +223,8 @@ POPV2_FLAG_USE_UNI_CULTURE = false;
 
 function popv2_culture_get_or_create_civ(civName) {
   const civ = civs[civName];
+  civ.culture = POPV2_FLAG_USE_UNI_CULTURE ? 'DefaultCulture' : (civ.culture ?? civName);
   if (!civ.culture) {
-    civ.culture = POPV2_FLAG_USE_UNI_CULTURE ? 'DefaultCulture' : civName;
-
     popv2_culture_reinit_culture(civ.culture);
   }
 
