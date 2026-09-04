@@ -485,6 +485,38 @@
         redraw();
     }
 
+    function selectHalf() {
+        if (selectedIds.length < 2) return false;
+        selectedIds = selectedIds.slice(0, Math.ceil(selectedIds.length / 2));
+        if (pinnedDetailId && selectedIds.indexOf(pinnedDetailId) < 0) hideUnitDetail(true);
+        renderSelection();
+        redraw();
+        return true;
+    }
+
+    function unselectLast() {
+        if (!selectedIds.length) return false;
+        var removed = selectedIds.pop();
+        if (pinnedDetailId === removed) hideUnitDetail(true);
+        renderSelection();
+        redraw();
+        return true;
+    }
+
+    function isTextEntry(element) {
+        if (!element) return false;
+        return element.tagName === "INPUT" || element.tagName === "TEXTAREA" ||
+            element.tagName === "SELECT" || element.isContentEditable;
+    }
+
+    function onKeyboardShortcut(event) {
+        if (isTextEntry(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+        var handled = false;
+        if (event.key && event.key.toLowerCase() === "h") handled = selectHalf();
+        else if (event.key === "Escape") handled = unselectLast();
+        if (handled) event.preventDefault();
+    }
+
     function selectTile(row, col) {
         placementTile = { row: row, col: col };
         var activeCiv = activeCivName();
@@ -543,6 +575,8 @@
         }
         actionMessage(result);
         selectionAfterAction(row, col);
+        if (enemies.length && result && result.ok && typeof global.showInfo === "function" &&
+            global.civs[activeCiv] && !global.civs[activeCiv].ai) global.showInfo();
         return true;
     }
 
@@ -728,9 +762,7 @@
             row.appendChild(make("td", "", queue.name || "Division " + queue.id));
             row.appendChild(make("td", "", number(queue.manpower) + " / " + number(queue.maxManpower) + " (request " + number(Math.max(0, queue.maxManpower - queue.manpower)) + ")"));
             row.appendChild(make("td", "", "+" + number(queue.recoveredLastTurn)));
-            var civ = global.civs[civName];
-            var upkeepModifier = 1 + ((civ.gov && civ.gov.mods && civ.gov.mods.MUKCT) || 0);
-            var upkeep = api.legacyEquivalent(civ, queue.manpower) / 4 * Math.max(0, upkeepModifier);
+            var upkeep = api.getFormationUpkeep(queue);
             row.appendChild(make("td", "", "$" + number(upkeep, 2)));
             var actionCell = make("td");
             var actions = make("span", "military-queue-actions");
@@ -902,6 +934,10 @@
         api = options.military || global.Military;
         lastActiveCiv = activeCivName();
         if (!unitPanel) createUnitPanel();
+        if (!MilitaryUI.keyboardShortcutsReady) {
+            document.addEventListener("keydown", onKeyboardShortcut);
+            MilitaryUI.keyboardShortcutsReady = true;
+        }
         if (options.recruitmentTarget && !recruitmentPanel) {
             var target = typeof options.recruitmentTarget === "string"
                 ? document.querySelector(options.recruitmentTarget)
@@ -920,6 +956,8 @@
         onTileClick: selectTile,
         onTileRightClick: onTileRightClick,
         clearSelection: clearSelection,
+        selectHalf: selectHalf,
+        unselectLast: unselectLast,
         drawOverlay: drawOverlay,
         setManpowerOverlay: setManpowerOverlay,
         setUnitMarkersVisible: setUnitMarkersVisible,

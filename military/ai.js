@@ -1,16 +1,18 @@
 var MilitaryAI = (function () {
   var MAX_ACTIONS = 128;
   var MIN_DIVISION_MANPOWER = 1000;
-  var MAX_DIVISION_MANPOWER = 20000;
+  var MAX_DIVISION_MANPOWER = 50000;
   var MAX_DIVISIONS = 128;
 
   var ADJECTIVES = [
     "Ashen", "Bronze", "Crimson", "Dawn", "Emerald", "Golden",
-    "Iron", "Ivory", "Jade", "Moonlit", "Silver", "Storm"
+    "Iron", "Ivory", "Jade", "Moonlit", "Silver", "Storm",
+    "Jaeger"
   ];
   var NOUNS = [
     "Banners", "Falcons", "Guard", "Lancers", "Legion", "Lions",
-    "Sentinels", "Shields", "Spears", "Vanguard", "Wardens", "Wolves"
+    "Sentinels", "Shields", "Spears", "Vanguard", "Wardens", "Wolves",
+    "Division", "Group", "Regiment", "Army"
   ];
 
   var publicAPI = {
@@ -116,7 +118,7 @@ var MilitaryAI = (function () {
       );
     }
 
-    var upkeepPerMan = getUpkeepPerMan(civ);
+    var upkeepPerMan = getUpkeepPerMan(civ, civName);
     var availableIncome = getAvailableIncome(civ);
     var settings = Military.getSettings(civName);
     var upkeepShare = settings.maxUpkeepShare;
@@ -829,15 +831,19 @@ var MilitaryAI = (function () {
       (civ.govExp || 0) - (civ.spentOnUrban || 0));
   }
 
-  function getUpkeepPerMan(civ) {
-    var modifier = Math.max(0.01, 1 + (civ.gov?.mods?.MUKCT || 0));
-    return modifier / (4 * Military.menPerLegacyUnit(civ));
+  function getUpkeepPerMan(civ, civName) {
+    var divisions = Military.getDivisions(civName);
+    var queues = Military.getQueues(civName);
+    var manpower = sum(divisions, "manpower") + sum(queues, "manpower");
+    if (manpower) return Military.getUpkeep(civName) / manpower;
+
+    var capital = Military.getCapital(civName);
+    return Military.getUpkeepPerManAt(civName,
+      capital ? capital[0] : null, capital ? capital[1] : null);
   }
 
   function currentUpkeep(civName, civ) {
-    var manpower = sum(Military.getDivisions(civName), "manpower") +
-      sum(Military.getQueues(civName), "manpower");
-    return manpower * getUpkeepPerMan(civ);
+    return Military.getUpkeep(civName);
   }
 
   function affordableUpkeep(civName, civ) {
@@ -898,7 +904,7 @@ var MilitaryAI = (function () {
     if (!civ) return 0;
     var active = sum(Military.getDivisions(civName), "manpower") +
       sum(Military.getQueues(civName), "manpower");
-    var economic = Math.max(0, civ.income || 0) * 0.20 / getUpkeepPerMan(civ);
+    var economic = Math.max(0, civ.income || 0) * 0.20 / getUpkeepPerMan(civ, civName);
     var population = Math.max(0, civ.pop || 0) * 0.015;
     return Math.max(active, Math.min(population, economic));
   }

@@ -42,6 +42,7 @@ var Military = (function (api) {
     division.movesRemaining = division.movesRemaining == null ? division.moveLimit : division.movesRemaining;
     division.pendingMovePenalty = division.pendingMovePenalty || 0;
     division.recoveredLastTurn = division.recoveredLastTurn || 0;
+    division.recoveredThisTurn = division.recoveredThisTurn || 0;
     return division;
   }
 
@@ -52,6 +53,7 @@ var Military = (function (api) {
     queue.maxManpower = Math.max(queue.manpower, Math.round(queue.maxManpower || queue.manpower));
     queue.experience = queue.experience || 1;
     queue.recoveredLastTurn = queue.recoveredLastTurn || 0;
+    queue.recoveredThisTurn = queue.recoveredThisTurn || 0;
     return queue;
   }
 
@@ -60,6 +62,10 @@ var Military = (function (api) {
     if (settings.growthShare == null) settings.growthShare = 0.5;
     if (settings.maxUpkeepShare == null) settings.maxUpkeepShare = 1;
     settings.conscriptedThisTurn = settings.conscriptedThisTurn || 0;
+    settings.casualtiesSufferedThisTurn = settings.casualtiesSufferedThisTurn || 0;
+    settings.casualtiesInflictedThisTurn = settings.casualtiesInflictedThisTurn || 0;
+    settings.casualtiesSufferedLastTurn = settings.casualtiesSufferedLastTurn || 0;
+    settings.casualtiesInflictedLastTurn = settings.casualtiesInflictedLastTurn || 0;
     return settings;
   }
 
@@ -154,12 +160,13 @@ var Military = (function (api) {
 
   function menPerLegacyUnit(civ) {
     if (typeof civ == "string") civ = civs[civ];
-    return 600 * (1 + ((civ && civ.ii) || 0) / 25);
+    return 100 * (1 + ((civ && civ.ii) || 0) / 10);
     // return 400 * (1 + ((civ && civ.ii) || 0) / 1000);
   }
 
   function legacyEquivalent(civ, manpower) {
-    return manpower / menPerLegacyUnit(civ) * Math.max(1, (1.0 + manpower * (0.9 + ((civ && civ.ii) || 0) / 10) / ((civ.pop || 0) + 1))) ** 10;
+    return 1 * manpower / menPerLegacyUnit(civ);
+    // return manpower / menPerLegacyUnit(civ) * Math.max(1, (1.0 + manpower * (0.9 + ((civ && civ.ii) || 0) / 10) / ((civ.pop || 0) + 1))) ** 10;
   }
 
   function getPartKey(civName, row, col) {
@@ -248,8 +255,31 @@ var Military = (function (api) {
     Object.keys(civs).forEach(updateCivTotal);
   }
 
+  function recordCasualties(civName, suffered, inflicted) {
+    var settings = getSettings(civName);
+    settings.casualtiesSufferedThisTurn += Math.max(0, Math.round(suffered || 0));
+    settings.casualtiesInflictedThisTurn += Math.max(0, Math.round(inflicted || 0));
+  }
+
+  function getCasualtyReport(civName) {
+    var settings = getSettings(civName);
+    return {
+      suffered: settings.casualtiesSufferedLastTurn + settings.casualtiesSufferedThisTurn,
+      inflicted: settings.casualtiesInflictedLastTurn + settings.casualtiesInflictedThisTurn,
+      sufferedLastTurn: settings.casualtiesSufferedLastTurn,
+      inflictedLastTurn: settings.casualtiesInflictedLastTurn,
+      sufferedThisTurn: settings.casualtiesSufferedThisTurn,
+      inflictedThisTurn: settings.casualtiesInflictedThisTurn
+    };
+  }
+
   function beginTurn(civName) {
-    getSettings(civName).conscriptedThisTurn = 0;
+    var settings = getSettings(civName);
+    settings.conscriptedThisTurn = 0;
+    settings.casualtiesSufferedLastTurn = settings.casualtiesSufferedThisTurn;
+    settings.casualtiesInflictedLastTurn = settings.casualtiesInflictedThisTurn;
+    settings.casualtiesSufferedThisTurn = 0;
+    settings.casualtiesInflictedThisTurn = 0;
     getDivisions(civName).forEach(function (division) {
       if (!division.movedThisTurn) {
         division.entrenchment = clamp(division.entrenchment + 0.25, 1, 2);
@@ -260,11 +290,13 @@ var Military = (function (api) {
       division.movesRemaining = division.moveLimit;
       division.pendingMovePenalty = 0;
       division.movedThisTurn = false;
-      division.recoveredLastTurn = 0;
+      division.recoveredLastTurn = division.recoveredThisTurn || 0;
+      division.recoveredThisTurn = 0;
     });
     var capital = getCapital(civName);
     getQueues(civName).forEach(function (queue) {
-      queue.recoveredLastTurn = 0;
+      queue.recoveredLastTurn = queue.recoveredThisTurn || 0;
+      queue.recoveredThisTurn = 0;
       if (capital) {
         queue.row = capital[0];
         queue.col = capital[1];
@@ -299,6 +331,8 @@ var Military = (function (api) {
   api.beginTurn = beginTurn;
   api.updateCivTotal = updateCivTotal;
   api.updateCivTotals = updateCivTotals;
+  api.recordCasualties = recordCasualties;
+  api.getCasualtyReport = getCasualtyReport;
   api.clamp = clamp;
   api._addDivision = addDivision;
   api._addQueue = addQueue;

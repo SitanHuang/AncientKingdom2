@@ -41,7 +41,8 @@ military = {
       movesRemaining: 3,
       pendingMovePenalty: 0,
       movedThisTurn: true,
-      recoveredLastTurn: 120
+      recoveredLastTurn: 120,
+      recoveredThisTurn: 0
     }
   },
   queues: {
@@ -54,7 +55,8 @@ military = {
       manpower: 2400,
       maxManpower: 10000,
       experience: 1,
-      recoveredLastTurn: 200
+      recoveredLastTurn: 200,
+      recoveredThisTurn: 0
     }
   },
   civSettings: {
@@ -93,7 +95,7 @@ live gameplay does not use them.
 All manpower and money conversions preserve the old small-country adjustment:
 
 ```text
-men per legacy unit = 400 * (1 + civ.ii / 1000)
+men per legacy unit = 100 * (1 + civ.ii / 10)
 legacy equivalent   = manpower / men per legacy unit
 ```
 
@@ -117,11 +119,18 @@ are grouped by the civilization's current contiguous territory partition:
   or supply center.
 - Available growth is divided proportionally among all requests in that
   partition.
-- A deployed division receives one man per diverted population growth.
-- A queue receives two men per diverted growth: one from the growth pool and
-  one free training bonus.
+- A deployed division has a one-man base yield per assigned growth.
+- A queue has a two-man base yield per assigned growth.
+- Each request's success chance is `75% * local tax efficiency`. A successful
+  request receives 70% of its base yield. Capital-area formations retain the
+  normal 75% chance, while poorly administered locations recover less reliably.
+- Successful deployed reinforcement adds all gained men to `nextDecline`;
+  successful queue training adds half of its gained men.
 
-Reinforcement and training never use `nextDecline`.
+Growth accumulates in `recoveredThisTurn`. At the start of the civilization's
+next turn that value moves to `recoveredLastTurn`, where `showInfo` and unit
+details can display it for one complete turn. A new accumulation then begins at
+zero; this prevents both premature clearing and stale recovery values.
 
 ### Training queues
 
@@ -151,11 +160,25 @@ subtracting it from `nextDecline`.
 
 ## Upkeep and desertion
 
-Active and queued manpower share the same upkeep calculation:
+Each active division and training queue calculates upkeep independently from
+the tax efficiency at its current tile:
 
 ```text
-upkeep = total legacy equivalent / 4 * max(0, 1 + gov.mods.MUKCT)
+local efficiency = clamp(regions_taxEff(civ, row, col), 0.1, 1)
+force scale      = max(1, (total military manpower / 550000) ^ 2)
+unit upkeep      = unit legacy equivalent / 4
+                   * max(0, 1 + gov.mods.MUKCT)
+                   * force scale / local efficiency
+civ upkeep       = sum of every unit and queue's upkeep
 ```
+
+This makes forces in distant, detached, or poorly administered territory more
+expensive while keeping capital-area upkeep at the existing baseline. Efficiency
+cannot discount upkeep below that baseline, and the `0.1` floor caps the location
+penalty at ten times. Training queues follow the current capital, so their upkeep
+uses that capital tile's efficiency. Total military manpower includes both
+deployed divisions and trained manpower still in recruitment queues. The force
+scale remains `1` through 550,000 men, then grows quadratically for larger armies.
 
 Upkeep runs after government, urban, deposit, and dynasty money deductions.
 `maxUpkeepShare` controls how much remaining cash is available to it. If full
@@ -243,6 +266,22 @@ each division's defensive power.
 Both sides gain small amounts of experience from fighting. The power balance
 moves attacker and defender morale in opposite directions.
 
+### Entry attrition
+
+Hostile entry can damage an attacking stack even when there is no defending
+division:
+
+- An undefended fort applies 8% of its building defense bonus as attrition.
+- An undefended headquarters does the same. Building attrition is clamped to
+  3–8%.
+- A tile whose dominant culture differs from the invader applies 2.5%
+  attrition, whether or not divisions defend it.
+- Building and cultural attrition add together, capped at 15%.
+
+Attrition is added to ordinary attacker casualties and is still capped by the
+attacking stack's current manpower. Battle results expose the total as
+`attritionLosses` and its building/culture breakdown as `attrition`.
+
 ### Retreat and capture
 
 A surviving side retreats when the incoming power is at least `1.5` times its
@@ -256,11 +295,24 @@ units have no moves left and lose entrenchment.
 
 If any defenders successfully retreat from a building, the building has a 75%
 chance to be replaced by land. Population remains on the tile and decays through
-the normal population system. If no defenders remain and the attackers did not
-retreat, the tile changes ownership and the attackers enter it.
+the normal population system. An entered non-land building with no remaining
+defenders also has a 25% chance to be removed. If no defenders remain and the
+attackers did not retreat, the tile changes ownership and the attackers enter
+it.
 
 Battles also retain the prior population damage, happiness, logistics, treasury,
 political, occupation, and small-country-collapse effects.
+
+### Casualty reporting
+
+Combat records actual manpower removed, including attrition, encirclement, and
+combat-remnant removal. Each civilization tracks losses suffered and inflicted
+for the current turn window. `beginTurn` moves those counters into the completed
+window and starts new current counters. `Military.getCasualtyReport(civName)`
+combines the completed window with any battles the player has already fought in
+the current turn. `showInfo` displays both lost and inflicted totals; human
+attacks refresh it immediately. Upkeep desertion is reported separately and is
+not counted as combat casualties.
 
 ## Military AI
 
@@ -302,6 +354,12 @@ later orders see the new map state.
 Left-clicking a tile selects all divisions on that tile. Multiple selection is
 limited to one tile. Right-clicking issues an immediate path move or adjacent
 attack; only divisions with sufficient remaining movement participate.
+
+Outside text inputs, `H` keeps the first half of the current unit selection
+(rounding up) and `Escape` removes the last unit shown in the list. Repeated use
+can narrow a large stack quickly. These shortcuts do nothing while an input,
+textarea, select, or editable element has focus, so typing division names is not
+interrupted.
 
 The top-right list follows the compact Rhine-style presentation:
 

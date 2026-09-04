@@ -96,6 +96,8 @@ var Military = (function (api) {
       entrenchment: 1,
       movesRemaining: opts.movesRemaining == null ? 5 : opts.movesRemaining,
       moveLimit: 5,
+      recoveredLastTurn: queue.recoveredLastTurn || 0,
+      recoveredThisTurn: queue.recoveredThisTurn || 0,
       createdTurn: typeof turn == "number" ? turn : 0
     });
 
@@ -164,14 +166,15 @@ var Military = (function (api) {
     var recovered = 0;
     var recruited = 0;
     requests.forEach(function (request) {
-      if (Math.random() < 0.25) return;
       var target = request.target;
+      var recoveryChance = 0.75 * getTaxEfficiency(civName, target.row, target.col);
+      if (Math.random() >= recoveryChance) return;
       var gained = Math.min(request.deficit, request.growth * request.multiplier) * 0.7;
       if (!gained) return;
       var oldManpower = target.manpower;
       target.manpower += gained;
       target.experience = (oldManpower * (target.experience || 1) + gained) / target.manpower;
-      target.recoveredLastTurn = (target.recoveredLastTurn || 0) + gained;
+      target.recoveredThisTurn = (target.recoveredThisTurn || 0) + gained;
       if (request.multiplier == 2) {
         recruited += gained;
         civs[civName].nextDecline = (civs[civName].nextDecline || 0) + gained * 0.5;
@@ -212,11 +215,41 @@ var Military = (function (api) {
   }
 
   function getUpkeep(civName) {
-    var civ = civs[civName];
+    var scale = getUpkeepScale(civName);
+    return api.getDivisions(civName).concat(api.getQueues(civName)).reduce(function (sum, formation) {
+      return sum + getFormationUpkeep(formation, scale);
+    }, 0);
+  }
+
+  function getUpkeepScale(civName) {
     var manpower = api.getDivisions(civName).reduce(sumManpower, 0) +
       api.getQueues(civName).reduce(sumManpower, 0);
-    var modifier = 1 + (((civ && civ.gov && civ.gov.mods) || {}).MUKCT || 0);
-    return api.legacyEquivalent(civ, manpower) / 4 * Math.max(0, modifier);
+    return Math.max(1, Math.pow(manpower / 550000, 2));
+  }
+
+  function getTaxEfficiency(civName, row, col) {
+    var civ = civs[civName];
+    if (!civ || row == null || col == null || typeof regions_taxEff != "function") return 1;
+    return api.clamp(regions_taxEff(civ, civName, row, col) || 0.1, 0.1, 1);
+  }
+
+  function getUpkeepPerManAt(civName, row, col) {
+    var civ = civs[civName];
+    if (!civ) return 0;
+    var modifier = 1 + (((civ.gov || {}).mods || {}).MUKCT || 0);
+    return Math.max(0, modifier) * getUpkeepScale(civName) /
+      (4 * api.menPerLegacyUnit(civ) * getTaxEfficiency(civName, row, col));
+  }
+
+  function getFormationUpkeep(formation, scale) {
+    if (!formation) return 0;
+    var civ = civs[formation.civ];
+    if (!civ) return 0;
+    var modifier = 1 + (((civ.gov || {}).mods || {}).MUKCT || 0);
+    if (scale == null) scale = getUpkeepScale(formation.civ);
+    return api.legacyEquivalent(civ, Math.max(0, formation.manpower || 0)) / 4 *
+      Math.max(0, modifier) * scale /
+      getTaxEfficiency(formation.civ, formation.row, formation.col);
   }
 
   function sumManpower(sum, formation) {
@@ -271,6 +304,10 @@ var Military = (function (api) {
   api.offerGrowth = offerGrowth;
   api.divertGrowth = offerGrowth;
   api.resetGrowthRequests = resetGrowthRequests;
+  api.getTaxEfficiency = getTaxEfficiency;
+  api.getUpkeepScale = getUpkeepScale;
+  api.getUpkeepPerManAt = getUpkeepPerManAt;
+  api.getFormationUpkeep = getFormationUpkeep;
   api.getUpkeep = getUpkeep;
   api.processUpkeep = processUpkeep;
 

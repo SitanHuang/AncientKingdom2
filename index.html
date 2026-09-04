@@ -374,7 +374,7 @@
 <button onclick="canvasScreenshot(true)">sc now</button>
 <br>
 <button onclick="enableGraph = !enableGraph">toggle graphs</button>
-<button onclick="_populationData = [];_incomeData = [];_pwrData = [];_techData = [];_dynastyData = [[null, 0]];GALLERY_DATA = [];">clear graphs & gallery</button>
+<button onclick="_populationData = [];_militaryData = [];_incomeData = [];_pwrData = [];_techData = [];_dynastyData = [[null, 0]];GALLERY_DATA = [];">clear graphs & gallery</button>
 <script>
     window.alertCopy = alert;
     function deposit() {
@@ -591,6 +591,8 @@ c:
 <h3>Population:</h3>
 <div id="popGraph" style="width: 800px;height: 600px"></div>
 <div id="hisGraph" style="width: 761px;height: 50px;margin-left: 30px;"></div>
+<h3>Military size:</h3>
+<div id="militaryGraph" style="width: 800px;height: 600px"></div>
 <h3>Income:</h3>
 <div id="incGraph" style="width: 800px;height: 600px"></div>
 <h3>Power:</h3>

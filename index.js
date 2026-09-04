@@ -1208,6 +1208,7 @@ showInfo = function () {
     var recoveredManpower = divisions.concat(recruitQueues).reduce(function (sum, formation) {
         return sum + (formation.recoveredLastTurn || 0);
     }, 0);
+    var militaryCasualties = Military.getCasualtyReport(civOrders[i]);
     var upkeep = civ.militaryUpkeep || { needed: Military.getUpkeep(civOrders[i]), paid: 0, fundedRatio: 1, deserted: 0 };
     var tributeToOthersText = "<div style='max-height: 5em;overflow: auto;border: 1px dashed grey;'>";
     var tributeToOther = civ.tributeToOther || {};
@@ -1253,6 +1254,7 @@ showInfo = function () {
                     "Population: " + civ.pop + ` (+${civ.popchange}, +${civ.popchangeperc}%, 4-turn RA=+${civ.popchangepercRA}%)\n` +
                     `Military: ${Math.round(activeManpower)} men in ${divisions.length} divisions; ${Math.round(queuedManpower)} training in ${recruitQueues.length} queues\n` +
                     `Military requests: ${Math.round(requestedManpower)}; recovered/trained: +${Math.round(recoveredManpower)}; upkeep: $${Math.round(upkeep.paid * 100) / 100}/$${Math.round(upkeep.needed * 100) / 100} (${Math.round(upkeep.fundedRatio * 100)}% funded, ${Math.round(upkeep.deserted || 0)} deserted)\n` +
+                    `Military casualties since last turn: ${Math.round(militaryCasualties.suffered)} lost; ${Math.round(militaryCasualties.inflicted)} inflicted\n` +
                     `Happiness: ${Math.round(civ.happiness * 100) / 100} % (Rebellion chance: ${Math.round(civ.rchance * 100000) / 1000}%; x${Math.round((civ._hapDec) * 100) / 100} from unnatural deaths; ${civ._perished || 0} rebel movements)\n` +
                     "Urbanization: " + civ.urban + "% (" + civ.cityCount + ")\n" +
                     `Migrants: ${civ.migrantsOutTotal} total displaced, ${civ.migrantsOutSuccessful} migrated out, ${civ.migrantsIn} in; net=${civ.migrantsIn - civ.migrantsOutSuccessful} <button onclick="manageMigrants()">Manage</button>\n` +
@@ -1296,6 +1298,7 @@ showInfo = function () {
 };
 
 let _populationData = [];
+let _militaryData = [];
 let _incomeData = [];
 let _pwrData = [];
 let _techData = [];
@@ -1375,6 +1378,34 @@ prepareTurn = function () {
             document.querySelector('#hisGraph').style.marginLeft = bbox.x;
             document.querySelector('#hisGraph').style.width = bbox.width;
             hisChart.draw(_dynastyData, turn, _populationData[0].date * civOrders.length * 4);
+
+            let militaryObj = { date: currentYear, military: 0 };
+            civOrders.forEach(x => {
+                let manpower = Military.getDivisions(x).reduce((sum, division) => sum + division.manpower, 0) / 1e6;
+                let last = 0;
+                if (_militaryData.length > 2) {
+                    for (let i = 1; i <= 2; i++) {
+                        last += _militaryData[_militaryData.length - i][x + '.h'];
+                    }
+                    militaryObj[x] = (last + manpower) / 3;
+                } else {
+                    militaryObj[x] = manpower;
+                }
+                militaryObj[x + '.h'] = manpower;
+                militaryObj.military += militaryObj[x];
+            });
+            _militaryData.push(militaryObj);
+
+            $('#militaryGraph').html('');
+            var militaryChart = d3_timeseries()
+                .width(800)
+                .height(600)
+                // .addSerie(_militaryData, { x: 'date', y: 'military' }, { interpolate: 'linear', color: 'grey', width: 2 });
+            militaryChart.xscale.tickFormat(timeFormat);
+            civOrders.forEach(x => {
+                militaryChart = militaryChart.addSerie(_militaryData, { x: 'date', y: x }, { interpolate: 'linear', color: civs[x].color, width: 1 });
+            });
+            militaryChart('#militaryGraph');
 
             let incObj = { date: currentYear, inc: 0};
             civOrders.forEach(x => {

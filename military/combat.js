@@ -111,7 +111,6 @@ var Military = (function (api) {
   function getDivisionStats(division) {
     if (typeof division != "object") division = api.getDivision(division);
     if (!division) return null;
-    var upkeepModifier = 1 + ((((civs[division.civ] || {}).gov || {}).mods || {}).MUKCT || 0);
     var attack = getPowerBreakdown([division], division.row, division.col, false);
     var defense = getPowerBreakdown([division], division.row, division.col, true);
     return {
@@ -131,7 +130,7 @@ var Military = (function (api) {
       defense: defense.power,
       encirclement: defense.encirclement,
       buildingBonus: defense.buildingBonus,
-      upkeep: api.legacyEquivalent(division.civ, division.manpower) / 4 * Math.max(0, upkeepModifier)
+      upkeep: api.getFormationUpkeep(division)
     };
   }
 
@@ -157,7 +156,6 @@ var Military = (function (api) {
     var attack = getPowerBreakdown(divisions, row, col, false, overrides);
     var defense = getPowerBreakdown(divisions, row, col, defending !== false, overrides);
     var civName = divisions[0] && divisions[0].civ;
-    var upkeepModifier = 1 + (((((civs[civName] || {}).gov || {}).mods || {}).MUKCT) || 0);
     return {
       count: divisions.length,
       manpower: overrides.manpower == null ? manpower : overrides.manpower,
@@ -180,7 +178,35 @@ var Military = (function (api) {
       defense: defense.power,
       encirclement: defense.encirclement,
       buildingBonus: defense.buildingBonus,
-      upkeep: civName ? api.legacyEquivalent(civName, manpower) / 4 * Math.max(0, upkeepModifier) : 0
+      upkeep: divisions.reduce(function (sum, division) {
+        return sum + api.getFormationUpkeep(division);
+      }, 0)
+    };
+  }
+
+  function getAttackAttrition(attackerName, row, col, hasDefenders) {
+    var tile = data[row] && data[row][col];
+    var building = 0;
+    var culture = 0;
+    if (!tile) return { rate: 0, building: 0, culture: 0 };
+
+    var type = api.cellTypeName(tile.type);
+    if (!hasDefenders && (type == "fort" || type == "headquarter")) {
+      building = api.clamp((api.getBuildingBonus(row, col) - 1) * 0.08, 0.03, 0.08);
+    }
+
+    if (typeof popv2_get_dominant_culture == "function") {
+      var dominantCulture = popv2_get_dominant_culture(row, col);
+      var attackerCulture = civs[attackerName] && civs[attackerName].culture;
+      if (dominantCulture != null && attackerCulture != null && dominantCulture != attackerCulture) {
+        culture = 0.025;
+      }
+    }
+
+    return {
+      rate: Math.min(0.15, building + culture),
+      building: building,
+      culture: culture
     };
   }
 
@@ -192,6 +218,8 @@ var Military = (function (api) {
     var tile = data[row][col];
     var defenderName = tile.color;
     var defenders = api.getDivisionsAt(row, col, defenderName);
+    var attackerIds = attackers.map(function (division) { return division.id; });
+    var defenderIds = defenders.map(function (division) { return division.id; });
     var attack = getPowerBreakdown(attackers, row, col, false);
     var defense = getPowerBreakdown(defenders, row, col, true);
     if (defenders.length && typeof popv2_get_dominant_culture == "function" &&
@@ -204,10 +232,16 @@ var Military = (function (api) {
     }
     var attackerManpower = totalManpower(attackers);
     var defenderManpower = totalManpower(defenders);
-    var attackerLosses = defenderManpower ? Math.min(
+    var combatLosses = defenderManpower ? Math.min(
       Math.max(0, attackerManpower - 1),
       Math.round(Math.sqrt(defense.power * 5))
     ) : 0;
+    var attrition = getAttackAttrition(attackerName, row, col, defenders.length > 0);
+    var attackerLosses = Math.min(
+      Math.max(0, attackerManpower - 1),
+      combatLosses + Math.round(attackerManpower * attrition.rate)
+    );
+    attrition.losses = Math.max(0, attackerLosses - combatLosses);
     var defenderLosses = attackerManpower ? Math.min(
       defenderManpower,
       attackerManpower,
@@ -253,6 +287,10 @@ var Military = (function (api) {
     applyBattleConsequences(attackerName, defenderName, row, col, attackers, captured);
     api.updateCivTotal(attackerName);
     api.updateCivTotal(defenderName);
+    var attackerCasualties = Math.max(0, attackerManpower - remainingManpower(attackerIds));
+    var defenderCasualties = Math.max(0, defenderManpower - remainingManpower(defenderIds));
+    api.recordCasualties(attackerName, attackerCasualties, defenderCasualties);
+    api.recordCasualties(defenderName, defenderCasualties, attackerCasualties);
 
     return {
       ok: true,
@@ -262,7 +300,11 @@ var Military = (function (api) {
       attackerPower: attack.power,
       defenderPower: defense.power,
       attackerLosses: attackerLosses,
+      attritionLosses: attrition.losses,
+      attrition: attrition,
       defenderLosses: defenderLosses,
+      attackerCasualties: attackerCasualties,
+      defenderCasualties: defenderCasualties,
       attackerRemaining: totalManpower(attackers),
       defenderRemaining: totalManpower(api.getDivisionsAt(row, col, defenderName)),
       retreated: retreated,
@@ -273,6 +315,13 @@ var Military = (function (api) {
 
   function totalManpower(divisions) {
     return divisions.reduce(function (sum, division) { return sum + division.manpower; }, 0);
+  }
+
+  function remainingManpower(ids) {
+    return ids.reduce(function (sum, id) {
+      var division = api.getDivision(id);
+      return sum + (division ? division.manpower : 0);
+    }, 0);
   }
 
   function applyLosses(divisions, losses, weightFn) {
@@ -428,6 +477,7 @@ var Military = (function (api) {
   api.estimatePower = estimatePower;
   api.getDivisionStats = getDivisionStats;
   api.getStackStats = getStackStats;
+  api.getAttackAttrition = getAttackAttrition;
   api.resolveBattle = resolveBattle;
 
   return api;

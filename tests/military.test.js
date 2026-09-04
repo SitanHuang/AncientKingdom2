@@ -27,6 +27,9 @@ function world(options = {}) {
     popv2_get_totpop: (row, col) => context.data[row][col].pop || 0,
     popv2_apply_delta: (row, col, delta) => { context.data[row][col].pop = (context.data[row][col].pop || 0) + delta; },
     popv2_get_dominant_culture: () => options.culture || 'a',
+    regions_taxEff: (_civ, _name, row, col) => typeof options.taxEfficiency === 'function'
+      ? options.taxEfficiency(row, col)
+      : (options.taxEfficiency == null ? 1 : options.taxEfficiency),
     regions_defBonus: () => options.regionBonus || 1,
     isAtWar: (civ, name) => !!(civ.war && civ.war[name] >= 0),
     isAlliance: (civ, name) => !!(civ.war && civ.war[name] <= -5 && civ.war[name] % 1 === 0)
@@ -103,8 +106,8 @@ test('legacy serialized types and military cells migrate to current objects', ()
   ctx.normalizeCellTypes();
 
   const division = ctx.Military.getDivisions('A')[0];
-  assert.equal(division.manpower, 4400);
-  assert.equal(division.maxManpower, 8800);
+  assert.equal(division.manpower, 11000);
+  assert.equal(division.maxManpower, 22000);
   assert.equal(ctx.data[0][0].type, ctx.types.land);
   assert.equal(ctx.data[0][1].type, ctx.types.city);
   assert.deepEqual(ctx.military.futureSetting, { enabled: true });
@@ -143,19 +146,76 @@ test('partition calculation safely represents a civilization with no territory',
   assert.equal(parts.supplyCenter, null);
 });
 
-test('recruit queues receive two men for each diverted growth and cost upkeep', () => {
+test('recruit queues apply the current training yield and cost upkeep', () => {
   const ctx = world();
+  ctx.Math.random = () => 0.5;
   const result = ctx.Military.createRecruitQueue('A', 2000, { name: 'First' });
   assert.equal(result.ok, true);
   assert.equal(ctx.Military.offerGrowth('A', 0, 0, 100).diverted, 50);
-  assert.equal(result.queue.manpower, 100);
-  assert.equal(ctx.Military.getUpkeep('A'), 100 / 400 / 4);
+  assert.equal(result.queue.manpower, 70);
+  assert.equal(ctx.Military.getUpkeep('A'), 70 / 100 / 4);
 
   const deployed = ctx.Military.deployQueue(result.queue.id);
   assert.equal(deployed.ok, true);
-  assert.equal(deployed.division.manpower, 100);
+  assert.equal(deployed.division.manpower, 70);
   assert.equal(deployed.division.maxManpower, 2000);
   assert.equal(ctx.Military.getQueues('A').length, 0);
+});
+
+test('completed recovery remains visible for one turn instead of being cleared before display', () => {
+  const ctx = world();
+  ctx.Math.random = () => 0.5;
+  const division = ctx.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 2000
+  });
+
+  ctx.Military.offerGrowth('A', 0, 0, 100);
+  assert.equal(division.recoveredLastTurn, 0);
+  assert.equal(division.recoveredThisTurn, 35);
+
+  ctx.Military.beginTurn('A');
+  assert.equal(division.recoveredLastTurn, 35);
+  assert.equal(division.recoveredThisTurn, 0);
+
+  ctx.Military.beginTurn('A');
+  assert.equal(division.recoveredLastTurn, 0);
+});
+
+test('local tax efficiency reduces recovery and training success chance', () => {
+  const failed = world({ taxEfficiency: 0.25 });
+  failed.Math.random = () => 0.5;
+  const failedDivision = failed.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 2000
+  });
+  assert.equal(failed.Military.offerGrowth('A', 0, 0, 100).recovered, 0);
+  assert.equal(failedDivision.manpower, 1000);
+
+  const succeeded = world({ taxEfficiency: 0.25 });
+  succeeded.Math.random = () => 0.1;
+  const recoveredDivision = succeeded.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 2000
+  });
+  assert.equal(succeeded.Military.offerGrowth('A', 0, 0, 100).recovered, 35);
+  assert.equal(recoveredDivision.manpower, 1035);
+});
+
+test('casualty reports combine the last completed turn with current actions', () => {
+  const ctx = world();
+  ctx.Military.recordCasualties('A', 10, 20);
+  ctx.Military.beginTurn('A');
+  ctx.Military.recordCasualties('A', 3, 4);
+
+  const report = ctx.Military.getCasualtyReport('A');
+  assert.equal(report.suffered, 13);
+  assert.equal(report.inflicted, 24);
+  assert.equal(report.sufferedLastTurn, 10);
+  assert.equal(report.inflictedLastTurn, 20);
+  assert.equal(report.sufferedThisTurn, 3);
+  assert.equal(report.inflictedThisTurn, 4);
+
+  ctx.Military.beginTurn('A');
+  assert.equal(ctx.Military.getCasualtyReport('A').suffered, 3);
+  assert.equal(ctx.Military.getCasualtyReport('A').inflicted, 4);
 });
 
 test('conscription uses the country conversion and cannot exceed ten percent per turn', () => {
@@ -163,7 +223,7 @@ test('conscription uses the country conversion and cannot exceed ten percent per
   const result = ctx.Military.conscript('A', 0, 0, 20000, { name: 'Levy' });
   assert.equal(result.ok, true);
   assert.equal(result.manpower, 10000);
-  assert.equal(result.cost, 50);
+  assert.equal(result.cost, 200);
   assert.equal(ctx.civs.A.nextDecline, 10000);
   assert.equal(ctx.Military.conscript('A', 0, 0, 1000, { name: 'Second' }).ok, false);
   ctx.Military.beginTurn('A');
@@ -182,6 +242,42 @@ test('pooled upkeep includes queues and applies fixed desertion when underfunded
   assert.equal(result.deserted, 2000);
   assert.equal(queue.manpower, 4000);
   assert.equal(ctx.civs.A.nextDecline, -2000);
+});
+
+test('upkeep is calculated per formation from its local tax efficiency', () => {
+  const ctx = world({ taxEfficiency: (_row, col) => col === 0 ? 1 : 0.25 });
+  const capital = ctx.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 1000
+  });
+  const frontier = ctx.Military._addDivision({
+    civ: 'A', row: 0, col: 1, manpower: 1000, maxManpower: 1000
+  });
+  const queue = ctx.Military._addQueue({
+    civ: 'A', row: 1, col: 1, manpower: 500, maxManpower: 1000
+  });
+
+  assert.equal(ctx.Military.getFormationUpkeep(capital), 2.5);
+  assert.equal(ctx.Military.getFormationUpkeep(frontier), 10);
+  assert.equal(ctx.Military.getFormationUpkeep(queue), 5);
+  assert.equal(ctx.Military.getUpkeep('A'), 17.5);
+  assert.equal(ctx.Military.getDivisionStats(frontier).upkeep, 10);
+});
+
+test('upkeep scales quadratically above 550000 total active and queued manpower', () => {
+  const ctx = world();
+  const division = ctx.Military._addDivision({
+    civ: 'A', row: 0, col: 0, manpower: 550000, maxManpower: 550000
+  });
+  assert.equal(ctx.Military.getUpkeepScale('A'), 1);
+  assert.equal(ctx.Military.getUpkeep('A'), 1375);
+
+  const queue = ctx.Military._addQueue({
+    civ: 'A', row: 0, col: 0, manpower: 550000, maxManpower: 550000
+  });
+  assert.equal(ctx.Military.getUpkeepScale('A'), 4);
+  assert.equal(ctx.Military.getFormationUpkeep(division), 5500);
+  assert.equal(ctx.Military.getFormationUpkeep(queue), 5500);
+  assert.equal(ctx.Military.getUpkeep('A'), 11000);
 });
 
 test('friendly path movement moves eligible divisions and skips exhausted ones for free', () => {
@@ -215,7 +311,7 @@ test('hostile stack attack is charged once and cannot annihilate a weak attacker
   assert.ok(result.attackerRemaining >= 1);
   assert.ok(result.defenderLosses <= 1000);
   assert.equal(result.cost.politic, 0.875);
-  assert.equal(result.cost.money, 0.5);
+  assert.equal(result.cost.money, 2);
   assert.equal(ctx.civs.A.politic, 99.125);
 });
 
@@ -234,8 +330,8 @@ test('recapture, regional, culture, country scale, and government modifiers reta
   assert.ok(Math.abs(recapture / hostile - 2) < 1e-12);
   assert.equal(defense.location, 2.5);
   assert.ok(defense.civ.technology > 1);
-  assert.ok(Math.abs(ctx.Military.getUpkeep('A') - 2) < 1e-12);
-  assert.ok(Math.abs(ctx.Military.legacyEquivalent('A', 4400) - 10) < 1e-12);
+  assert.ok(Math.abs(ctx.Military.getUpkeep('A') - 0.8) < 1e-12);
+  assert.ok(Math.abs(ctx.Military.legacyEquivalent('A', 4400) - 4) < 1e-12);
 });
 
 test('retreating defenders disperse to least-filled tiles and may destroy their building', () => {
@@ -300,6 +396,43 @@ test('building defense and government combat modifiers affect division statistic
   ctx.civs.A.gov.mods.MCCCT = 0.5;
   const after = ctx.Military.getDivisionStats(division.id);
   assert.ok(after.attack > before.attack);
+});
+
+test('undefended forts and headquarters inflict entry attrition', () => {
+  const ctx = world();
+  ctx.civs.A.war.B = 4;
+  ctx.civs.B.war.A = 4;
+  ctx.Math.random = () => 0.9;
+  ctx.data[1][2].type = ctx.types.fort;
+  const attacker = ctx.Military._addDivision({
+    civ: 'A', row: 1, col: 1, manpower: 10000, maxManpower: 10000
+  });
+
+  const fortResult = ctx.Military.attack([attacker.id], 1, 2, { ignoreCost: true });
+  assert.ok(fortResult.attrition.building > 0);
+  assert.equal(fortResult.attrition.culture, 0);
+  assert.ok(fortResult.attritionLosses > 0);
+
+  ctx.data[0][2].type = ctx.types.headquarter;
+  assert.ok(ctx.Military.getAttackAttrition('A', 0, 2, false).building > 0);
+  assert.equal(ctx.Military.getAttackAttrition('A', 0, 2, true).building, 0);
+});
+
+test('foreign-culture cells inflict attrition on invaders', () => {
+  const ctx = world({ culture: 'b' });
+  ctx.civs.A.war.B = 4;
+  ctx.civs.B.war.A = 4;
+  ctx.Math.random = () => 0.9;
+  const attacker = ctx.Military._addDivision({
+    civ: 'A', row: 1, col: 1, manpower: 10000, maxManpower: 10000
+  });
+
+  const result = ctx.Military.attack([attacker.id], 1, 2, { ignoreCost: true });
+  assert.equal(result.attrition.culture, 0.025);
+  assert.equal(result.attrition.building, 0);
+  assert.equal(result.attritionLosses, 250);
+  assert.equal(ctx.Military.getCasualtyReport('A').sufferedThisTurn, result.attackerCasualties);
+  assert.equal(ctx.Military.getCasualtyReport('B').inflictedThisTurn, result.attackerCasualties);
 });
 
 test('shared AI derives force size and switches military policy for peace and war', () => {
