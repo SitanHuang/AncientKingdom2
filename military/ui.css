@@ -1,19 +1,21 @@
 .military-unit-panel {
     position: fixed;
     z-index: 30;
-    top: max(0.75rem, env(safe-area-inset-top));
-    right: max(0.75rem, env(safe-area-inset-right));
-    width: min(29rem, calc(100vw - 1.5rem));
-    max-height: calc(100vh - 1.5rem);
+    top: env(safe-area-inset-top, 0px);
+    right: env(safe-area-inset-right, 0px);
+    width: min(23rem, 100vw);
+    max-height: 100vh;
     overflow: auto;
     box-sizing: border-box;
-    padding: 0.75rem;
+    padding: 0.25rem;
+    font-size: 12px;
     border: 1px solid rgba(0, 0, 0, 0.35);
-    border-radius: 0.45rem;
+    border-radius: 0;
     background: rgba(244, 244, 244, 0.96);
-    box-shadow: 0 0.25rem 1.25rem rgba(0, 0, 0, 0.32);
+    box-shadow: none;
     color: #222;
     text-transform: none;
+    user-select: none;
 }
 
 .military-unit-panel[hidden] {
@@ -37,7 +39,7 @@
 
 .military-panel-header {
     justify-content: space-between;
-    margin-bottom: 0.55rem;
+    margin-bottom: 0.25rem;
 }
 
 .military-panel-header h3,
@@ -47,8 +49,8 @@
 }
 
 .military-stack-summary {
-    padding: 0.55rem;
-    margin-bottom: 0.55rem;
+    padding: 0.25rem;
+    margin-bottom: 0.25rem;
     border-radius: 0.3rem;
     background: rgba(0, 0, 0, 0.065);
 }
@@ -67,12 +69,12 @@
 
 .military-unit-list {
     display: grid;
-    gap: 0.28rem;
+    gap: 1px;
 }
 
 .military-unit-row {
     overflow: hidden;
-    padding: 0.35rem 0.4rem 0;
+    padding: 0.1rem 0.2rem 0;
     border: 1px solid rgba(0, 0, 0, 0.18);
     border-radius: 0.3rem;
     background: rgba(255, 255, 255, 0.72);
@@ -95,7 +97,7 @@
 
 .military-unit-heading {
     justify-content: space-between;
-    min-height: 1.7rem;
+    min-height: 1.3rem;
 }
 
 .military-panel-title,
@@ -113,8 +115,8 @@
     display: inline-grid;
     flex: 0 0 auto;
     place-items: center;
-    width: 1.55rem;
-    height: 1.55rem;
+    width: 1.15rem;
+    height: 1.15rem;
     border: 1px solid rgba(0, 0, 0, 0.45);
     border-radius: 0.15rem;
     font-weight: 700;
@@ -132,8 +134,8 @@
 }
 
 .military-unit-row .military-unit-actions button {
-    width: 1.55rem;
-    height: 1.55rem;
+    width: 1.15rem;
+    height: 1.15rem;
     padding: 0;
     border: 0;
     background: transparent;
@@ -144,12 +146,12 @@
 .military-unit-status-bars {
     display: grid;
     gap: 2px;
-    margin: 0.25rem -0.4rem 0;
+    margin: 0.1rem -0.2rem 0;
 }
 
 .military-unit-status {
     display: block;
-    height: 3px;
+    height: 2px;
     background: rgba(0, 0, 0, 0.14);
 }
 
@@ -332,9 +334,9 @@
 
 @media (max-width: 560px) {
     .military-unit-panel {
-        top: max(0.35rem, env(safe-area-inset-top));
-        right: max(0.35rem, env(safe-area-inset-right));
-        width: calc(100vw - 0.7rem);
+        top: env(safe-area-inset-top, 0px);
+        right: env(safe-area-inset-right, 0px);
+        width: min(23rem, 100vw);
         max-height: 55vh;
     }
 
@@ -351,4 +353,91 @@
     .military-queue-table td:nth-child(3) {
         display: none;
     }
+}
+
+.military-unit-panel button {
+    font-size: inherit;
+    line-height: 1.2;
+    min-height: 0;
+    padding: 0.1rem 0.25rem;
+}
+
+.military-unit-heading .military-panel-title {
+    flex: 1;
+    gap: 0.25rem;
+}
+
+.military-unit-men {
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.military-unit-ribbon {
+    flex: 0 0 5px;
+    align-self: stretch;
+}
+
+.military-army-ribbons {
+    display: flex;
+    gap: 3px;
+    margin: 0.25rem 0;
+}
+
+.military-army-ribbons button {
+    flex: 1;
+    height: 1.2rem;
+    border: 1px solid #777;
+    border-radius: 0;
+}
+
+.military-army-ribbons button[aria-pressed="true"] {
+    outline: 2px solid #222;
+    outline-offset: 1px;
+}
+
+.military-army-summary-row {
+    display: grid;
+    grid-template-columns: 0.7rem auto 1fr auto auto;
+    gap: 1px 0.3rem;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 2px;
+}
+
+.military-army-strength {
+    grid-column: 1 / -1;
+    height: 3px;
+}
+
+.military-army-ribbons[hidden],
+.military-army-summary[hidden] {
+    display: none;
+}
+
+.military-army-swatch {
+    width: 0.65rem;
+    height: 0.65rem;
+    align-self: center;
+    line-height: 0.65rem;
+}
+
+.military-friendly-stats {
+    grid-template-columns: repeat(4, auto);
+    gap: 0.2rem;
+}
+
+.military-unit-owned[data-selected="false"] {
+    opacity: 0.6;
+}
+
+.military-unit-owned[data-selected="true"] {
+    border-color: #555;
+}
+
+.military-unit-panel .military-army-swatch,
+.military-unit-panel .military-army-strength {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    cursor: pointer;
 }

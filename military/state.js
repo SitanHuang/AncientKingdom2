@@ -1,6 +1,8 @@
 var military = typeof military == "object" && military ? military : {};
 
 var Military = (function (api) {
+  var armyColors = { purple: "#4a148c", red: "#b71c1c", blue: "#0d47a1",
+    green: "#109020", olive: "#827717", orange: "#e65100", charcoal: "#302f2f" };
   var tileIndex = {};
   var civIndex = {};
   var queueIndex = {};
@@ -43,7 +45,10 @@ var Military = (function (api) {
     division.pendingMovePenalty = division.pendingMovePenalty || 0;
     division.recoveredLastTurn = division.recoveredLastTurn || 0;
     division.recoveredThisTurn = division.recoveredThisTurn || 0;
-    if (division.armyColor !== "red") delete division.armyColor;
+    division.moveTargets = Array.isArray(division.moveTargets) ? division.moveTargets.filter(function (point) {
+      return Array.isArray(point) && point.length == 2 && point.every(Number.isInteger);
+    }).map(function (point) { return point.slice(); }) : [];
+    if (!Object.prototype.hasOwnProperty.call(armyColors, division.armyColor)) delete division.armyColor;
     return division;
   }
 
@@ -143,7 +148,7 @@ var Military = (function (api) {
     var division = military.divisions[id];
     if (!division) return { ok: false, reason: "missing-division" };
     if (color == null || color === "none") delete division.armyColor;
-    else if (color === "red") division.armyColor = color;
+    else if (Object.prototype.hasOwnProperty.call(armyColors, color)) division.armyColor = color;
     else return { ok: false, reason: "invalid-army-color" };
     return { ok: true, division: division, armyColor: division.armyColor || null };
   }
@@ -298,6 +303,7 @@ var Military = (function (api) {
         -Math.min(0.1, division.morale - 1);
       division.moveLimit = Math.max(0, 5 - Math.min(1, division.pendingMovePenalty || 0));
       division.movesRemaining = division.moveLimit;
+      delete division.movePlanWaiting;
       division.pendingMovePenalty = 0;
       division.movedThisTurn = false;
       division.recoveredLastTurn = division.recoveredThisTurn || 0;
@@ -313,6 +319,7 @@ var Military = (function (api) {
       }
     });
     if (api.resetGrowthRequests) api.resetGrowthRequests(civName);
+    if (api.executeTurnOrders) api.executeTurnOrders(civName);
     updateCivTotal(civName);
   }
 
@@ -321,6 +328,7 @@ var Military = (function (api) {
     return Math.max(min, Math.min(max, value));
   }
 
+  api.armyColors = armyColors;
   api.init = init;
   api.migrateLegacyCells = migrateLegacyCells;
   api.getSettings = getSettings;

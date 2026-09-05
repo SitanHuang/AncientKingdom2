@@ -1,5 +1,6 @@
 
 var canvas = null;
+var diplomacyViewCiv = null;
 var BLOCK_SIZE = 20.2;
 
 var count = 0;
@@ -55,6 +56,30 @@ function canvasEventToCell(event) {
     var col = Math.floor(x / BLOCK_SIZE);
     if (row < 0 || col < 0 || row >= data.length || col >= data[row].length) return null;
     return { row: row, col: col };
+}
+
+function diplomacyTooltip(row, col) {
+    var source = civs[diplomacyViewCiv];
+    var tile = data[row] && data[row][col];
+    if (!source || !tile || !tile.color) return "";
+    var target = tile.color;
+    if (target === diplomacyViewCiv) return target + " — own territory";
+    var relationship = isAlliance(source, target) ? "Alliance" :
+        isPeace(source, target) ? "Non-aggression pact" : isAtWar(source, target) ? "War" : null;
+    if (!relationship) return diplomacyViewCiv + " / " + target + " — Neutral (no expiry)";
+    var remaining = source.war[target];
+    // calculateYears updates the shared timer on each country's turn: twice
+    // per game quarter. Pacts expire at -5; wars end at 1 or below.
+    var updates = relationship === "War" ? Math.ceil(remaining - 1) : Math.ceil(-5 - remaining);
+    var quarters = Math.ceil(Math.max(1, updates) / 2);
+    return diplomacyViewCiv + " / " + target + " — " + relationship + ": " +
+        quarters + " quarter" + (quarters === 1 ? "" : "s") + " until expiry";
+}
+
+function updateDiplomacyTooltip(event) {
+    if (!canvas) return;
+    var cell = diplomacyViewCiv && canvasEventToCell(event);
+    canvas.title = cell ? diplomacyTooltip(cell.row, cell.col) : "";
 }
 
 function drawCellGrid(context, rows, cols, blockSize, canvasScale) {
@@ -197,6 +222,8 @@ function drawCanvas(compare, relationship, pop) {
             patterns: {}
         };
     canvas = $('canvas')[0];
+    diplomacyViewCiv = relationship || null;
+    canvas.title = "";
     var logicalWidth = BLOCK_SIZE * data[0].length;
     var logicalHeight = BLOCK_SIZE * data.length;
     var canvasScale = sizeCanvasForDisplay(canvas, logicalWidth, logicalHeight, BLOCK_SIZE);
@@ -573,7 +600,7 @@ function drawCanvas(compare, relationship, pop) {
 
 window.onClickTemp = null;
 
-function onClick(row, col) {
+function onClick(row, col, event) {
     if (onClickTemp) {
         onClickTemp(row, col);
         onClickTemp = null;
@@ -589,7 +616,7 @@ function onClick(row, col) {
     }
 
     var land = data[row] && data[row][col];
-    if (typeof MilitaryUI != 'undefined' && MilitaryUI.onTileClick(row, col)) return;
+    if (typeof MilitaryUI != 'undefined' && MilitaryUI.onTileClick(row, col, event)) return;
 
     if (civ.technology == -1) {
         if (land == null) {

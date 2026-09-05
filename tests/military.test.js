@@ -113,7 +113,7 @@ test('legacy serialized types and military cells migrate to current objects', ()
   assert.deepEqual(ctx.military.futureSetting, { enabled: true });
 });
 
-test('division army designation accepts red or none and survives state access', () => {
+test('division army ribbons accept all palette colors and survive saved state', () => {
   const ctx = world();
   const division = ctx.Military._addDivision({
     civ: 'A', row: 0, col: 0, manpower: 1000, maxManpower: 1000
@@ -123,7 +123,12 @@ test('division army designation accepts red or none and survives state access', 
   assert.equal(ctx.Military.getDivision(division.id).armyColor, 'red');
   assert.equal(ctx.Military.setDivisionArmy(division.id, null).ok, true);
   assert.equal(ctx.Military.getDivision(division.id).armyColor, undefined);
-  assert.equal(ctx.Military.setDivisionArmy(division.id, 'blue').ok, false);
+  for (const color of Object.keys(ctx.Military.armyColors)) {
+    assert.equal(ctx.Military.setDivisionArmy(division.id, color).ok, true);
+    ctx.Military.init(JSON.parse(JSON.stringify(ctx.military)));
+    assert.equal(ctx.Military.getDivision(division.id).armyColor, color);
+  }
+  assert.equal(ctx.Military.setDivisionArmy(division.id, 'invalid').ok, false);
 });
 
 test('all bundled saves load with canonical building types and migrated divisions', () => {
@@ -578,4 +583,179 @@ test('AI peacetime strength responds to neighbor size and expiring diplomacy', (
   assert.ok(neutral > 9000);
   assert.ok(expiringAlliance > longAlliance);
   assert.ok(expiringPact > longPact);
+});
+
+test('persistent orders resume exhausted divisions, survive saves, and finish in later turns', () => {
+  const ctx = world();
+  ctx.data = [Array.from({ length: 13 }, () => cell('A', ctx.types.land))];
+  const fast = ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 5000 });
+  const slow = ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 5000, movesRemaining: 0 });
+  assert.equal(ctx.Military.orderDivisions([fast.id, slow.id], 0, 12).ok, true);
+  assert.equal(fast.col, 5);
+  assert.equal(slow.col, 0);
+  ctx.Military.init(JSON.parse(JSON.stringify(ctx.military)));
+  ctx.Military.beginTurn('B');
+  assert.equal(ctx.Military.getDivision(fast.id).col, 5);
+  ctx.Military.beginTurn('A');
+  assert.equal(ctx.Military.getDivision(fast.id).col, 10);
+  assert.equal(ctx.Military.getDivision(slow.id).col, 5);
+  ctx.Military.beginTurn('A');
+  assert.equal(ctx.Military.getDivision(fast.id).col, 12);
+  assert.equal(ctx.Military.getDivision(fast.id).moveTargets.length, 0);
+  assert.equal(ctx.Military.getDivision(slow.id).col, 10);
+});
+
+test('orders append waypoints, replace routes, and cancel at current or queued locations', () => {
+  const ctx = world();
+  const unit = ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 5000, movesRemaining: 0 });
+  ctx.Military.orderDivisions([unit.id], 2, 0);
+  ctx.Military.orderDivisions([unit.id], 2, 1, { append: true });
+  assert.equal(unit.moveTargets.length, 2);
+  ctx.Military.beginTurn('A');
+  assert.deepEqual([unit.row, unit.col, unit.movesRemaining], [2, 1, 2]);
+  assert.equal(unit.moveTargets.length, 0);
+  unit.movesRemaining = 0;
+  ctx.Military.orderDivisions([unit.id], 0, 0);
+  ctx.Military.orderDivisions([unit.id], 0, 1);
+  assert.equal(unit.moveTargets.length, 1);
+  assert.equal(unit.moveTargets[0][1], 1);
+  ctx.Military.orderDivisions([unit.id], 0, 1);
+  assert.equal(unit.moveTargets.length, 0);
+  ctx.Military.orderDivisions([unit.id], 0, 0);
+  ctx.Military.orderDivisions([unit.id], 2, 1);
+  ctx.Military.beginTurn('A');
+  assert.deepEqual([unit.row, unit.col], [2, 1]);
+});
+
+test('enemy waypoints require a connected frontier and execute sequential captures', () => {
+  const ctx = world();
+  ctx.civs.A.war.B = 4;
+  ctx.civs.B.war.A = 4;
+  ctx.data = [['A', 'A', 'B', 'B', 'B'].map(owner => cell(owner, ctx.types.land))];
+  const unit = ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 5000, movesRemaining: 0 });
+  assert.equal(ctx.Military.orderDivisions([unit.id], 0, 3).ok, false);
+  assert.equal(ctx.Military.orderDivisions([unit.id], 0, 2).ok, true);
+  assert.equal(ctx.Military.orderDivisions([unit.id], 0, 4, { append: true }).ok, false);
+  assert.equal(unit.moveTargets.length, 1);
+  assert.equal(ctx.Military.orderDivisions([unit.id], 0, 3, { append: true }).ok, true);
+  assert.equal(ctx.Military.orderDivisions([unit.id], 0, 4, { append: true }).ok, true);
+  ctx.Military.beginTurn('A');
+  assert.equal(unit.col, 4);
+  assert.equal(unit.movesRemaining, 1);
+  assert.equal(unit.moveTargets.length, 0);
+  assert.ok(ctx.data[0].every(tile => tile.color === 'A'));
+});
+
+test('queued attacks approach through friendly territory and charge a stack once', () => {
+  const ctx = world();
+  ctx.civs.A.war.B = 4;
+  ctx.civs.B.war.A = 4;
+  const units = [0, 1].map(() => ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 5000 }));
+  ctx.Military.orderDivisions(units.map(unit => unit.id), 0, 2);
+  assert.ok(units.every(unit => unit.col === 2 && unit.movesRemaining === 3));
+  assert.equal(ctx.civs.A.politic, 99.3);
+});
+
+test('blocked routes wait without entering neutral territory and resume when access returns', () => {
+  const ctx = world();
+  ctx.data = [Array.from({ length: 4 }, () => cell('A', ctx.types.land))];
+  const unit = ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 5000, movesRemaining: 0 });
+  ctx.Military.orderDivisions([unit.id], 0, 3);
+  ctx.data[0][1].color = 'B';
+  ctx.Military.beginTurn('A');
+  assert.equal(unit.col, 0);
+  assert.equal(unit.moveTargets.length, 1);
+  ctx.data[0][1].color = 'A';
+  ctx.Military.beginTurn('A');
+  assert.equal(unit.col, 3);
+  assert.equal(unit.moveTargets.length, 0);
+});
+
+test('queued attacks wait for political power and retain unsuccessful battle targets', () => {
+  const ctx = world();
+  ctx.civs.A.war.B = 4;
+  ctx.civs.B.war.A = 4;
+  ctx.civs.A.politic = 0;
+  const unit = ctx.Military._addDivision({ civ: 'A', row: 0, col: 1, manpower: 5000 });
+  ctx.Military.orderDivisions([unit.id], 0, 2);
+  assert.equal(unit.movesRemaining, 5);
+  assert.equal(unit.moveTargets.length, 1);
+  let battles = 0;
+  ctx.Military.resolveBattle = () => { battles++; return { ok: true, captured: false }; };
+  ctx.civs.A.politic = 100;
+  ctx.Military.beginTurn('A');
+  assert.equal(battles, 1);
+  assert.equal(unit.movesRemaining, 4);
+  assert.equal(unit.moveTargets.length, 1);
+});
+
+test('right-click keeps units selected, passes Alt waypoints, draws arrows, and never opens showInfo', () => {
+  const ctx = world();
+  const element = () => ({
+    children: [], insertBefore() {}, style: {}, dataset: {}, classList: { add() {}, remove() {}, toggle() {} },
+    appendChild() {}, replaceChildren() {}, addEventListener() {}, setAttribute() {}, querySelector() { return null; }
+  });
+  ctx.document = { createElement: element, body: element(), addEventListener() {} };
+  ctx.window = ctx;
+  ctx.showInfo = () => assert.fail('Attack must not open showInfo');
+  load(ctx, 'military/ui.js');
+  ctx.MilitaryUI.init({ military: ctx.Military, getActiveCiv: () => 'A', notify: message => assert.fail(message) });
+  ctx.civs.A.war.B = 4;
+  ctx.civs.B.war.A = 4;
+  const unit = ctx.Military._addDivision({ civ: 'A', row: 0, col: 1, manpower: 5000 });
+  ctx.Military._addDivision({ civ: 'B', row: 0, col: 2, manpower: 500 });
+  ctx.MilitaryUI.selectTile(0, 1);
+  ctx.MilitaryUI.onTileRightClick(0, 2);
+  assert.deepEqual(Array.from(ctx.MilitaryUI.getSelection()), [unit.id]);
+  unit.movesRemaining = 0;
+  ctx.MilitaryUI.onTileRightClick(1, 2);
+  ctx.MilitaryUI.onTileRightClick(2, 2, { altKey: true });
+  assert.equal(unit.moveTargets.length, 2);
+  let lines = 0;
+  const canvas = { save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() { lines++; },
+    stroke() {}, closePath() {}, fill() {}, fillText() {}, strokeRect() {} };
+  ctx.MilitaryUI.setUnitMarkersVisible(false);
+  ctx.MilitaryUI.drawOverlay(canvas, 20);
+  assert.equal(lines, 6);
+  ctx.MilitaryUI.onTileRightClick(1, 2);
+  assert.equal(unit.moveTargets.length, 0);
+  const other = ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 5000 });
+  ctx.MilitaryUI.selectTile(0, 0, { shiftKey: true });
+  assert.deepEqual(Array.from(ctx.MilitaryUI.getSelection()), [unit.id, other.id]);
+  ctx.MilitaryUI.selectTile(0, 0, { shiftKey: true });
+  assert.equal(ctx.MilitaryUI.getSelection().length, 2);
+  ctx.MilitaryUI.selectTile(1, 2, { shiftKey: true });
+  assert.deepEqual(Array.from(ctx.MilitaryUI.getSelection()), [unit.id, other.id]);
+  let selectedTiles = 0;
+  canvas.strokeRect = () => selectedTiles++;
+  ctx.MilitaryUI.drawOverlay(canvas, 20);
+  assert.equal(selectedTiles, 2);
+  ctx.MilitaryUI.selectTile(0, 0);
+  assert.deepEqual(Array.from(ctx.MilitaryUI.getSelection()), [other.id]);
+
+});
+
+
+test('an initial Alt order waits through added waypoints and save/load until the next owner turn', () => {
+  const ctx = world();
+  const unit = ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 5000 });
+  ctx.Military.orderDivisions([unit.id], 2, 0, { append: true });
+  ctx.Military.orderDivisions([unit.id], 2, 1, { append: true });
+  assert.deepEqual([unit.row, unit.col, unit.movesRemaining], [0, 0, 5]);
+  ctx.Military.init(JSON.parse(JSON.stringify(ctx.military)));
+  ctx.Military.beginTurn('B');
+  assert.equal(ctx.Military.getDivision(unit.id).row, 0);
+  ctx.Military.beginTurn('A');
+  const restored = ctx.Military.getDivision(unit.id);
+  assert.deepEqual([restored.row, restored.col, restored.movesRemaining], [2, 1, 2]);
+  assert.equal(restored.moveTargets.length, 0);
+});
+
+test('replacing an Alt-deferred plan with an ordinary order moves immediately', () => {
+  const ctx = world();
+  const unit = ctx.Military._addDivision({ civ: 'A', row: 0, col: 0, manpower: 5000 });
+  ctx.Military.orderDivisions([unit.id], 2, 0, { append: true });
+  ctx.Military.orderDivisions([unit.id], 2, 1);
+  assert.deepEqual([unit.row, unit.col, unit.movesRemaining], [2, 1, 2]);
+  assert.equal(unit.movePlanWaiting, undefined);
 });

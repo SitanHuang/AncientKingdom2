@@ -3,11 +3,14 @@
 
     var api = null;
     var selectedIds = [];
+    var listedIds = [];
     var selectedTile = null;
     var placementTile = null;
     var unitPanel = null;
     var unitList = null;
     var stackSummary = null;
+    var armySummary = null;
+    var armyRibbons = null;
     var unitDetail = null;
     var pinnedDetailId = null;
     var recruitmentPanel = null;
@@ -45,6 +48,7 @@
             "missing-division": "That division no longer exists.",
             "out-of-range": "The destination is beyond the eligible divisions' remaining moves.",
             "no-eligible-divisions": "None of the selected divisions can make that attack.",
+            "invalid-route": "Choose a reachable friendly tile or an enemy tile next to friendly territory or an earlier waypoint.",
             "no-access": "The selected divisions cannot enter that territory.",
             "politic": "There is not enough political power for that attack.",
             "not-at-war": "The target is not at war with you."
@@ -64,7 +68,10 @@
     }
 
     function button(text, action, value) {
-        var element = make("button", "", text);
+        var icons = { "toggle-overlay": "👥", clear: "✕", "close-detail": "✕", disband: "🗑", help: "❔" };
+        var element = make("button", "", icons[action] || text);
+        element.title = text;
+        element.setAttribute("aria-label", text);
         element.type = "button";
         element.dataset.action = action;
         if (value !== undefined) element.dataset.value = value;
@@ -158,7 +165,13 @@
     }
 
     function stat(label, value) {
-        return make("span", "", label + ": " + value);
+        var icons = { Men: "👥", Moves: "👣", Attack: "⚔", Defense: "🛡", Requested: "➕",
+            Recovered: "💚", Upkeep: "💰", Experience: "⭐", Morale: "🔥", Entrenchment: "⛏",
+            "Building defense": "🏰", Encirclement: "⭕", Divisions: "🚩" };
+        var element = make("span", "", (icons[label] || label + ":") + " " + value);
+        element.title = label + ": " + value;
+        element.setAttribute("aria-label", element.title);
+        return element;
     }
 
     function displayedStats(stats, enemyScale) {
@@ -219,18 +232,75 @@
         return row;
     }
 
+    function renderArmies(owned) {
+        armyRibbons.hidden = !owned;
+        armySummary.hidden = !owned;
+        armySummary.replaceChildren();
+        if (!owned) return;
+        var groups = {};
+        api.getDivisions(activeCivName()).forEach(function (division) {
+            var color = division.armyColor || "none";
+            var group = groups[color] || (groups[color] = { count: 0, men: 0, capacity: 0, strength: 0, defense: 0 });
+            group.count++;
+            group.men += division.manpower;
+            group.capacity += division.maxManpower;
+            var stats = api.getDivisionStats(division.id);
+            group.strength += stats.attack;
+            group.defense += stats.defense;
+        });
+        var maximum = Math.max.apply(null, Object.keys(groups).map(function (color) { return groups[color].strength; })) || 1;
+        Object.keys(api.armyColors).concat(["none"]).forEach(function (color) {
+            var group = groups[color];
+            if (!group) return;
+            var row = make("div", "military-army-summary-row");
+            var colorIcon = button(color === "none" ? "∅" : "", "select-army", color);
+            colorIcon.className = "military-army-swatch";
+            colorIcon.style.backgroundColor = api.armyColors[color] || "transparent";
+            colorIcon.title = color === "none" ? "Select all unmarked units" : "Select all " + color + " army units";
+            colorIcon.setAttribute("aria-label", colorIcon.title);
+            row.appendChild(colorIcon);
+            row.appendChild(stat("Divisions", group.count));
+            row.appendChild(stat("Men", manpowerLabel(group.men) + "/" + manpowerLabel(group.capacity)));
+            row.appendChild(stat("Attack", manpowerLabel(group.strength)));
+            row.appendChild(stat("Defense", manpowerLabel(group.defense)));
+            var bar = button("", "select-army", color);
+            bar.className = "military-army-strength";
+            bar.title = colorIcon.title;
+            bar.setAttribute("aria-label", bar.title);
+            bar.style.width = group.strength / maximum * 100 + "%";
+            bar.style.backgroundColor = api.armyColors[color] || "#999";
+            row.appendChild(bar);
+            row.title = "Current army attack strength: " + number(group.strength, 1);
+            armySummary.appendChild(row);
+        });
+        Array.from(armyRibbons.children).forEach(function (ribbon) {
+            var selected = getSelectedDivisions();
+            var marked = selected.length && selected.every(function (division) {
+                return (division.armyColor || "none") === ribbon.dataset.value;
+            });
+            ribbon.setAttribute("aria-pressed", !!marked);
+        });
+    }
+
     function renderStackSummary(divisions, owned) {
         stackSummary.replaceChildren();
         var actual = api.getStackStats(divisions, selectedTile.row, selectedTile.col);
         var title = make("div", "military-panel-title");
         var icon = unitIcon(divisions[0].civ);
         title.appendChild(icon);
-        title.appendChild(make("strong", "", divisions.length + (divisions.length === 1 ? " division" : " divisions") + " at " + selectedTile.row + ", " + selectedTile.col));
+        title.appendChild(stat("Divisions", divisions.length));
         stackSummary.appendChild(title);
 
         var grid = make("div", "military-stat-grid");
         if (owned) {
-            appendStats(grid, actual);
+            var strengths = divisions.map(function (division) { return api.getDivisionStats(division.id); });
+            actual.attack = strengths.reduce(function (sum, stats) { return sum + stats.attack; }, 0);
+            actual.defense = strengths.reduce(function (sum, stats) { return sum + stats.defense; }, 0);
+            grid.classList.add("military-friendly-stats");
+            grid.appendChild(stat("Men", manpowerLabel(actual.manpower) + "/" + manpowerLabel(actual.maxManpower)));
+            grid.appendChild(stat("Moves", actual.movesRemaining + "/" + actual.moveLimit));
+            grid.appendChild(stat("Attack", manpowerLabel(actual.attack)));
+            grid.appendChild(stat("Defense", manpowerLabel(actual.defense)));
         } else {
             var intel = enemyIntel(divisions, actual);
             var estimated = intel.stats;
@@ -248,7 +318,7 @@
         var icon = make("span", "military-unit-icon", (civName || "?").charAt(0).toUpperCase());
         icon.style.backgroundColor = civColor(civName);
         icon.style.color = civTextColor(civName);
-        if (armyColor === "red") icon.style.borderColor = "red";
+        if (api.armyColors[armyColor]) icon.style.borderColor = api.armyColors[armyColor];
         if (armyColor) icon.style.borderWidth = '3px';
         icon.title = civName;
         return icon;
@@ -272,27 +342,33 @@
         var row = make("div", "military-unit-row");
         row.dataset.divisionId = division.id;
         row.dataset.owned = owned ? "true" : "false";
+        row.dataset.selected = selectedIds.indexOf(division.id) >= 0 ? "true" : "false";
         row.classList.add(owned ? "military-unit-owned" : "military-unit-enemy");
         if (owned) {
             row.tabIndex = 0;
-            row.setAttribute("role", "button");
-            row.setAttribute("aria-label", "View details for " + divisionName(division));
+            row.setAttribute("role", "option");
+            row.setAttribute("aria-selected", row.dataset.selected);
+            row.setAttribute("aria-label", "Select only " + divisionName(division));
+            row.title = "Left-click: select only this unit. Shift-left-click: toggle selection. Right-click: pin details.";
         }
         var heading = make("div", "military-unit-heading");
         var title = make("strong", "military-panel-title");
         title.appendChild(unitIcon(division.civ, division.armyColor));
         title.appendChild(make("span", "military-unit-name", divisionName(division)));
         heading.appendChild(title);
+        var men = make("span", "military-unit-men", (owned ? "" : "~") + manpowerLabel(shown.manpower));
+        men.title = owned ? number(shown.manpower) + " / " + number(shown.maxManpower) + " men" : "Estimated manpower";
+        heading.appendChild(men);
+        var ribbon = make("span", "military-unit-ribbon");
+        ribbon.style.backgroundColor = api.armyColors[division.armyColor] || "transparent";
+        ribbon.title = division.armyColor || "No army";
+        heading.appendChild(ribbon);
 
         if (owned) {
             var actions = make("span", "military-unit-actions");
             var deselect = button("×", "deselect", division.id);
             deselect.title = "Deselect";
             deselect.setAttribute("aria-label", "Deselect " + divisionName(division));
-            var select = button("✓", "select", division.id);
-            select.title = "Select";
-            select.setAttribute("aria-label", "Select " + divisionName(division));
-            actions.appendChild(select);
             actions.appendChild(deselect);
             heading.appendChild(actions);
         }
@@ -343,8 +419,6 @@
         unitDetail.appendChild(grid);
         if (pinned) {
             var actions = make("div", "military-unit-detail-actions");
-            actions.appendChild(button(division.armyColor === "red" ? "Remove from red army" : "Mark as red army",
-                "toggle-red-army", division.id));
             actions.appendChild(button("Disband division", "disband", division.id));
             unitDetail.appendChild(actions);
         }
@@ -365,9 +439,11 @@
             return;
         }
 
+        selectedTile = { row: divisions[0].row, col: divisions[0].col };
         var activeCiv = activeCivName();
         var owned = divisions.every(function (division) { return division.civ === activeCiv; });
         unitPanel.hidden = false;
+        renderArmies(owned);
         renderStackSummary(divisions, owned);
         unitList.replaceChildren();
 
@@ -382,7 +458,11 @@
                 defense: actual.defense ? intel.stats.defense / actual.defense : 1
             };
         }
-        divisions.forEach(function (division) {
+        var listed = api.resolveDivisions(listedIds).filter(function (division) {
+            return division.civ === divisions[0].civ;
+        });
+        listedIds = listed.map(function (division) { return division.id; });
+        listed.forEach(function (division) {
             unitList.appendChild(renderDivision(division, owned, enemyScale));
         });
         if (pinnedDetailId) {
@@ -403,11 +483,29 @@
         headerActions.appendChild(button("Close", "clear"));
         header.appendChild(headerActions);
         unitPanel.appendChild(header);
+        var help = button("?", "help");
+        help.title = "Right-click: move. Alt-right-click: queue (first target starts next turn). Right-click current tile or target: cancel. Shift-left-click map tiles to add units; Shift-left-click unit rows toggles selection. Right-click a row pins details.";
+        headerActions.appendChild(help);
+        armySummary = make("section", "military-army-summary");
+        armyRibbons = make("div", "military-army-ribbons");
+        Object.keys(api.armyColors).concat(["none"]).forEach(function (color) {
+            var ribbon = button(color === "none" ? "None" : "", "mark-army", color);
+            ribbon.style.backgroundColor = api.armyColors[color] || "transparent";
+            ribbon.title = color === "none" ? "Unmark selected units" : "Assign selected units to " + color + " army";
+            ribbon.setAttribute("aria-label", ribbon.title);
+            armyRibbons.appendChild(ribbon);
+        });
+        unitPanel.appendChild(armySummary);
+        unitPanel.appendChild(armyRibbons);
         stackSummary = make("section", "military-stack-summary");
         unitList = make("section", "military-unit-list");
+        unitList.setAttribute("role", "listbox");
+        unitList.setAttribute("aria-multiselectable", "true");
+        unitList.setAttribute("aria-label", "Divisions");
         unitPanel.appendChild(stackSummary);
         unitPanel.appendChild(unitList);
         unitPanel.addEventListener("click", onUnitPanelClick);
+        unitPanel.addEventListener("contextmenu", onUnitPanelContextMenu);
         unitPanel.addEventListener("mouseover", onUnitPanelMouseOver);
         unitPanel.addEventListener("mouseout", onUnitPanelMouseOut);
         unitPanel.addEventListener("keydown", onUnitPanelKeyDown);
@@ -424,13 +522,27 @@
         if (!target) {
             var row = event.target.closest(".military-unit-row[data-owned='true']");
             if (!row) return;
-            var divisionId = row.dataset.divisionId;
-            if (pinnedDetailId === divisionId) hideUnitDetail(true);
-            else showUnitDetail(divisionId, row, true);
+            selectOnly(row.dataset.divisionId, event.shiftKey);
             return;
         }
         var action = target.dataset.action;
-        if (action === "clear") {
+        if (action === "help") {
+            notify(target.title);
+        } else if (action === "select-army") {
+            hideUnitDetail(true);
+            selectedIds = api.getDivisions(activeCivName()).filter(function (division) {
+                return (division.armyColor || "none") === target.dataset.value;
+            }).map(function (division) { return division.id; });
+            listedIds = selectedIds.slice();
+            renderSelection();
+            redraw();
+        } else if (action === "mark-army") {
+            getSelectedDivisions().forEach(function (division) {
+                if (division.civ === activeCivName()) api.setDivisionArmy(division.id, target.dataset.value);
+            });
+            renderSelection();
+            redraw();
+        } else if (action === "clear") {
             clearSelection();
         } else if (action === "toggle-overlay") {
             setManpowerOverlay(!showManpowerOverlay);
@@ -439,12 +551,23 @@
             selectedIds = selectedIds.filter(function (id) { return String(id) !== target.dataset.value; });
             renderSelection();
             redraw();
-        } else if (action === "select") {
-            if (pinnedDetailId !== target.dataset.value) hideUnitDetail(true);
-            selectedIds = selectedIds.filter(function (id) { return String(id) === target.dataset.value; });
-            renderSelection();
-            redraw();
         }
+    }
+
+    function selectOnly(id, toggle) {
+        hideUnitDetail(true);
+        if (toggle && selectedIds.indexOf(id) < 0) selectedIds.push(id);
+        else if (toggle) selectedIds = selectedIds.filter(function (selected) { return selected !== id; });
+        else selectedIds = [id];
+        renderSelection();
+        redraw();
+    }
+
+    function onUnitPanelContextMenu(event) {
+        var row = event.target.closest(".military-unit-row[data-owned='true']");
+        if (!row) return;
+        event.preventDefault();
+        showUnitDetail(row.dataset.divisionId, row, true);
     }
 
     function onUnitPanelMouseOver(event) {
@@ -466,8 +589,7 @@
         var row = event.target.closest(".military-unit-row[data-owned='true']");
         if (!row || event.target.closest("button")) return;
         event.preventDefault();
-        if (pinnedDetailId === row.dataset.divisionId) hideUnitDetail(true);
-        else showUnitDetail(row.dataset.divisionId, row, true);
+        selectOnly(row.dataset.divisionId, event.shiftKey);
     }
 
     function onUnitDetailClick(event) {
@@ -475,12 +597,6 @@
         if (!target) return;
         if (target.dataset.action === "close-detail") {
             hideUnitDetail(true);
-        } else if (target.dataset.action === "toggle-red-army") {
-            var armyDivision = api.getDivision(target.dataset.value);
-            if (!armyDivision || armyDivision.civ !== activeCivName()) return;
-            api.setDivisionArmy(armyDivision.id, armyDivision.armyColor === "red" ? null : "red");
-            renderSelection();
-            redraw();
         } else if (target.dataset.action === "disband") {
             var division = api.getDivision(target.dataset.value);
             if (division && global.confirm("Disband " + divisionName(division) + " and return its manpower to population?")) {
@@ -495,6 +611,7 @@
 
     function clearSelection() {
         selectedIds = [];
+        listedIds = [];
         selectedTile = null;
         hideUnitDetail(true);
         renderSelection();
@@ -533,76 +650,45 @@
         if (handled) event.preventDefault();
     }
 
-    function selectTile(row, col) {
+    function selectTile(row, col, event) {
         placementTile = { row: row, col: col };
         var activeCiv = activeCivName();
         var divisions = api.getDivisionsAt(row, col);
         var owned = divisions.filter(function (division) { return division.civ === activeCiv; });
         var visible = owned.length ? owned : divisions.filter(function (division) { return division.civ !== activeCiv; });
-        selectedTile = visible.length ? { row: row, col: col } : null;
-        selectedIds = visible.map(function (division) { return division.id; });
+        if (event && event.shiftKey) {
+            var previous = getSelectedDivisions().filter(function (division) { return division.civ === activeCiv; });
+            selectedIds = previous.map(function (division) { return division.id; });
+            owned.forEach(function (division) {
+                if (selectedIds.indexOf(division.id) < 0) selectedIds.push(division.id);
+            });
+            listedIds = Array.from(new Set(listedIds.concat(selectedIds)));
+        } else {
+            selectedIds = visible.map(function (division) { return division.id; });
+            listedIds = selectedIds.slice();
+        }
+        selectedTile = selectedIds.length ? { row: row, col: col } : null;
         renderSelection();
         refreshRecruitmentLocation();
         redraw();
-        return visible.length > 0;
+        return selectedIds.length > 0;
     }
 
-    function selectionAfterAction(targetRow, targetCol) {
-        var selected = getSelectedDivisions();
-        if (!selectedTile) {
-            selectedIds = [];
-            renderSelection();
-            refreshRecruitment();
-            redraw();
-            return;
-        }
-        var atTarget = selected.filter(function (division) {
-            return division.row === targetRow && division.col === targetCol;
+    function onTileRightClick(row, col, event) {
+        var activeCiv = activeCivName();
+        var owned = getSelectedDivisions().filter(function (division) { return division.civ === activeCiv; });
+        if (!owned.length) return false;
+        var result = api.orderDivisions(owned.map(function (division) { return division.id; }), row, col, {
+            human: true,
+            append: !!(event && event.altKey)
         });
-        var keep = atTarget.length ? atTarget : selected.filter(function (division) {
-            return division.row === selectedTile.row && division.col === selectedTile.col;
-        });
-        selectedIds = keep.map(function (division) { return division.id; });
-        if (keep.length) selectedTile = { row: keep[0].row, col: keep[0].col };
+        if (!result.ok) notify(resultReason(result));
+        var survivors = getSelectedDivisions();
+        selectedIds = survivors.map(function (division) { return division.id; });
+        selectedTile = survivors.length ? { row: survivors[0].row, col: survivors[0].col } : null;
         renderSelection();
         refreshRecruitment();
         redraw();
-    }
-
-    function actionMessage(result) {
-        if (!result) return;
-        if (result.reason === "out-of-range") return;
-        if (result.ok === false || result.error) notify(resultReason(result) || result.error);
-    }
-
-    function onTileRightClick(row, col) {
-        var divisions = getSelectedDivisions();
-        var activeCiv = activeCivName();
-        var owned = divisions.filter(function (division) { return division.civ === activeCiv; });
-        if (!owned.length) return false;
-
-        var targetDivisions = api.getDivisionsAt(row, col);
-        var enemies = targetDivisions.filter(function (division) { return division.civ !== activeCiv; });
-        var ids = owned.map(function (division) { return division.id; });
-        var result;
-        if (enemies.length) {
-            result = api.attack(ids, row, col, { human: true });
-        } else {
-            result = api.moveDivisions(ids, row, col, { human: true, partial: true });
-        }
-        actionMessage(result);
-        if (!enemies.length && result && result.moved && result.moved.length) {
-            selectedIds = [];
-            selectedTile = null;
-            hideUnitDetail(true);
-            renderSelection();
-            refreshRecruitment();
-            redraw();
-        } else {
-            selectionAfterAction(row, col);
-        }
-        if (enemies.length && result && result.ok && typeof global.showInfo === "function" &&
-            global.civs[activeCiv] && !global.civs[activeCiv].ai) global.showInfo();
         return true;
     }
 
@@ -819,17 +905,56 @@
         return number(manpower);
     }
 
+    function drawOrders(context, blockSize) {
+        context.save();
+        context.strokeStyle = "#ffdc63";
+        context.fillStyle = "#ffdc63";
+        context.lineWidth = Math.max(1.5, blockSize * 0.07);
+        getSelectedDivisions().forEach(function (division) {
+            if (division.civ !== activeCivName()) return;
+            var from = [division.row, division.col];
+            (division.moveTargets || []).forEach(function (target, index) {
+                var x = (target[1] + 0.5) * blockSize;
+                var y = (target[0] + 0.5) * blockSize;
+                var startX = (from[1] + 0.5) * blockSize;
+                var startY = (from[0] + 0.5) * blockSize;
+                var angle = Math.atan2(y - startY, x - startX);
+                var size = Math.max(4, blockSize * 0.25);
+                context.beginPath();
+                context.moveTo(startX, startY);
+                context.lineTo(x, y);
+                context.stroke();
+                context.beginPath();
+                context.moveTo(x, y);
+                context.lineTo(x - size * Math.cos(angle - 0.5), y - size * Math.sin(angle - 0.5));
+                context.lineTo(x - size * Math.cos(angle + 0.5), y - size * Math.sin(angle + 0.5));
+                context.closePath();
+                context.fill();
+                context.font = Math.max(9, blockSize * 0.4) + "px sans-serif";
+                context.fillText(String(index + 1), x + 3, y - 3);
+                from = target;
+            });
+        });
+        context.restore();
+    }
+
     function drawSelection(context, blockSize) {
         if (!selectedTile) return;
         context.save();
         context.strokeStyle = "rgba(255, 255, 255, 0.95)";
         context.lineWidth = Math.max(2, blockSize * 0.08);
-        context.strokeRect(
-            selectedTile.col * blockSize + context.lineWidth / 2,
-            selectedTile.row * blockSize + context.lineWidth / 2,
-            blockSize - context.lineWidth,
-            blockSize - context.lineWidth
-        );
+        var drawn = {};
+        getSelectedDivisions().forEach(function (division) {
+            var key = division.row + ":" + division.col;
+            if (drawn[key]) return;
+            drawn[key] = true;
+            context.strokeRect(
+                division.col * blockSize + context.lineWidth / 2,
+                division.row * blockSize + context.lineWidth / 2,
+                blockSize - context.lineWidth,
+                blockSize - context.lineWidth
+            );
+        });
         context.restore();
     }
 
@@ -862,7 +987,7 @@
             visible.forEach(function (civName, index) {
                 var divisions = groups[civName];
                 divisions.sort(function (a, b) {
-                    return Number(b.armyColor === "red") - Number(a.armyColor === "red");
+                    return Number(!!b.armyColor) - Number(!!a.armyColor);
                 });
                 var count = divisions.length;
                 var layers = Math.min(4, count);
@@ -874,7 +999,7 @@
                     var layerY = y - layer * offset;
                     context.fillStyle = civColor(civName);
                     context.fillRect(layerX, layerY, size, size);
-                    context.strokeStyle = divisions[layer].armyColor === "red" ? "red" : civTextColor(civName);
+                    context.strokeStyle = api.armyColors[divisions[layer].armyColor] || civTextColor(civName);
                     context.lineWidth = Math.max(1, size * 0.09);
                     context.strokeRect(layerX + context.lineWidth / 2, layerY + context.lineWidth / 2,
                         size - context.lineWidth, size - context.lineWidth);
@@ -931,6 +1056,7 @@
             drawUnitMarkers(context, blockSize, totals);
             if (showManpowerOverlay) drawManpower(context, blockSize, totals);
         }
+        drawOrders(context, blockSize);
         drawSelection(context, blockSize);
     }
 
@@ -949,6 +1075,7 @@
         var activeCiv = activeCivName();
         if (lastActiveCiv !== null && activeCiv !== lastActiveCiv) {
             selectedIds = [];
+            listedIds = [];
             selectedTile = null;
             placementTile = null;
         }

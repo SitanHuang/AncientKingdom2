@@ -230,7 +230,11 @@ four-direction breadth-first pathfinding and costs no money or political power.
 Each traversed tile consumes one move. When several selected divisions are
 ordered, each division follows the route as far as its remaining movement
 allows, stopping at the closest reachable point to the requested tile. Fully
-exhausted divisions are left behind.
+exhausted divisions wait until their next turn. Player orders persist in each
+division’s `moveTargets` queue and resume immediately after movement resets in
+`beginTurn`. Blocked routes wait for access or political power to return. An
+unsuccessful attack waits until the next turn before retrying. The low-level
+`moveDivisions` and `attack` APIs remain immediate actions for AI callers.
 
 `Military.setAlliedAccessResolver(fn)` is the extension point for allowing a
 civilization's divisions into allied territory. Until a resolver is installed,
@@ -332,8 +336,8 @@ combat-remnant removal. Each civilization tracks losses suffered and inflicted
 for the current turn window. `beginTurn` moves those counters into the completed
 window and starts new current counters. `Military.getCasualtyReport(civName)`
 combines the completed window with any battles the player has already fought in
-the current turn. `showInfo` displays both lost and inflicted totals; human
-attacks refresh it immediately. Upkeep desertion is reported separately and is
+the current turn. `showInfo` displays both lost and inflicted totals when opened;
+attacks refresh the military selection without opening the information panel. Upkeep desertion is reported separately and is
 not counted as combat casualties.
 
 ## Military AI
@@ -373,9 +377,21 @@ later orders see the new map state.
 
 ## Player interface and intelligence
 
-Left-clicking a tile selects all divisions on that tile. Multiple selection is
-limited to one tile. Right-clicking issues an immediate path move or adjacent
-attack; only divisions with sufficient remaining movement participate.
+Left-clicking a tile selects all divisions on that tile. Shift-left-click adds
+friendly units from other tiles without duplicates; every selected tile is outlined. Right-click sets a
+persistent destination and moves each selected division as far as its remaining
+points allow. Units stay selected even when their movement separates them.
+Remaining travel resumes at the beginning of their civilization’s next turn.
+Alt-right-click appends waypoints, visited in order. If it starts a new route,
+that division waits until its next turn, even when it has movement points left.
+Additional Alt waypoints preserve that delay; ordinary right-click
+replaces the route. Right-clicking a unit’s current tile or any of its queued
+targets cancels its whole route. Selected units show numbered target arrows.
+
+Enemy waypoints must border friendly or accessible allied territory, or an
+earlier queued enemy target, and be reachable through that planned corridor.
+Units approach through accessible territory and attack as a stack when adjacent.
+They cannot skip unplanned enemy tiles. Routes survive saving and loading.
 
 Outside text inputs, `H` keeps the first half of the current unit selection
 (rounding up) and `Escape` removes the last unit shown in the list. Repeated use
@@ -383,18 +399,29 @@ can narrow a large stack quickly. These shortcuts do nothing while an input,
 textarea, select, or editable element has focus, so typing division names is not
 interrupted.
 
-The top-right list follows the compact Rhine-style presentation:
+The top-right list sits flush against the screen edge without a shadow and
+follows the compact Rhine-style presentation:
 
 - Each row shows the civilization icon and division name.
-- A player can mark a division as part of the red army from its pinned detail
-  panel. Red-army unit icons and map indicators use a red border. AI countries
+- The top ribbon buttons assign all selected friendly divisions to purple, red,
+  blue, green, olive, orange, or charcoal armies; None removes the assignment.
+  The summary above them shows each army’s division count, current/capacity
+  manpower, attack, and defense across the active civilization, with strength
+  bars scaled to the strongest army. Clicking a summary color or strength bar
+  selects all units of that army across the civilization, including None for
+  unmarked units. Unit rows and map markers show army colors.
+  AI countries
   automatically assign their top 20% of divisions by experience to the red
   army (with morale and manpower as tie breakers).
 - The green HP-style bar represents current morale/readiness, with normal morale
   (`1`) treated as full visual health.
 - The orange bar represents current manpower divided by maximum manpower.
-- Hovering a friendly row opens its statistics. Clicking or pressing Enter/Space
-  pins the detail panel so its actions can be used.
+- Each compact row displays its current manpower directly (estimated for enemies).
+- Hovering a friendly row previews its statistics. Left-click or Enter/Space
+  selects only that division; Shift-left-click (or Shift-Enter/Space) toggles a
+  row’s selection. Other rows stay visible for building a multi-unit selection.
+  Right-click pins its detail popup. Compact stat and control icons have tooltips;
+  the friendly summary includes both attack and defense.
 - The `×` removes one division from the selection; disbanding is in the pinned
   detail panel.
 - Enemy rows are passive and never expose per-division details.

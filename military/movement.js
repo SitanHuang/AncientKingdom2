@@ -25,10 +25,14 @@ var Military = (function (api) {
     });
   }
 
-  function findPath(civName, from, to, maxMoves) {
+  function findPath(civName, from, to, maxMoves, planned) {
+    function passable(point) {
+      return ["own", "allied"].indexOf(getAccess(civName, point[0], point[1])) >= 0 ||
+        (planned || []).some(function (target) { return samePoint(point, target); });
+    }
     maxMoves = maxMoves == null ? Infinity : maxMoves;
     if (from[0] == to[0] && from[1] == to[1]) return [];
-    if (["own", "allied"].indexOf(getAccess(civName, to[0], to[1])) < 0) return null;
+    if (!passable(to)) return null;
 
     var startKey = from[0] + ":" + from[1];
     var targetKey = to[0] + ":" + to[1];
@@ -44,7 +48,7 @@ var Military = (function (api) {
         var next = neighbors[n];
         var key = next[0] + ":" + next[1];
         if (previous[key] !== undefined) continue;
-        if (["own", "allied"].indexOf(getAccess(civName, next[0], next[1])) < 0) continue;
+        if (!passable(next)) continue;
         previous[key] = current[0] + ":" + current[1];
         if (key == targetKey) return buildPath(previous, targetKey);
         queue.push([next[0], next[1], current[2] + 1]);
@@ -162,6 +166,108 @@ var Military = (function (api) {
     return result;
   }
 
+  function samePoint(a, b) {
+    return a[0] == b[0] && a[1] == b[1];
+  }
+
+  // Planning may cross earlier enemy waypoints; execution only crosses tiles
+  // that are currently accessible, and attacks the next waypoint explicitly.
+  function orderDivisions(ids, row, col, opts) {
+    opts = opts || {};
+    var divisions = api.resolveDivisions(ids);
+    var accepted = [], skipped = [];
+    divisions.forEach(function (division) {
+      var current = [division.row, division.col];
+      var target = [row, col];
+      var existing = division.moveTargets || [];
+      if (samePoint(current, target) || existing.some(function (point) { return samePoint(point, target); })) {
+        division.moveTargets = [];
+        delete division.movePlanWaiting;
+        accepted.push(division.id);
+        return;
+      }
+      var route = opts.append ? existing.slice() : [];
+      var from = route.length ? route[route.length - 1] : current;
+      var access = getAccess(division.civ, row, col);
+      var valid = access == "own" || access == "allied";
+      if (access == "enemy") {
+        valid = getNeighbors(row, col).some(function (point) {
+          return ["own", "allied"].indexOf(getAccess(division.civ, point[0], point[1])) >= 0 ||
+            route.some(function (previous) { return samePoint(point, previous); });
+        });
+      }
+      if (!valid || !findPath(division.civ, from, target, Infinity,
+          access == "enemy" ? route.concat([target]) : route)) {
+        skipped.push(division.id);
+        return;
+      }
+      if (!opts.append) delete division.movePlanWaiting;
+      else if (!existing.length) division.movePlanWaiting = true;
+      division.moveTargets = route.concat([target]);
+      accepted.push(division.id);
+    });
+    executeOrders(accepted, opts);
+    return { ok: accepted.length > 0, reason: accepted.length ? null : "invalid-route", skipped: skipped };
+  }
+
+  function approachPath(division, target) {
+    var best = null;
+    getNeighbors(target[0], target[1]).forEach(function (point) {
+      if (["own", "allied"].indexOf(getAccess(division.civ, point[0], point[1])) < 0) return;
+      var path = findPath(division.civ, [division.row, division.col], point);
+      if (path && (!best || path.length < best.length)) best = path;
+    });
+    return best;
+  }
+
+  function executeOrders(ids, opts) {
+    var stopped = {};
+    var progressed;
+    do {
+      progressed = false;
+      var attacks = {};
+      api.resolveDivisions(ids).forEach(function (division) {
+        if (division.movePlanWaiting) return;
+        var targets = division.moveTargets || [];
+        while (targets.length && samePoint([division.row, division.col], targets[0])) {
+          targets.shift();
+          progressed = true;
+        }
+        if (!targets.length || division.movesRemaining < 1 || stopped[division.id]) return;
+        var target = targets[0];
+        var access = getAccess(division.civ, target[0], target[1]);
+        var path = access == "enemy" ? approachPath(division, target) :
+          findPath(division.civ, [division.row, division.col], target);
+        if (!path) return; // Keep blocked routes for a later turn or user cancellation.
+        var steps = Math.min(path.length, Math.floor(division.movesRemaining));
+        if (steps) {
+          var destination = path[steps - 1];
+          moveDivisions([division.id], destination[0], destination[1]);
+          progressed = true;
+        }
+        if (access == "enemy" && division.movesRemaining >= 1 &&
+            Math.abs(division.row - target[0]) + Math.abs(division.col - target[1]) == 1) {
+          var key = division.civ + ":" + target.join(":");
+          var group = attacks[key] || (attacks[key] = { ids: [], target: target });
+          group.ids.push(division.id);
+        }
+      });
+      Object.keys(attacks).forEach(function (key) {
+        var group = attacks[key];
+        var result = attack(group.ids, group.target[0], group.target[1], opts);
+        if (result.ok) progressed = true;
+        group.ids.forEach(function (id) {
+          var division = api.getDivision(id);
+          if (division && !samePoint([division.row, division.col], group.target)) stopped[id] = true;
+        });
+      });
+    } while (progressed);
+  }
+
+  function executeTurnOrders(civName) {
+    executeOrders(api.getDivisions(civName).map(function (division) { return division.id; }));
+  }
+
   function getAttackCost(civName, defenderName, divisions, row, col) {
     var attacker = civs[civName];
     var defender = civs[defenderName];
@@ -219,6 +325,8 @@ var Military = (function (api) {
   api.findPath = findPath;
   api.moveDivisions = moveDivisions;
   api.attack = attack;
+  api.orderDivisions = orderDivisions;
+  api.executeTurnOrders = executeTurnOrders;
   api.getAttackCost = getAttackCost;
   api.chargeAttackCost = chargeAttackCost;
 

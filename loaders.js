@@ -17,6 +17,7 @@ function load_gamesave({
   INCOMEMOD = o.imod || INCOMEMOD;
   MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;
   civOrders = Object.keys(civs).sort();
+  if (Number.isInteger(o.i) && o.i >= 0 && o.i < civOrders.length) i = o.i;
   turn = o.turn || 0;
   popv2_init();
   Military.init(military);

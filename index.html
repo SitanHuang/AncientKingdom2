@@ -360,11 +360,11 @@
 <div id="takeControls">
 </div>
 <button onclick="download(prompt('File name', 'scenario') + '.json',
-    serialize({data, civs, military, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0}))">Export</button>
+    serialize({data, civs, military, turn, i, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0}))">Export</button>
 <button onclick="delete window.heatmapdata; load_gamesave({localstorageKey: 'back'})">Load localStorage</button>
-<button onclick="localStorage.back = serialize({data, civs, military, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage</button>
+<button onclick="localStorage.back = serialize({data, civs, military, turn, i, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage</button>
 <button onclick="delete window.heatmapdata; load_gamesave({localstorageKey: 'back2'})">Load localStorage2</button>
-<button onclick="localStorage.back2 = serialize({data, civs, military, turn, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage2</button>
+<button onclick="localStorage.back2 = serialize({data, civs, military, turn, i, popv2, showYear, msg: MESSAGES, agr: AGGRESSIVENESS, rmod: RCHANCEMOD, imod: INCOMEMOD, mthre: MANDATE_THRESHOLD}, {space: 0})">Save to localStorage2</button>
 <input type="file" id="file"><br>
 <button onclick="alert = console.log">quiteMode On</button>
 <button onclick="alert = alertCopy">quiteMode Off</button>

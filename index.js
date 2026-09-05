@@ -37,14 +37,17 @@ ready = function () {
             BLOCK_SIZE = Math.max(1, BLOCK_SIZE - 1);
         }
         drawCanvas()
+    }).on("mousemove", updateDiplomacyTooltip).on("mouseleave", function () {
+        this.title = "";
     }).click(function (e) {
         var cell = canvasEventToCell(e);
-        if (cell) onClick(cell.row, cell.col);
+        if (cell) onClick(cell.row, cell.col, e);
     }).on("contextmenu", function(e) {
         e.preventDefault();
         var cell = canvasEventToCell(e);
+        var cell = canvasEventToCell(e);
         if (cell && onRightClick) {
-            onRightClick(cell.row, cell.col);
+            onRightClick(cell.row, cell.col, e);
         }
     });
 
