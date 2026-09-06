@@ -8,6 +8,8 @@
     var placementTile = null;
     var unitPanel = null;
     var unitList = null;
+    var battleReport = null;
+    var lastBattles = [];
     var stackSummary = null;
     var armySummary = null;
     var armyRibbons = null;
@@ -440,11 +442,14 @@
 
     function renderSelection() {
         if (!unitPanel) return;
+        renderBattleReport();
         var divisions = getSelectedDivisions();
         if (!divisions.length) {
             selectedIds = [];
             selectedTile = null;
-            unitPanel.hidden = true;
+            unitPanel.hidden = !lastBattles.length;
+            armySummary.replaceChildren(); armyRibbons.hidden = true;
+            stackSummary.replaceChildren(); unitList.replaceChildren();
             hideUnitDetail(true);
             return;
         }
@@ -453,6 +458,7 @@
         var activeCiv = activeCivName();
         var owned = divisions.every(function (division) { return division.civ === activeCiv; });
         unitPanel.hidden = false;
+        armyRibbons.hidden = false;
         renderArmies(owned);
         renderStackSummary(divisions, owned);
         unitList.replaceChildren();
@@ -482,6 +488,64 @@
         }
     }
 
+    function renderBattleReport() {
+        if (!battleReport) return;
+        battleReport.replaceChildren();
+        battleReport.hidden = !lastBattles.length;
+        if (!lastBattles.length) return;
+        var heading = make('div', 'military-panel-header');
+        heading.appendChild(make('h3', '', lastBattles.length > 1 ? 'Last order: ' + lastBattles.length + ' battles' : 'Last battle'));
+        heading.appendChild(button('Dismiss report', 'dismiss-battle'));
+        battleReport.appendChild(heading);
+        lastBattles.slice().reverse().forEach(function (battle) {
+            var outcome = battle.captured ? 'Captured' : battle.retreated.attacker ? 'Attack repelled' : 'Defender held';
+            battleReport.appendChild(make('strong', '', outcome + ' · tile ' + battle.row + ', ' + battle.col));
+            var table = make('table', 'military-battle-table');
+            var header = make('tr');
+            ['', 'Attacker: ' + battle.attacker, 'Defender: ' + (battle.defender || 'None')].forEach(function (text) {
+                header.appendChild(make('th', '', text));
+            });
+            table.appendChild(header);
+            function line(label, attacker, defender) {
+                var row = make('tr');
+                row.appendChild(make('th', '', label));
+                row.appendChild(make('td', '', attacker));
+                row.appendChild(make('td', '', defender));
+                table.appendChild(row);
+            }
+            line('Starting men', number(battle.attackerStartingManpower), number(battle.defenderStartingManpower));
+            line('Total casualties', number(battle.attackerCasualties), number(battle.defenderCasualties));
+            line('Combat losses', number(battle.attackerLosses - battle.attritionLosses), number(battle.defenderLosses));
+            line('Entry attrition', number(battle.attritionLosses), '—');
+            line('Survivors', number(battle.attackerRemaining), number(battle.defenderSurvivors));
+            line('Combat power', number(battle.attackerPower, 1), number(battle.defenderPower, 1));
+            if (battle.equipmentMatchup) {
+                var equipment = battle.equipmentMatchup;
+                line('Hardness before → after',
+                    percent(equipment.attackerHardness) + ' → ' + (battle.attackerRemaining ? percent(equipment.attackerHardnessAfter) : '—'),
+                    percent(equipment.defenderHardness) + ' → ' + (battle.defenderSurvivors ? percent(equipment.defenderHardnessAfter) : '—'));
+                line('Combat loss multiplier', '×' + number(equipment.attackerLossMultiplier, 2), '×' + number(equipment.defenderLossMultiplier, 2));
+            }
+            if (battle.experience) {
+                function experienceChange(side) {
+                    return side ? number(side.before, 3) + ' → ' + number(side.after, 3) : '—';
+                }
+                function experienceGain(side) { return side ? (side.gained >= 0 ? '+' : '') + number(side.gained, 3) : '—'; }
+                line('Experience', experienceChange(battle.experience.attacker), experienceChange(battle.experience.defender));
+                line('Experience gained', experienceGain(battle.experience.attacker), experienceGain(battle.experience.defender));
+            }
+            battleReport.appendChild(table);
+            var retreat = battle.retreated;
+            if (retreat.attacker || retreat.defender || retreat.encircled) battleReport.appendChild(make('div', '',
+                (retreat.attacker ? 'Attacker pulled back. ' : '') + (retreat.defender ? 'Defenders retreated. ' : '') +
+                (retreat.encircled ? number(retreat.encircled) + ' defenders lost to encirclement.' : '')));
+            if (battle.cost) battleReport.appendChild(make('div', '', 'Order cost: $' + number(battle.cost.money, 2) +
+                ' · Political power: ' + number(battle.cost.politic, 2)));
+        });
+        battleReport.appendChild(make('div', 'military-battle-note',
+            'Total casualties include losses from destroyed or encircled divisions. Survivors include retreating troops. Experience averages use surviving manpower; destroyed troops are excluded.'));
+    }
+
     function createUnitPanel() {
         unitPanel = make("aside", "military-unit-panel");
         unitPanel.id = "military-unit-panel";
@@ -493,6 +557,10 @@
         headerActions.appendChild(button("Close", "clear"));
         header.appendChild(headerActions);
         unitPanel.appendChild(header);
+        battleReport = make('section', 'military-battle-report');
+        battleReport.hidden = true;
+        battleReport.setAttribute('aria-live', 'polite');
+        unitPanel.appendChild(battleReport);
         var help = button("?", "help");
         help.title = "Right-click: move. Alt-right-click: queue (first target starts next turn). Right-click current tile or target: cancel. Shift-left-click map tiles to add units; Shift-left-click unit rows toggles selection. Right-click a row pins details.";
         headerActions.appendChild(help);
@@ -536,7 +604,10 @@
             return;
         }
         var action = target.dataset.action;
-        if (action === "help") {
+        if (action === 'dismiss-battle') {
+            lastBattles = [];
+            renderSelection();
+        } else if (action === "help") {
             notify(target.title);
         } else if (action === "select-army") {
             hideUnitDetail(true);
@@ -620,6 +691,7 @@
     }
 
     function clearSelection() {
+        lastBattles = [];
         selectedIds = [];
         listedIds = [];
         selectedTile = null;
@@ -698,6 +770,10 @@
             append: !!(event && event.altKey)
         });
         if (!result.ok) notify(resultReason(result));
+        if (result.battles && result.battles.length) {
+            lastBattles = result.battles;
+            unitPanel.scrollTop = 0;
+        }
         var survivors = getSelectedDivisions();
         selectedIds = survivors.map(function (division) { return division.id; });
         selectedTile = survivors.length ? { row: survivors[0].row, col: survivors[0].col } : null;
@@ -1136,6 +1212,7 @@
     function refresh() {
         var activeCiv = activeCivName();
         if (lastActiveCiv !== null && activeCiv !== lastActiveCiv) {
+            lastBattles = [];
             selectedIds = [];
             listedIds = [];
             selectedTile = null;

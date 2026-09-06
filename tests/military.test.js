@@ -1145,3 +1145,97 @@ test('culture-weighted fractional production reaches the stockpile without scali
   assert.equal(ctx.Military.processEquipment('A').free,7.5);
   assert.equal(ctx.civs.A.heavyEquipmentStock,30);
 });
+
+test('right-click orders return battle snapshots only when combat actually executes', () => {
+  const ctx=world();ctx.Math.random=()=>0.5;
+  ctx.civs.A.war.B=4;ctx.civs.B.war.A=4;
+  const d=ctx.Military._addDivision({civ:'A',row:0,col:1,manpower:10000});
+  ctx.Military._addDivision({civ:'B',row:0,col:2,manpower:500});
+  const deferred=ctx.Military.orderDivisions([d.id],0,2,{append:true});
+  assert.equal(deferred.battles.length,0);
+  ctx.Military.orderDivisions([d.id],0,1); // Cancel the deferred waypoint first.
+  const result=ctx.Military.orderDivisions([d.id],0,2,{human:true});
+  assert.equal(result.battles.length,1);
+  const battle=result.battles[0];
+  assert.equal(battle.attackerStartingManpower,10000);
+  assert.equal(battle.defenderStartingManpower,500);
+  assert.equal(battle.defenderSurvivors,500-battle.defenderCasualties);
+  assert.ok(battle.cost.money>0);
+  assert.ok(battle.equipmentMatchup);
+  d.movesRemaining=0;
+  assert.equal(ctx.Military.orderDivisions([d.id],1,2,{human:true}).battles.length,0);
+});
+
+test('a single order exposes each completed battle in a chained route', () => {
+  const ctx=world();ctx.Math.random=()=>0.5;
+  ctx.civs.A.war.B=4;ctx.civs.B.war.A=4;
+  const d=ctx.Military._addDivision({civ:'A',row:0,col:1,manpower:10000});
+  d.moveTargets=[[0,2],[1,2]];
+  const result=ctx.Military.orderDivisions([d.id],2,2,{append:true});
+  assert.deepEqual(Array.from(result.battles,b=>[b.row,b.col]),[[0,2],[1,2],[2,2]]);
+  assert.ok(result.battles.every(b=>b.captured));
+});
+
+test('the top-right battle report remains visible after an attacking force is destroyed and closes explicitly', () => {
+  const ctx=world();ctx.Math.random=()=>0.5;
+  const nodes=[];
+  const element=tag=>{
+    const e={tagName:tag,children:[],style:{},dataset:{},classList:{add(){},remove(){},toggle(){}},
+      appendChild(child){this.children.push(child);},insertBefore(child){this.children.push(child);},
+      replaceChildren(){this.children=[];},addEventListener(){},setAttribute(){},querySelector(){return null;}};
+    nodes.push(e);return e;
+  };
+  ctx.document={createElement:element,body:element('body'),addEventListener(){},getElementById(){return null;}};
+  ctx.window=ctx;ctx.showInfo=()=>assert.fail('Battle must not open the economic menu');
+  load(ctx,'military/ui.js');
+  ctx.MilitaryUI.init({military:ctx.Military,getActiveCiv:()=> 'A',notify:message=>assert.fail(message)});
+  ctx.civs.A.war.B=4;ctx.civs.B.war.A=4;
+  ctx.Military._addDivision({civ:'A',row:0,col:1,manpower:50});
+  ctx.Military._addDivision({civ:'B',row:0,col:2,manpower:50000});
+  ctx.MilitaryUI.selectTile(0,1);
+  ctx.MilitaryUI.onTileRightClick(0,2);
+  const panel=nodes.find(n=>n.id==='military-unit-panel');
+  const report=nodes.find(n=>n.className==='military-battle-report');
+  const text=n=>[n.textContent||'',...n.children.map(text)].join(' ');
+  assert.equal(ctx.MilitaryUI.getSelection().length,0);
+  assert.equal(panel.hidden,false);
+  assert.equal(report.hidden,false);
+  assert.match(text(report),/Last battle/);
+  assert.match(text(report),/Total casualties/);
+  assert.match(text(report),/Hardness before → after/);
+  assert.match(text(report),/Experience gained/);
+  assert.match(text(report),/50/);
+  ctx.MilitaryUI.clearSelection();
+  assert.equal(report.hidden,true);
+  assert.equal(panel.hidden,true);
+});
+
+test('battle reports record actual survivor experience gain and hardness before and after', () => {
+  const ctx=world();ctx.Math.random=()=>0.5;
+  const a=ctx.Military._addDivision({civ:'A',row:0,col:1,manpower:10000,experience:2,maxHeavyEquipment:100,heavyEquipment:80});
+  const b=ctx.Military._addDivision({civ:'B',row:0,col:2,manpower:10000,experience:2});
+  const result=ctx.Military.resolveBattle([a],0,2);
+  assert.equal(result.equipmentMatchup.attackerHardness,0.8);
+  assert.ok(Math.abs(result.equipmentMatchup.attackerHardnessAfter-0.8)<1e-9);
+  for(const [side,division] of [['attacker',a],['defender',b]]) {
+    const report=result.experience[side];
+    assert.ok(report);
+    assert.equal(report.before,2);
+    assert.ok(Math.abs(report.after-division.experience)<1e-9);
+    assert.ok(Math.abs(report.gained-(division.experience-2))<1e-9);
+    assert.ok(report.gained>0);
+  }
+});
+
+test('experience reporting respects capped veterans and excludes destroyed troops', () => {
+  const ctx=world();ctx.Math.random=()=>0.5;
+  const veteran=ctx.Military._addDivision({civ:'A',row:0,col:1,manpower:10000,experience:4});
+  const recruit=ctx.Military._addDivision({civ:'A',row:0,col:1,manpower:50,experience:1});
+  ctx.Military._addDivision({civ:'B',row:0,col:2,manpower:10000,experience:1});
+  const result=ctx.Military.resolveBattle([veteran,recruit],0,2);
+  assert.equal(ctx.Military.getDivision(recruit.id),undefined);
+  assert.equal(result.experience.attacker.before,4);
+  assert.equal(result.experience.attacker.after,4);
+  assert.equal(result.experience.attacker.gained,0);
+  assert.equal(result.attackerRemaining,ctx.Military.getDivision(veteran.id).manpower);
+});

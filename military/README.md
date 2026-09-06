@@ -583,3 +583,22 @@ construction costs 2.6 turns of gross income. The two largest snapshots have
 snapshots, so tests additionally cover the user's 700-tile, $2,000 income,
 $5,000 cash benchmark with a standing army. C3 has one initially productive
 resource tile, belonging to Brown, yielding about 2.19 equipment per turn.
+
+### Reports after right-click attacks
+
+The top-right division panel shows the latest completed right-click battle above
+unit selection. Reports include outcome and coordinates, both sides' starting
+manpower, total casualties, ordinary combat losses, entry attrition, survivors,
+combat power, hardness before/after and casualty modifiers, experience before/after
+and gained, retreats/encirclement, and attack-order costs. Experience compares
+the same surviving troops using their remaining manpower as weights, including
+retreating troops; destroyed troops are excluded.
+Survivors include retreating troops; total casualties also include destroyed
+formations, so they can exceed ordinary combat losses.
+
+`Military.orderDivisions(...)` now returns a `battles` array containing snapshots
+of every battle completed during that call. Chained routes display all those
+reports, newest first. Movement-only, blocked, and deferred orders produce no
+new report. The report remains visible when all selected attackers are destroyed;
+Dismiss report clears only the report, while Close, loading a save, or switching
+players clears it along with selection. Reports are transient UI state.

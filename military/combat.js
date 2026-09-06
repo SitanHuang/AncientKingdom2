@@ -237,6 +237,8 @@ var Military = (function (api) {
       defense.power *= cultureDefense;
       defense.location *= cultureDefense;
     }
+    var experienceBefore = {};
+    attackers.concat(defenders).forEach(function (division) { experienceBefore[division.id] = division.experience; });
     var equipmentMatchup = api.getEquipmentMatchup(attackers, defenders);
     var attackerManpower = totalManpower(attackers);
     var defenderManpower = totalManpower(defenders);
@@ -302,12 +304,19 @@ var Military = (function (api) {
     civs[attackerName].lastEquipmentBattle = Object.assign({ role: 'attacker' }, equipmentMatchup);
     if (civs[defenderName]) civs[defenderName].lastEquipmentBattle = Object.assign({ role: 'defender' }, equipmentMatchup);
 
+    var afterEquipment = api.getEquipmentMatchup(api.resolveDivisions(attackerIds), api.resolveDivisions(defenderIds));
+    equipmentMatchup.attackerHardnessAfter = afterEquipment.attackerHardness;
+    equipmentMatchup.defenderHardnessAfter = afterEquipment.defenderHardness;
     return {
       ok: true,
       captured: captured,
       attacker: attackerName,
       defender: defenderName,
       equipmentMatchup: equipmentMatchup,
+      experience: {
+        attacker: experienceReport(attackerIds, experienceBefore),
+        defender: experienceReport(defenderIds, experienceBefore)
+      },
       attackerPower: attack.power,
       defenderPower: defense.power,
       attackerLosses: attackerLosses,
@@ -316,12 +325,29 @@ var Military = (function (api) {
       defenderLosses: defenderLosses,
       attackerCasualties: attackerCasualties,
       defenderCasualties: defenderCasualties,
-      attackerRemaining: totalManpower(attackers),
+      attackerStartingManpower: attackerManpower,
+      defenderStartingManpower: defenderManpower,
+      defenderSurvivors: Math.max(0, defenderManpower - defenderCasualties),
+      attackerRemaining: remainingManpower(attackerIds),
       defenderRemaining: totalManpower(api.getDivisionsAt(row, col, defenderName)),
       retreated: retreated,
       row: row,
       col: col
     };
+  }
+
+  // Compare the same surviving troops on both sides of the experience change,
+  // so losing inexperienced units cannot masquerade as experience earned.
+  function experienceReport(ids, before) {
+    var survivors = api.resolveDivisions(ids);
+    var manpower = totalManpower(survivors);
+    if (!manpower) return null;
+    var initial = 0, final = 0;
+    survivors.forEach(function (division) {
+      initial += before[division.id] * division.manpower;
+      final += division.experience * division.manpower;
+    });
+    return { before: initial / manpower, after: final / manpower, gained: (final - initial) / manpower };
   }
 
   function totalManpower(divisions) {

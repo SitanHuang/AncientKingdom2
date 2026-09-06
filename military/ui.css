@@ -447,3 +447,10 @@
 .military-equipment-summary { margin: 0.5rem 0; }
 .military-unit-hard { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
 #heavy-resource-legend, #heavy-resource-detail { max-width: 700px; padding: 0.4rem; font-size: 0.85rem; }
+
+.military-battle-report { padding: 0.4rem; margin-bottom: 0.4rem; background: #fff; border: 1px solid #bbb; }
+.military-battle-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin: 0.3rem 0; font-variant-numeric: tabular-nums; }
+.military-battle-table th, .military-battle-table td { padding: 0.2rem; overflow-wrap: anywhere; text-align: right; }
+.military-battle-table th:first-child { text-align: left; }
+.military-battle-table tr:nth-child(even) { background: #eee; }
+.military-battle-note { margin-top: 0.3rem; color: #555; font-size: 0.9em; }

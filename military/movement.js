@@ -206,8 +206,8 @@ var Military = (function (api) {
       division.moveTargets = route.concat([target]);
       accepted.push(division.id);
     });
-    executeOrders(accepted, opts);
-    return { ok: accepted.length > 0, reason: accepted.length ? null : "invalid-route", skipped: skipped };
+    var battles = executeOrders(accepted, opts);
+    return { ok: accepted.length > 0, reason: accepted.length ? null : "invalid-route", skipped: skipped, battles: battles };
   }
 
   function approachPath(division, target) {
@@ -221,6 +221,7 @@ var Military = (function (api) {
   }
 
   function executeOrders(ids, opts) {
+    var battles = [];
     var stopped = {};
     var progressed;
     do {
@@ -255,13 +256,14 @@ var Military = (function (api) {
       Object.keys(attacks).forEach(function (key) {
         var group = attacks[key];
         var result = attack(group.ids, group.target[0], group.target[1], opts);
-        if (result.ok) progressed = true;
+        if (result.ok) { progressed = true; battles.push(result); }
         group.ids.forEach(function (id) {
           var division = api.getDivision(id);
           if (division && !samePoint([division.row, division.col], group.target)) stopped[id] = true;
         });
       });
     } while (progressed);
+    return battles;
   }
 
   function executeTurnOrders(civName) {
