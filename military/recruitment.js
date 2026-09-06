@@ -56,10 +56,10 @@ var Military = (function (api) {
       col: col,
       manpower: manpower,
       maxManpower: manpower,
-      experience: 1,
-      morale: 1,
-      entrenchment: 1,
-      movesRemaining: opts.movesRemaining == null ? 5 : opts.movesRemaining,
+      experience: 0.5,
+      morale: 0.8,
+      entrenchment: 0.8,
+      movesRemaining: opts.movesRemaining == null ? 2 : opts.movesRemaining,
       moveLimit: 5,
       createdTurn: typeof turn == "number" ? turn : 0
     });
