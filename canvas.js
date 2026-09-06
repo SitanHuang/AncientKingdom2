@@ -78,8 +78,8 @@ function diplomacyTooltip(row, col) {
 
 function updateDiplomacyTooltip(event) {
     if (!canvas) return;
-    var cell = diplomacyViewCiv && canvasEventToCell(event);
-    canvas.title = cell ? diplomacyTooltip(cell.row, cell.col) : "";
+    var cell = (diplomacyViewCiv || gpem) && canvasEventToCell(event);
+    canvas.title = cell ? (gpem ? heavyResourceTooltip(cell.row, cell.col) : diplomacyTooltip(cell.row, cell.col)) : "";
 }
 
 function drawCellGrid(context, rows, cols, blockSize, canvasScale) {
@@ -223,6 +223,13 @@ function drawCanvas(compare, relationship, pop) {
         };
     canvas = $('canvas')[0];
     diplomacyViewCiv = relationship || null;
+    var heavyLegend = document.getElementById('heavy-resource-legend');
+    if (heavyLegend) heavyLegend.hidden = !gpem;
+    var heavyDetail = document.getElementById('heavy-resource-detail');
+    if (heavyDetail) {
+        heavyDetail.hidden = !gpem;
+        if (gpem && heavyDetail.dataset.row != null) heavyDetail.textContent = heavyResourceTooltip(Number(heavyDetail.dataset.row), Number(heavyDetail.dataset.col));
+    }
     canvas.title = "";
     var logicalWidth = BLOCK_SIZE * data[0].length;
     var logicalHeight = BLOCK_SIZE * data.length;
@@ -283,10 +290,25 @@ function drawCanvas(compare, relationship, pop) {
                 }
                 continue;
             } else if (gpem) {
-                let p = res_econ_mod(row, col) * res_pop_mod(row, col);
-                let max = 5;
-                context.fillStyle = `rgb(${250 - p / max * 5}, ${250 - p / max * 125}, ${250 - p / max * 250})`;
-                context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                var resource = Military.getHeavyResource(row, col);
+                var strength = resource.potential / 10;
+                context.fillStyle = resource.potential ? `rgb(${250 - strength * 95}, ${225 - strength * 140}, ${175 - strength * 150})` : '#ddd';
+                var x = col * BLOCK_SIZE, y = row * BLOCK_SIZE;
+                context.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+                if (resource.potential && !resource.output) {
+                    context.save();
+                    context.beginPath(); context.rect(x, y, BLOCK_SIZE, BLOCK_SIZE); context.clip();
+                    context.strokeStyle = '#555'; context.lineWidth = 1;
+                    for (var hatch = -BLOCK_SIZE; hatch < BLOCK_SIZE * 2; hatch += 6) {
+                        context.beginPath(); context.moveTo(x + hatch, y); context.lineTo(x + hatch + BLOCK_SIZE, y + BLOCK_SIZE); context.stroke();
+                    }
+                    context.restore();
+                }
+                if (resource.factory || (BLOCK_SIZE >= 16 && resource.potential)) {
+                    context.font = (BLOCK_SIZE >= 16 ? Math.max(8, BLOCK_SIZE * 0.4) : BLOCK_SIZE * 0.6) + "px monospace";
+                    context.fillStyle = strength > 0.6 ? 'white' : 'black';
+                    context.fillText((resource.factory ? '厂' : '') + (resource.potential && BLOCK_SIZE >= 16 ? resource.potential.toFixed(1) : ''), x, y + BLOCK_SIZE * 0.5);
+                }
                 continue;
             } else if (d.color && d.type) {
                 if (relationship) {
@@ -419,7 +441,7 @@ function drawCanvas(compare, relationship, pop) {
                     else if (BLOCK_SIZE >= 14 &&
                         (_draw.toString() == types.finance.draw.toString() || _draw.toString() == types.school.draw.toString() || bold))
                         draw(col, row);
-                    else if (cellTypeId(d.type) == 'capital') {
+                    else if (cellTypeId(d.type) == 'capital' || cellTypeId(d.type) == 'factory') {
                         draw(col, row);
                     } else if (_draw.toString() == types.headquarter.draw.toString())
                         draw(col, row);
@@ -642,4 +664,19 @@ function onClick(row, col, event) {
     }
 
     drawCanvas();
+}
+
+function heavyResourceTooltip(row, col) {
+    var r = Military.getHeavyResource(row, col), tile = data[row] && data[row][col];
+    if (!tile) return '';
+    var text = 'Heavy equipment (' + row + ', ' + col + '): potential ' + r.potential.toFixed(2) +
+        ', free output ' + r.output.toFixed(2) + '/turn. Ruling-culture share ' + (r.cultureShare * 100).toFixed(1) + '%. ' + r.reason +
+        '. Pop mod ' + r.popMod.toFixed(2) + ', econ mod ' + r.econMod.toFixed(2) + '.';
+    if (r.factory && tile.color) {
+        text += ' Factory capacity ' + (10 * Military.getTaxEfficiency(tile.color, row, col)).toFixed(2) + '/turn.';
+        var last = tile._heavyProduction;
+        if (tile.color === civOrders[i]) text += last && last.owner === tile.color ?
+            ' Last output ' + last.output.toFixed(2) + ', funded ' + Math.round(last.funding * 100) + '%.' : ' Awaiting production.';
+    }
+    return text;
 }

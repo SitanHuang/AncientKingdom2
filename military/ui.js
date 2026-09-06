@@ -201,6 +201,14 @@
         stats = displayedStats(stats, enemyScale);
         container.appendChild(stat("Men", number(stats.manpower) + " / " + number(stats.maxManpower)));
         if (!isEnemy) {
+            if (stats.heavyEquipment !== undefined) {
+                container.appendChild(stat("Equipment", number(stats.heavyEquipment, 1) + ' / ' + number(stats.maxHeavyEquipment, 1)));
+                container.appendChild(stat("Equipment requested", number(stats.requestedHeavyEquipment, 1)));
+                container.appendChild(stat("Equipment upkeep", '$' + number(stats.equipmentUpkeep, 2)));
+                container.appendChild(stat("Unit type", stats.unitType));
+                container.appendChild(stat("Hardness", percent(stats.hardness)));
+                container.appendChild(stat("Equipment supply", stats.equipmentSupplied ? 'Connected' : 'Disconnected'));
+            }
             container.appendChild(stat("Requested", number(Math.max(0, stats.requestedManpower))));
             container.appendChild(stat("Recovered", number(stats.recoveredLastTurn)));
             container.appendChild(stat("Moves", number(stats.movesRemaining, 0) + " / " + number(stats.moveLimit, 0)));
@@ -314,13 +322,14 @@
         stackSummary.insertBefore(grid, stackSummary.children[1] || null);
     }
 
-    function unitIcon(civName, armyColor) {
+    function unitIcon(civName, armyColor, hard) {
         var icon = make("span", "military-unit-icon", (civName || "?").charAt(0).toUpperCase());
         icon.style.backgroundColor = civColor(civName);
         icon.style.color = civTextColor(civName);
         if (api.armyColors[armyColor]) icon.style.borderColor = api.armyColors[armyColor];
         if (armyColor) icon.style.borderWidth = '3px';
-        icon.title = civName;
+        if (hard) { icon.classList.add('military-unit-hard'); icon.textContent = '◆'; }
+        icon.title = civName + (hard ? ' — heavy equipment' : '');
         return icon;
     }
 
@@ -353,7 +362,7 @@
         }
         var heading = make("div", "military-unit-heading");
         var title = make("strong", "military-panel-title");
-        title.appendChild(unitIcon(division.civ, division.armyColor));
+        title.appendChild(unitIcon(division.civ, division.armyColor, api.isHeavyUnit(division)));
         title.appendChild(make("span", "military-unit-name", divisionName(division)));
         heading.appendChild(title);
         var men = make("span", "military-unit-men", (owned ? "" : "~") + manpowerLabel(shown.manpower));
@@ -409,7 +418,7 @@
         unitDetail.replaceChildren();
         var heading = make("div", "military-unit-detail-heading");
         var title = make("strong", "military-panel-title");
-        title.appendChild(unitIcon(division.civ, division.armyColor));
+        title.appendChild(unitIcon(division.civ, division.armyColor, api.isHeavyUnit(division)));
         title.appendChild(make("span", "military-unit-name", divisionName(division)));
         heading.appendChild(title);
         if (pinned) heading.appendChild(button("Close", "close-detail"));
@@ -418,6 +427,7 @@
         appendStats(grid, stats);
         unitDetail.appendChild(grid);
         if (pinned) {
+            unitDetail.appendChild(equipmentControl(division));
             var actions = make("div", "military-unit-detail-actions");
             actions.appendChild(button("Disband division", "disband", division.id));
             unitDetail.appendChild(actions);
@@ -652,6 +662,11 @@
 
     function selectTile(row, col, event) {
         placementTile = { row: row, col: col };
+        var resourceDetail = document.getElementById('heavy-resource-detail');
+        if (resourceDetail && typeof heavyResourceTooltip == 'function') {
+            resourceDetail.dataset.row = row; resourceDetail.dataset.col = col;
+            resourceDetail.textContent = heavyResourceTooltip(row, col);
+        }
         var activeCiv = activeCivName();
         var divisions = api.getDivisionsAt(row, col);
         var owned = divisions.filter(function (division) { return division.civ === activeCiv; });
@@ -712,6 +727,11 @@
         recruitmentPanel.id = "military-recruitment";
         recruitmentPanel.appendChild(make("h3", "", "Military"));
         recruitmentPanel.appendChild(make("div", "military-upkeep-summary"));
+        recruitmentPanel.appendChild(make('div', 'military-equipment-summary'));
+        recruitmentPanel.appendChild(make('div', 'military-equipment-battle'));
+        var funding = input('number', 'military-factory-share', 100);
+        funding.min = '0'; funding.max = '100'; funding.step = '10';
+        recruitmentPanel.appendChild(labelledInput('Factory production % (0 pauses; cost scales with output) ', funding));
 
         var settings = make("div", "military-settings");
         var growth = input("number", "military-growth-share");
@@ -743,6 +763,9 @@
         var recruitFields = make("div", "military-recruit-fields");
         recruitFields.appendChild(labelledInput("Name ", recruitName));
         recruitFields.appendChild(labelledInput("Manpower cap ", recruitMen));
+        var recruitEquipment = input('number', 'military-recruit-equipment', 0);
+        recruitEquipment.min = '0';
+        recruitFields.appendChild(labelledInput('Equipment cap (1 per 100 men) ', recruitEquipment));
         recruitForm.appendChild(recruitFields);
         recruitForm.appendChild(button("Add recruit queue", "recruit"));
         recruitmentPanel.appendChild(recruitForm);
@@ -758,6 +781,9 @@
         var conscriptFields = make("div", "military-recruit-fields");
         conscriptFields.appendChild(labelledInput("Name ", conscriptName));
         conscriptFields.appendChild(labelledInput("Manpower cap ", conscriptMen));
+        var conscriptEquipment = input('number', 'military-conscript-equipment', 0);
+        conscriptEquipment.min = '0';
+        conscriptFields.appendChild(labelledInput('Equipment cap (1 per 100 men) ', conscriptEquipment));
         conscriptForm.appendChild(conscriptFields);
         conscriptForm.appendChild(button("Conscript at selected tile", "conscript"));
         conscriptForm.appendChild(make("div", "military-location-hint"));
@@ -778,7 +804,9 @@
 
     function onRecruitmentChange(event) {
         var civName = activeCivName();
-        if (event.target.classList.contains("military-growth-share")) {
+        if (event.target.classList.contains('military-factory-share')) {
+            api.setFactoryProductionShare(civName, Number(event.target.value) / 100);
+        } else if (event.target.classList.contains("military-growth-share")) {
             api.setGrowthShare(civName, Math.max(0, Math.min(100, Number(event.target.value))) / 100);
         } else if (event.target.classList.contains("military-upkeep-share")) {
             api.setMaxUpkeepShare(civName, Math.max(0, Math.min(100, Number(event.target.value))) / 100);
@@ -800,7 +828,7 @@
                 notify("Enter a division name first.");
                 return;
             }
-            var recruitResult = api.createRecruitQueue(civName, recruitCap, { name: recruitName });
+            var recruitResult = api.createRecruitQueue(civName, recruitCap, { name: recruitName, maxHeavyEquipment: Number(recruitmentPanel.querySelector('.military-recruit-equipment').value) });
             if (!recruitResult.ok) {
                 notify(resultReason(recruitResult));
             } else {
@@ -817,7 +845,7 @@
                 notify("Select an owned map tile for this division first.");
                 return;
             }
-            var conscriptResult = api.conscript(civName, placementTile.row, placementTile.col, conscriptCap, { name: conscriptName });
+            var conscriptResult = api.conscript(civName, placementTile.row, placementTile.col, conscriptCap, { name: conscriptName, maxHeavyEquipment: Number(recruitmentPanel.querySelector('.military-conscript-equipment').value) });
             if (!conscriptResult.ok) notify(resultReason(conscriptResult));
             else {
                 recruitmentPanel.querySelector(".military-conscript-name").value = nextDivisionName(conscriptName);
@@ -855,6 +883,21 @@
         }
     }
 
+    function equipmentControl(formation) {
+        var wrapper = make('label', 'military-equipment-control', 'Equipment ' + number(formation.heavyEquipment, 1) + ' / cap ');
+        var control = input('number', '', formation.maxHeavyEquipment);
+        control.min = '0'; control.max = formation.maxManpower / 100; control.step = '1';
+        control.addEventListener('click', function (event) { event.stopPropagation(); });
+        control.addEventListener('change', function () {
+            api.setEquipmentCap(formation, Number(control.value));
+            control.value = formation.maxHeavyEquipment;
+            refreshRecruitment(); redraw();
+        });
+        wrapper.appendChild(control);
+        wrapper.title = 'One equipment point supports 100 men. Supplied units refill automatically each turn. Full equipment adds 50% upkeep.';
+        return wrapper;
+    }
+
     function renderQueues(civName) {
         var body = recruitmentPanel.querySelector(".military-queue-table tbody");
         body.replaceChildren();
@@ -880,6 +923,7 @@
             deploy.disabled = queue.manpower <= 0;
             actions.appendChild(deploy);
             actions.appendChild(button("Disband", "cancel-queue", queue.id));
+            actionCell.appendChild(equipmentControl(queue));
             actionCell.appendChild(actions);
             row.appendChild(actionCell);
             body.appendChild(row);
@@ -892,6 +936,16 @@
         var settings = api.getSettings(civName);
         recruitmentPanel.querySelector(".military-upkeep-summary").textContent =
             "Current active and training upkeep: $" + number(api.getUpkeep(civName), 2) + " per quarter";
+        var production = civs[civName].equipmentProduction || {free: 0, factory: 0, paid: 0, idle: 0};
+        recruitmentPanel.querySelector('.military-equipment-summary').textContent = 'Equipment stock: ' + number(api.getEquipmentStock(civName), 1) +
+            ' · Last production: free ' + number(production.free, 1) + ', factories ' + number(production.factory, 1) +
+            ' · Factory cost $' + number(production.paid, 2) + ' · Idle factories ' + production.idle;
+        recruitmentPanel.querySelector('.military-factory-share').value = Math.round(settings.factoryProductionShare * 100);
+        var battle = civs[civName].lastEquipmentBattle;
+        var report = recruitmentPanel.querySelector('.military-equipment-battle');
+        report.textContent = battle ? 'Last battle (' + battle.role + '): hardness attacker ~' + Math.round(battle.attackerHardness * 10) * 10 +
+            '%, defender ~' + Math.round(battle.defenderHardness * 10) * 10 + '% · Combat losses: attacker ×' +
+            number(battle.attackerLossMultiplier, 2) + ', defender ×' + number(battle.defenderLossMultiplier, 2) : '';
         recruitmentPanel.querySelector(".military-growth-share").value = number(settings.growthShare * 100, 0).replace(/,/g, "");
         recruitmentPanel.querySelector(".military-upkeep-share").value = number(settings.maxUpkeepShare * 100, 0).replace(/,/g, "");
         recruitmentPanel.querySelector(".military-overlay-toggle").checked = showManpowerOverlay;
@@ -987,7 +1041,7 @@
             visible.forEach(function (civName, index) {
                 var divisions = groups[civName];
                 divisions.sort(function (a, b) {
-                    return Number(!!b.armyColor) - Number(!!a.armyColor);
+                    return Number(api.isHeavyUnit(b)) - Number(api.isHeavyUnit(a)) || Number(!!b.armyColor) - Number(!!a.armyColor);
                 });
                 var count = divisions.length;
                 var layers = Math.min(4, count);
@@ -998,10 +1052,18 @@
                     var layerX = x - layer * offset;
                     var layerY = y - layer * offset;
                     context.fillStyle = civColor(civName);
-                    context.fillRect(layerX, layerY, size, size);
+                    if (api.isHeavyUnit(divisions[layer])) {
+                        context.beginPath();
+                        context.moveTo(layerX + size / 2, layerY);
+                        context.lineTo(layerX + size, layerY + size / 2);
+                        context.lineTo(layerX + size / 2, layerY + size);
+                        context.lineTo(layerX, layerY + size / 2);
+                        context.closePath(); context.fill();
+                    } else context.fillRect(layerX, layerY, size, size);
                     context.strokeStyle = api.armyColors[divisions[layer].armyColor] || civTextColor(civName);
                     context.lineWidth = Math.max(1, size * 0.09);
-                    context.strokeRect(layerX + context.lineWidth / 2, layerY + context.lineWidth / 2,
+                    if (api.isHeavyUnit(divisions[layer])) context.stroke();
+                    else context.strokeRect(layerX + context.lineWidth / 2, layerY + context.lineWidth / 2,
                         size - context.lineWidth, size - context.lineWidth);
                 }
                 if (size >= 8) {

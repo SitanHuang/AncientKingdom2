@@ -17,6 +17,7 @@ var Military = (function (api) {
     military.nextDivisionId = military.nextDivisionId || nextNumber(military.divisions);
     military.nextQueueId = military.nextQueueId || nextNumber(military.queues);
 
+    Object.keys(civs).forEach(getCivStats);
     Object.values(military.divisions).forEach(setDivisionDefaults);
     Object.values(military.queues).forEach(setQueueDefaults);
     indexDirty = true;
@@ -49,6 +50,7 @@ var Military = (function (api) {
       return Array.isArray(point) && point.length == 2 && point.every(Number.isInteger);
     }).map(function (point) { return point.slice(); }) : [];
     if (!Object.prototype.hasOwnProperty.call(armyColors, division.armyColor)) delete division.armyColor;
+    api.normalizeEquipment(division);
     return division;
   }
 
@@ -60,19 +62,31 @@ var Military = (function (api) {
     queue.experience = queue.experience || 1;
     queue.recoveredLastTurn = queue.recoveredLastTurn || 0;
     queue.recoveredThisTurn = queue.recoveredThisTurn || 0;
+    api.normalizeEquipment(queue);
     return queue;
   }
 
   function getSettings(civName) {
     var settings = military.civSettings[civName] || (military.civSettings[civName] = {});
+    if (!Number.isFinite(settings.factoryProductionShare)) settings.factoryProductionShare = 1;
+    settings.factoryProductionShare = clamp(settings.factoryProductionShare, 0, 1);
     if (settings.growthShare == null) settings.growthShare = 0.5;
     if (settings.maxUpkeepShare == null) settings.maxUpkeepShare = 1;
-    settings.conscriptedThisTurn = settings.conscriptedThisTurn || 0;
-    settings.casualtiesSufferedThisTurn = settings.casualtiesSufferedThisTurn || 0;
-    settings.casualtiesInflictedThisTurn = settings.casualtiesInflictedThisTurn || 0;
-    settings.casualtiesSufferedLastTurn = settings.casualtiesSufferedLastTurn || 0;
-    settings.casualtiesInflictedLastTurn = settings.casualtiesInflictedLastTurn || 0;
     return settings;
+  }
+
+  function getCivStats(civName) {
+    var civ = civs[civName];
+    if (!civ) return null;
+    var old = military.civSettings[civName] || {};
+    var counters = ['conscriptedThisTurn', 'casualtiesSufferedThisTurn', 'casualtiesInflictedThisTurn',
+      'casualtiesSufferedLastTurn', 'casualtiesInflictedLastTurn', 'heavyEquipmentStock'];
+    counters.concat(['equipmentProduction', 'equipmentProductionTurn', 'lastEquipmentBattle']).forEach(function (key) {
+      if (civ[key] == null && old[key] != null) civ[key] = old[key];
+      delete old[key];
+    });
+    counters.forEach(function (key) { civ[key] = Number.isFinite(civ[key]) ? Math.max(0, civ[key]) : 0; });
+    return civ;
   }
 
   function setGrowthShare(civName, share) {
@@ -132,6 +146,7 @@ var Military = (function (api) {
     if (military.queues[queue.id]) queue.id = "q" + military.nextQueueId++;
     military.queues[queue.id] = queue;
     indexDirty = true;
+    updateCivTotal(queue.civ);
     return queue;
   }
 
@@ -158,6 +173,7 @@ var Military = (function (api) {
     if (!queue) return null;
     delete military.queues[id];
     indexDirty = true;
+    updateCivTotal(queue.civ);
     return queue;
   }
 
@@ -258,10 +274,16 @@ var Military = (function (api) {
   }
 
   function updateCivTotal(civName) {
-    if (!civs[civName]) return;
+    if (!getCivStats(civName)) return;
     rebuildIndexes();
     civs[civName].military = (civIndex[civName] || []).reduce(function (sum, division) {
       return sum + division.manpower;
+    }, 0);
+    civs[civName].deployedHeavyEquipment = (civIndex[civName] || []).reduce(function (sum, division) {
+      return sum + (division.heavyEquipment || 0);
+    }, 0);
+    civs[civName].queuedHeavyEquipment = (queueIndex[civName] || []).reduce(function (sum, queue) {
+      return sum + (queue.heavyEquipment || 0);
     }, 0);
   }
 
@@ -271,30 +293,33 @@ var Military = (function (api) {
   }
 
   function recordCasualties(civName, suffered, inflicted) {
-    var settings = getSettings(civName);
-    settings.casualtiesSufferedThisTurn += Math.max(0, Math.round(suffered || 0));
-    settings.casualtiesInflictedThisTurn += Math.max(0, Math.round(inflicted || 0));
+    var stats = getCivStats(civName);
+    if (!stats) return;
+    stats.casualtiesSufferedThisTurn += Math.max(0, Math.round(suffered || 0));
+    stats.casualtiesInflictedThisTurn += Math.max(0, Math.round(inflicted || 0));
   }
 
   function getCasualtyReport(civName) {
-    var settings = getSettings(civName);
+    var stats = getCivStats(civName);
+    stats = stats || {casualtiesSufferedThisTurn:0,casualtiesInflictedThisTurn:0,casualtiesSufferedLastTurn:0,casualtiesInflictedLastTurn:0};
     return {
-      suffered: settings.casualtiesSufferedLastTurn + settings.casualtiesSufferedThisTurn,
-      inflicted: settings.casualtiesInflictedLastTurn + settings.casualtiesInflictedThisTurn,
-      sufferedLastTurn: settings.casualtiesSufferedLastTurn,
-      inflictedLastTurn: settings.casualtiesInflictedLastTurn,
-      sufferedThisTurn: settings.casualtiesSufferedThisTurn,
-      inflictedThisTurn: settings.casualtiesInflictedThisTurn
+      suffered: stats.casualtiesSufferedLastTurn + stats.casualtiesSufferedThisTurn,
+      inflicted: stats.casualtiesInflictedLastTurn + stats.casualtiesInflictedThisTurn,
+      sufferedLastTurn: stats.casualtiesSufferedLastTurn,
+      inflictedLastTurn: stats.casualtiesInflictedLastTurn,
+      sufferedThisTurn: stats.casualtiesSufferedThisTurn,
+      inflictedThisTurn: stats.casualtiesInflictedThisTurn
     };
   }
 
   function beginTurn(civName) {
-    var settings = getSettings(civName);
-    settings.conscriptedThisTurn = 0;
-    settings.casualtiesSufferedLastTurn = settings.casualtiesSufferedThisTurn;
-    settings.casualtiesInflictedLastTurn = settings.casualtiesInflictedThisTurn;
-    settings.casualtiesSufferedThisTurn = 0;
-    settings.casualtiesInflictedThisTurn = 0;
+    var stats = getCivStats(civName);
+    if (!stats) return;
+    stats.conscriptedThisTurn = 0;
+    stats.casualtiesSufferedLastTurn = stats.casualtiesSufferedThisTurn;
+    stats.casualtiesInflictedLastTurn = stats.casualtiesInflictedThisTurn;
+    stats.casualtiesSufferedThisTurn = 0;
+    stats.casualtiesInflictedThisTurn = 0;
     getDivisions(civName).forEach(function (division) {
       if (!division.movedThisTurn) {
         division.entrenchment = clamp(division.entrenchment + 0.25, 1, 2);
@@ -332,6 +357,7 @@ var Military = (function (api) {
   api.init = init;
   api.migrateLegacyCells = migrateLegacyCells;
   api.getSettings = getSettings;
+  api.getCivStats = getCivStats;
   api.setGrowthShare = setGrowthShare;
   api.setMaxUpkeepShare = setMaxUpkeepShare;
   api.getDivisions = getDivisions;
@@ -362,3 +388,174 @@ var Military = (function (api) {
 
   return api;
 })(typeof Military == "object" && Military ? Military : {});
+
+// Heavy equipment is additive saved state; terrain inspection never changes stock or cash.
+var Military = (function (api) {
+  var balance = { menPerEquipment: 100, refillShare: 0.25, upkeepShare: 0.5,
+    factoryPrice: 250, factoryUpkeep: 2, factoryOutput: 10, sizeScale: 100, constructionSizeScale: 200 };
+  function finite(value) { return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0; }
+  function normalize(formation) {
+    formation.maxHeavyEquipment = Math.min(finite(formation.maxHeavyEquipment), finite(formation.maxManpower) / balance.menPerEquipment);
+    formation.heavyEquipment = Math.min(finite(formation.heavyEquipment), capacity(formation));
+  }
+  function capacity(f) { return Math.min(finite(f.maxHeavyEquipment), finite(f.manpower) / balance.menPerEquipment); }
+  function hardness(f) { return f.manpower > 0 ? api.clamp(finite(f.heavyEquipment) * balance.menPerEquipment / f.manpower, 0, 1) : 0; }
+  function supplied(f) {
+    var capital = api.getCapital(f.civ), tile = data[f.row] && data[f.row][f.col];
+    return !!(capital && tile && tile.color == f.civ &&
+      api.getPartKey(f.civ, f.row, f.col) == api.getPartKey(f.civ, capital[0], capital[1]));
+  }
+  function stock(civName) { return finite((api.getCivStats(civName) || {}).heavyEquipmentStock); }
+  function returnEquipment(f, amount) {
+    if (supplied(f)) civs[f.civ].heavyEquipmentStock = stock(f.civ) + finite(amount);
+  }
+  function setCap(f, value) {
+    if (typeof f == 'string') f = api.getDivision(f) || api.getQueue(f);
+    if (!f) return false;
+    var previous = finite(f.heavyEquipment);
+    f.maxHeavyEquipment = finite(value);
+    normalize(f);
+    returnEquipment(f, previous - f.heavyEquipment);
+    api.updateCivTotal(f.civ);
+    return true;
+  }
+  function lose(f, lostMen) {
+    f.heavyEquipment = finite(f.heavyEquipment) * Math.max(0, 1 - lostMen / Math.max(1, f.manpower));
+  }
+  function resource(row, col) {
+    var tile = data[row] && data[row][col];
+    var p = typeof res_pop_mod == 'function' && tile ? res_pop_mod(row, col) : NaN;
+    var e = typeof res_econ_mod == 'function' && tile ? res_econ_mod(row, col) : NaN;
+    var potential = p < 0.4 && e > 0.8 ? 2 + 8 * api.clamp((0.4 - p) / 0.22, 0, 1) * api.clamp(e - 1, 0, 1) : 0;
+    var owner = tile && civs[tile.color];
+    var populations = typeof popv2 == 'object' && popv2 && popv2.map &&
+      popv2.map[row] && popv2.map[row][col] && popv2.map[row][col].pop;
+    var totalPopulation = Object.values(populations || {}).reduce(function (sum, population) {
+      return sum + finite(population);
+    }, 0);
+    // Each ruling-culture resident contributes, even when that culture is a minority.
+    var cultureShare = owner && owner.culture != null && totalPopulation > 0 ?
+      api.clamp(finite(populations[owner.culture]) / totalPopulation, 0, 1) : 0;
+    return { potential: potential, output: potential * cultureShare, cultureShare: cultureShare, popMod: p, econMod: e,
+      reason: !potential ? 'Terrain does not qualify' : !owner ? 'Unowned' : !totalPopulation ? 'No population data' :
+        !cultureShare ? 'No ruling-culture population' : 'Producing in proportion to ruling-culture population',
+      factory: !!(tile && api.cellTypeName(tile.type) == 'factory') };
+  }
+  function owned(civName) {
+    var result = [];
+    data.forEach(function (line, row) { line.forEach(function (tile, col) {
+      if (tile && tile.color == civName) result.push([row, col]);
+    }); });
+    return result;
+  }
+  function costs(civName) {
+    var scale = 1 + Math.pow(owned(civName).length / balance.sizeScale, 2);
+    return { construction: balance.factoryPrice * (1 + Math.pow(owned(civName).length / balance.constructionSizeScale, 2)), upkeep: balance.factoryUpkeep * scale };
+  }
+  function production(civName) {
+    var free = 0, factory = 0, factories = [], price = costs(civName);
+    owned(civName).forEach(function (point) {
+      var r = resource(point[0], point[1]);
+      free += r.output;
+      if (r.factory) {
+        var output = balance.factoryOutput * api.getTaxEfficiency(civName, point[0], point[1]);
+        factory += output;
+        factories.push({ row: point[0], col: point[1], output: output });
+      }
+    });
+    return { free: free, factory: factory, factories: factories, cost: price.upkeep * factories.length };
+  }
+  function setFunding(civName, share) {
+    api.getSettings(civName).factoryProductionShare = api.clamp(finite(share), 0, 1);
+  }
+  function refill(civName) {
+    var requests = api.getDivisions(civName).concat(api.getQueues(civName)).filter(supplied).map(function (f) {
+      normalize(f);
+      return { f: f, amount: Math.min(Math.max(0, capacity(f) - f.heavyEquipment), capacity(f) * balance.refillShare) };
+    });
+    var total = requests.reduce(function (sum, r) { return sum + r.amount; }, 0);
+    var available = Math.min(stock(civName), total);
+    requests.forEach(function (r) { r.f.heavyEquipment += total ? available * r.amount / total : 0; });
+    civs[civName].heavyEquipmentStock = Math.max(0, stock(civName) - available);
+    api.updateCivTotal(civName);
+    return available;
+  }
+  function process(civName) {
+    var civ = api.getCivStats(civName);
+    if (!civ) return { paid: 0 };
+    var settings = api.getSettings(civName), key = typeof turn == 'number' ? turn : civ.years;
+    if (civ.equipmentProductionTurn === key) return { paid: 0, duplicate: true };
+    civ.equipmentProductionTurn = key;
+    var p = production(civName);
+    var share = settings.factoryProductionShare;
+    // Reserve the upkeep of this turn's possible refill before paying factories.
+    var reserve = api.getDivisions(civName).concat(api.getQueues(civName)).reduce(function (sum, f) {
+      var current = hardness(f), next = current;
+      if (supplied(f) && f.manpower > 0) {
+        var added = Math.min(Math.max(0, capacity(f) - finite(f.heavyEquipment)), capacity(f) * balance.refillShare);
+        next += added * balance.menPerEquipment / f.manpower;
+      }
+      return sum + api.getFormationUpkeep(f) / (1 + balance.upkeepShare * current) * (1 + balance.upkeepShare * next);
+    }, 0);
+    var upkeepShare = settings.maxUpkeepShare;
+    reserve = upkeepShare > 0 ? reserve / upkeepShare : 0;
+    var budget = Math.max(0, finite(civ.money) - reserve);
+    var paid = Math.min(p.cost * share, budget);
+    var ratio = p.cost ? paid / p.cost : 0;
+    civ.money -= paid;
+    civ.heavyEquipmentStock = stock(civName) + p.free + p.factory * ratio;
+    p.factories.forEach(function (f) {
+      data[f.row][f.col]._heavyProduction = { output: f.output * ratio, funding: ratio, owner: civName };
+    });
+    civ.equipmentProduction = { free: p.free, factory: p.factory * ratio, paid: paid,
+      funding: ratio, factories: p.factories.length, idle: ratio == 0 ? p.factories.length : 0 };
+    civ.equipmentProduction.delivered = refill(civName);
+    return civ.equipmentProduction;
+  }
+  function stackHardness(divisions) {
+    var men = 0, weighted = 0;
+    api.resolveDivisions(divisions).forEach(function (f) { men += f.manpower; weighted += f.manpower * hardness(f); });
+    return men ? weighted / men : 0;
+  }
+  function matchup(attackers, defenders) {
+    var a = stackHardness(attackers), d = stackHardness(defenders);
+    return {
+      attackerHardness: a,
+      defenderHardness: d,
+      // men LOST BY the attacking side
+      // A harder attacker therefore suffers fewer losses from the defender's power.
+      attackerLossMultiplier: 1 - 0.75 * (a - d),
+      // Men LOST BY the defending side, calculated from the attacker's power.
+      // A harder attacker inflicts more losses; a harder defender suffers fewer.
+      // Equal hardness leaves both multipliers at 1 (no casualty adjustment).
+      defenderLossMultiplier: 1 + 0.5 * (a - d)
+    };
+  }
+  function build(civName, row, col) {
+    var tile = data[row] && data[row][col], civ = civs[civName], price = costs(civName).construction;
+    if (!tile || tile.color != civName || api.cellTypeName(tile.type) != 'land') return { ok: false, reason: 'owned-land-required' };
+    if (!civ || civ.money < price) return { ok: false, reason: 'money', cost: price };
+    civ.money -= price;
+    tile.type = types.factory;
+    return { ok: true, cost: price };
+  }
+  api.equipmentBalance = balance;
+  api.normalizeEquipment = normalize;
+  api.equipmentCapacity = capacity;
+  api.getHardness = hardness;
+  api.isHeavyUnit = function (formation) { return hardness(formation) > 0.5; };
+  api.isEquipmentSupplied = supplied;
+  api.getEquipmentStock = stock;
+  api.returnEquipment = returnEquipment;
+  api.setEquipmentCap = setCap;
+  api.loseEquipment = lose;
+  api.getHeavyResource = resource;
+  api.getFactoryCosts = costs;
+  api.getEquipmentProduction = production;
+  api.setFactoryProductionShare = setFunding;
+  api.refillEquipment = refill;
+  api.processEquipment = process;
+  api.getEquipmentMatchup = matchup;
+  api.buildFactory = build;
+  return api;
+})(Military);

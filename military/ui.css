@@ -441,3 +441,9 @@
     border-radius: 0;
     cursor: pointer;
 }
+
+.military-equipment-control { display: inline-flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; }
+.military-equipment-control input { width: 5rem; }
+.military-equipment-summary { margin: 0.5rem 0; }
+.military-unit-hard { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+#heavy-resource-legend, #heavy-resource-detail { max-width: 700px; padding: 0.4rem; font-size: 0.85rem; }

@@ -114,6 +114,13 @@ var Military = (function (api) {
     var attack = getPowerBreakdown([division], division.row, division.col, false);
     var defense = getPowerBreakdown([division], division.row, division.col, true);
     return {
+      heavyEquipment: division.heavyEquipment,
+      maxHeavyEquipment: division.maxHeavyEquipment,
+      requestedHeavyEquipment: Math.max(0, api.equipmentCapacity(division) - division.heavyEquipment),
+      equipmentUpkeep: api.getFormationUpkeep(division) * (0.5 * api.getHardness(division)) / (1 + 0.5 * api.getHardness(division)),
+      hardness: api.getHardness(division),
+      unitType: api.isHeavyUnit(division) ? "Heavy" : "Light",
+      equipmentSupplied: api.isEquipmentSupplied(division),
       id: division.id,
       civ: division.civ,
       name: division.name,
@@ -230,11 +237,12 @@ var Military = (function (api) {
       defense.power *= cultureDefense;
       defense.location *= cultureDefense;
     }
+    var equipmentMatchup = api.getEquipmentMatchup(attackers, defenders);
     var attackerManpower = totalManpower(attackers);
     var defenderManpower = totalManpower(defenders);
     var combatLosses = defenderManpower ? Math.min(
       Math.max(0, attackerManpower - 1),
-      Math.round(Math.sqrt(defense.power * 5))
+      Math.round(Math.sqrt(defense.power * 5) * equipmentMatchup.attackerLossMultiplier)
     ) : 0;
     var attrition = getAttackAttrition(attackerName, row, col, defenders.length > 0);
     var attackerLosses = Math.min(
@@ -245,7 +253,7 @@ var Military = (function (api) {
     var defenderLosses = attackerManpower ? Math.min(
       defenderManpower,
       attackerManpower,
-      Math.round(Math.sqrt(attack.power * 5))
+      Math.round(Math.sqrt(attack.power * 5) * equipmentMatchup.defenderLossMultiplier)
     ) : 0;
 
     applyLosses(attackers, attackerLosses, function (division) {
@@ -291,12 +299,15 @@ var Military = (function (api) {
     var defenderCasualties = Math.max(0, defenderManpower - remainingManpower(defenderIds));
     api.recordCasualties(attackerName, attackerCasualties, defenderCasualties);
     api.recordCasualties(defenderName, defenderCasualties, attackerCasualties);
+    civs[attackerName].lastEquipmentBattle = Object.assign({ role: 'attacker' }, equipmentMatchup);
+    if (civs[defenderName]) civs[defenderName].lastEquipmentBattle = Object.assign({ role: 'defender' }, equipmentMatchup);
 
     return {
       ok: true,
       captured: captured,
       attacker: attackerName,
       defender: defenderName,
+      equipmentMatchup: equipmentMatchup,
       attackerPower: attack.power,
       defenderPower: defense.power,
       attackerLosses: attackerLosses,
@@ -349,7 +360,10 @@ var Military = (function (api) {
       }
       if (!changed) break;
     }
-    weighted.forEach(function (item) { item.division.manpower -= item.loss; });
+    weighted.forEach(function (item) {
+      api.loseEquipment(item.division, item.loss);
+      item.division.manpower -= item.loss;
+    });
   }
 
   function updateExperienceAndMorale(attackers, defenders, attackerPower, defenderPower) {

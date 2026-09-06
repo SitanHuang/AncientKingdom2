@@ -12,6 +12,7 @@ var Military = (function (api) {
     var queue = api._addQueue({
       civ: civName,
       name: opts.name,
+      maxHeavyEquipment: opts.maxHeavyEquipment,
       row: capital[0],
       col: capital[1],
       manpower: 0,
@@ -32,8 +33,8 @@ var Military = (function (api) {
     maxManpower = Math.round(maxManpower);
     if (maxManpower < 1) return { ok: false, reason: "invalid-manpower" };
 
-    var settings = api.getSettings(civName);
-    var remainingTurnCap = Math.max(0, Math.floor((civ.pop || 0) * 0.1) - settings.conscriptedThisTurn);
+    api.getCivStats(civName);
+    var remainingTurnCap = Math.max(0, Math.floor((civ.pop || 0) * 0.1) - civ.conscriptedThisTurn);
     var remainingPopulation = Math.max(0, Math.floor((civ.pop || 0) * 0.9 - (civ.nextDecline || 0)));
     var manpower = Math.min(maxManpower, remainingTurnCap, remainingPopulation);
     if (manpower < 1) return { ok: false, reason: "population-cap" };
@@ -47,11 +48,12 @@ var Military = (function (api) {
 
     civ.money -= cost;
     civ.nextDecline = (civ.nextDecline || 0) + manpower;
-    settings.conscriptedThisTurn += manpower;
+    civ.conscriptedThisTurn += manpower;
 
     var division = api._addDivision({
       civ: civName,
       name: opts.name,
+      maxHeavyEquipment: opts.maxHeavyEquipment,
       row: row,
       col: col,
       manpower: manpower,
@@ -87,6 +89,8 @@ var Military = (function (api) {
     var division = api._addDivision({
       civ: queue.civ,
       name: opts.name || queue.name,
+      maxHeavyEquipment: queue.maxHeavyEquipment,
+      heavyEquipment: queue.heavyEquipment,
       row: capital[0],
       col: capital[1],
       manpower: manpower,
@@ -109,6 +113,7 @@ var Military = (function (api) {
   function disbandDivision(id) {
     var division = api._removeDivision(id);
     if (!division) return { ok: false, reason: "missing-division" };
+    api.returnEquipment(division, division.heavyEquipment);
     returnPopulation(division.civ, division.manpower);
     resetGrowthRequests(division.civ);
     return { ok: true, manpower: division.manpower, division: division };
@@ -117,6 +122,7 @@ var Military = (function (api) {
   function cancelQueue(id) {
     var queue = api._removeQueue(id);
     if (!queue) return { ok: false, reason: "missing-queue" };
+    api.returnEquipment(queue, queue.heavyEquipment);
     returnPopulation(queue.civ, queue.manpower);
     resetGrowthRequests(queue.civ);
     return { ok: true, manpower: queue.manpower, queue: queue };
@@ -275,7 +281,8 @@ var Military = (function (api) {
     if (scale == null) scale = getUpkeepScale(formation.civ);
     return api.legacyEquivalent(civ, Math.max(0, formation.manpower || 0)) / 4 *
       Math.max(0, modifier) * scale /
-      getTaxEfficiency(formation.civ, formation.row, formation.col);
+      getTaxEfficiency(formation.civ, formation.row, formation.col) *
+      (1 + api.equipmentBalance.upkeepShare * api.getHardness(formation));
   }
 
   function sumManpower(sum, formation) {
@@ -300,6 +307,7 @@ var Military = (function (api) {
         var loss = Math.min(formation.manpower, Math.round(
           Math.max(1000, formation.manpower * 0.1)
         ));
+        api.loseEquipment(formation, loss);
         formation.manpower -= loss;
         returned += loss;
       });

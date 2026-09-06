@@ -191,6 +191,7 @@
     <button onclick="buy(types.capital, 225)">capital ($225)</button>
     <button onclick="buy(types.city, 85)">city ($85)</button>
     <button onclick="buy(types.finance, 105)">finance ($105)</button>
+    <button id="factory-build" onclick="buy(types.factory, Military.getFactoryCosts(civOrders[i]).construction)">Factory</button>
     <button onclick="buy(types.school, 105)">school ($105)</button>
     <button onclick="buy(types.town, 35)">town ($35)</button>
     <button onclick="buy(types.gate, 5)">gate ($5)</button>
@@ -530,15 +531,17 @@ c:
 <div id="heatmap" style="width: 700px;height: 700px">
 </div>
 <br>
-<button onclick="gp=!gp;gp_culture=-1;drawCanvas()">Pop</button>
-<button onclick="gp=!gp;gp_culture=1;drawCanvas()">Cultures</button>
-<button onclick="gp=!gp;gp_culture=3;drawCanvas()">HCult</button>
-<button onclick="ge=!ge;drawCanvas()">Econ</button>
-<button onclick="gte=!gte;drawCanvas()">Tax Eff</button>
-<button onclick="gdef=!gdef;drawCanvas()">Def Mod</button>
-<button onclick="gpm=!gpm;drawCanvas()">Pop Mod</button>
-<button onclick="gem=!gem;drawCanvas()">Econ Mod</button>
-<button onclick="gpem=!gpem;drawCanvas()">Econ * Pop</button>
+<button onclick="gpem=0;gp=!gp;gp_culture=-1;drawCanvas()">Pop</button>
+<button onclick="gpem=0;gp=!gp;gp_culture=1;drawCanvas()">Cultures</button>
+<button onclick="gpem=0;gp=!gp;gp_culture=3;drawCanvas()">HCult</button>
+<button onclick="gpem=0;ge=!ge;drawCanvas()">Econ</button>
+<button onclick="gpem=0;gte=!gte;drawCanvas()">Tax Eff</button>
+<button onclick="gpem=0;gdef=!gdef;drawCanvas()">Def Mod</button>
+<button onclick="gpem=0;gpm=!gpm;drawCanvas()">Pop Mod</button>
+<button onclick="gpem=0;gem=!gem;drawCanvas()">Econ Mod</button>
+<button onclick="gpem=!gpem;if(gpem){gte=gdef=gpm=gem=0;}drawCanvas()">Heavy equipment</button>
+<div id="heavy-resource-legend" hidden>Heavy equipment / turn: gray 0 · light amber 2 → dark amber 10. Hatched: potential resource, currently inactive. 厂: factory (separate output). ◆: heavy unit (hardness above 50%). Select or hover a tile for details.</div>
+<div id="heavy-resource-detail" hidden></div>
 <button onclick="g_bycountry=!g_bycountry;drawCanvas()">By Country</button>
 <button onclick="$('#statsTable').toggleClass('hide-extras')">toggle table size</button>
 <table id="statsTable" style="text-align: right;">
@@ -564,6 +567,7 @@ c:
 <th role="columnheader" data-sort-method=number>Pop.</th>
 <th role="columnheader" data-sort-method=number class="extra">PGRA.</th>
 <th role="columnheader" data-sort-method=number>Mil.</th>
+<th role="columnheader" data-sort-method="number" class="extra" title="Heavy equipment carried by deployed divisions; excludes training queues and stockpile">Heavy Eq.</th>
 <th role="columnheader" data-sort-method=number>Net $</th>
 <th role="columnheader" data-sort-method=number>Income</th>
 <th role="columnheader" data-sort-method=number>Pol.</th>

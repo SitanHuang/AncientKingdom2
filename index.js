@@ -293,6 +293,7 @@ function civGetLandPrice(civ) {
 buy = function (type, price) {
     var civName = civOrders[i];
     var civ = civs[civName];
+    if (type === types.factory) price = Military.getFactoryCosts(civName).construction;
     if (civ.money < price) {
         alert('Not enough money.');
         drawCanvas();
@@ -322,6 +323,14 @@ buy = function (type, price) {
     });
     buyClick = function (row, col) {
         var land = data[row][col];
+        if (type === types.factory) {
+            var built = Military.buildFactory(civName, row, col);
+            if (!built.ok) alert(built.reason === 'money' ? 'Not enough money.' : 'Factory requires owned ordinary land.');
+            else buyClick = null;
+            drawCanvas();
+            showInfo();
+            return;
+        }
         if (land == null || (land && land.color != civName && land.color != null)) {
             alert('Land is null or already occupied.');
         } else {
@@ -624,6 +633,7 @@ endTurn = function () {
 
             if (d && (d.type.draw.toString() == types.city.draw.toString() ||
                         d.type.draw.toString() == types.town.draw.toString() ||
+                        cellTypeId(d.type) == 'factory' ||
                         d.type.draw.toString() == types.school.draw.toString() ||
                         d.type.draw.toString() == types.headquarter.draw.toString())) {
                 d.growth = dPop < 70000 ? 1.025 : 1.005;
@@ -934,6 +944,8 @@ endTurn = function () {
     if (isNaN(civ.money)) civ.money = 0;
     applyDynastyMismanagement(civ, civName);
     if (isNaN(civ.money)) civ.money = 0;
+    var equipmentProduction = Military.processEquipment(civName);
+    civ.expense += equipmentProduction.paid;
     var militaryUpkeep = Military.processUpkeep(civName);
     if (militaryUpkeep.ok) {
         civ.expense = Math.round((civ.expense + militaryUpkeep.paid) * 100) / 100;
@@ -1208,6 +1220,13 @@ popRebel = function (civName, target, source) {
 };
 
 showInfo = function () {
+    var factoryButton = document.getElementById('factory-build');
+    if (factoryButton) {
+        var factoryCosts = Military.getFactoryCosts(civOrders[i]);
+        factoryButton.textContent = 'Factory ($' + factoryCosts.construction.toFixed(2) + ')';
+        factoryButton.title = 'Produces up to 10 equipment per turn, scaled by local tax efficiency. Full operating cost $' +
+            factoryCosts.upkeep.toFixed(2) + '/turn. Adjust Factory production % in Military.';
+    }
     var civ = civs[civOrders[i]];
     var divisions = Military.getDivisions(civOrders[i]);
     var recruitQueues = Military.getQueues(civOrders[i]);
@@ -1673,7 +1692,9 @@ refreshTable = function () {
         tr.append(`<td>${Math.round(civ.happiness) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.pop) || ''}</td>`)
         tr.append(`<td class="extra">${civ.popchangepercRA || ''}</td>`)
+        Military.updateCivTotal(civName);
         tr.append(`<td>${Math.round(civ.military) || ''}</td>`)
+        tr.append(`<td class="extra">${Math.round(civ.deployedHeavyEquipment * 10) / 10}</td>`)
         tr.append(`<td>${Math.round(civ.newMoney - civ.oldMoney) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.income) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.politic) || ''}</td>`)

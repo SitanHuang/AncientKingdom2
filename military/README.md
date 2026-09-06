@@ -63,7 +63,7 @@ military = {
     China: {
       growthShare: 0.5,
       maxUpkeepShare: 1,
-      conscriptedThisTurn: 0
+      factoryProductionShare: 1
     }
   },
   nextDivisionId: 2,
@@ -451,3 +451,135 @@ Each backend module extends the same global `Military` object. Public gameplay
 code should use the non-underscored methods. `_addDivision`, `_removeDivision`,
 `_moveDivision`, and related methods are low-level operations intended for the
 military modules, migration, scenario editing, and focused tests.
+
+## Heavy equipment and factories
+
+Heavy equipment abstracts mounts, armor, and heavy weapons without adding a
+movement bonus. Divisions and training queues save `maxHeavyEquipment` and
+`heavyEquipment`; missing fields default to zero. One point equips 100 men.
+Configuration caps cannot exceed maximum manpower / 100, and carried equipment
+cannot exceed the cap or current manpower / 100.
+
+Civilization-level statistics live directly on `civs[civName]`:
+`heavyEquipmentStock`, `deployedHeavyEquipment`, `queuedHeavyEquipment`,
+`equipmentProduction`, `equipmentProductionTurn`, and `lastEquipmentBattle`.
+Conscription and casualty counters also live on the civilization. The deployed
+and queued equipment totals are derived from formations, and the stats table's
+**Heavy Eq.** extra column shows deployed equipment only. Loading migrates old
+military settings statistics onto the civilization, keeps an existing civilization
+value authoritative, and removes the old copies to avoid duplicate stock.
+Player policy controls (`growthShare`, `maxUpkeepShare`, and
+`factoryProductionShare`) remain in `military.civSettings`. Recruitment and
+conscription accept `opts.maxHeavyEquipment`; queue deployment preserves both
+fields. `Military.setEquipmentCap(formationOrId, cap)` creates an automatic
+request, never an immediate delivery.
+
+At each civilization economy turn, owned terrain with population modifier below
+0.4 and economic modifier above 0.8 has potential free output:
+
+```text
+2 + 8 * clamp((0.4 - popMod) / 0.22, 0, 1) * clamp(econMod - 1, 0, 1)
+```
+
+Actual free output is potential output multiplied by the ruling culture's share
+of the cell's population (`popv2.map[row][col].pop`). A 25% share produces 25%
+of potential output even when another culture is dominant. Unowned or empty
+tiles, missing population data, and zero ruling-culture population produce zero.
+Potential terrain output remains visible; tile details show the culture share
+and actual free output. No scenario names, coordinates, map orientation, or
+continent assumptions affect eligibility. Fractional quantities are retained.
+
+Factories use the canonical `factory` type and draw 厂. They have town-level
+population weight and defense, no money income, and ordinary building capture
+and destruction behavior. Construction preserves existing tile data and requires
+owned ordinary land. Prices use the actual current owned-tile count N:
+
+```text
+construction = 250 * (1 + (N / 200)^2)
+operating    =   2 * (1 + (N / 100)^2) per factory per turn
+full output  =  10 * local tax efficiency
+```
+
+The player's **Factory production %** setting ranges from 0 to 100 (default
+100), scaling operating expense and factory output proportionally. Zero pauses
+factories while retaining free terrain production. Factories share available
+funding proportionally after reserving army upkeep, including this turn's possible
+refill. Insufficient funds reduce output without creating debt. Costs are recorded
+in the ordinary expense total; production is guarded against duplicate calls in
+the same turn.
+
+After production, divisions and queues on owned territory in the capital's
+connected partition share stock proportionally to their requests. Each formation
+receives at most 25% of current equipment capacity per turn. Isolated or invading
+formations cannot refill. Cap reductions, disbanding, and queue cancellation
+return equipment only when supplied. Combat casualties, entry attrition, and
+desertion destroy equipment in proportion to manpower lost; destruction and
+encirclement lose the entire remaining load.
+
+Coverage is `equipment * 100 / manpower`, bounded to 0–1, and is also hardness.
+Equipment adds `base formation upkeep * 0.5 * coverage`, including queues.
+Stack hardness is manpower-weighted. With Δ = attacker hardness − defender
+hardness, ordinary attacker casualties multiply by `1 - 0.5 * Δ` and defender
+casualties by `1 + 0.5 * Δ`, before existing casualty caps. Equal hardness cancels;
+full superiority gives +50% damage and −50% losses. Entry attrition and existing
+power, retreat, morale, and movement calculations retain their original rules.
+Battle reports expose the matchup and the military panel shows its modifiers.
+
+The **Heavy equipment** map mode replaces **Econ * Pop**. Its fixed 0–10 scale
+shows potential terrain output, with gray for nonresources and hatching for
+inactive resources. Factories have separate 厂 markers and retain their glyph at every zoom level,
+including the normal map where other buildings may collapse to dots. Hover or select a tile
+for terrain eligibility and production details; only the player's factories
+reveal actual funding/output. The mode stays tile-based under **By Country**.
+Divisions above 50% hardness are classified as Heavy and use rhombus indicators.
+At or below 50%, including empty equipment requests, they are Light and remain
+square. This visual classification does not change the continuous combat bonuses.
+
+The common AI keeps full equipment caps (up to 100% of manpower) on every
+formation when it has free production, stock, or already-equipped troops. New
+queues and supplied conscripts follow the same policy. Starting without any
+equipment, it requests equipment for the strongest fifth to establish factory
+demand. Requests remain stable: cash fluctuations, changes in elite ranking,
+and forecast changes never automatically strip deployed equipment. Actual
+upkeep, population limits, and force planning govern affordability instead.
+Peacetime downsizing removes unequipped units first and preserves the last
+funded deployed division, avoiding disband/recruit cycles that empty the army.
+
+The eight-turn production forecast informs affordable recruitment and desired
+army size, not a restriction on the proportion allowed to request equipment.
+Availability can raise desired manpower by up to 25%, with existing population
+and funding limits retained and heavy upkeep anticipated. The AI can dedicate
+up to 75% of peacetime growth to military training and reinforcement, and create
+up to three queues per turn when equipment is available. Equipment caps express
+long-term requests, not reservations or promises of immediate delivery; actual
+stock is distributed proportionally once per production turn.
+At war it considers conscription sooner (below 90% rather than 75% of target),
+can cover three urgent posts rather than two, and gives urgent conscription first
+claim before new training queues. No unit receives instant equipment or bypasses
+supply, cash, population, or upkeep limits. It adjusts factory output to demand, stock, terrain
+production, and available income, pausing excess production. It builds at most
+one factory per turn, with four turns of unmet demand, reserving one turn of army
+upkeep plus two turns of factory costs. Total factory operating cost must fit
+within 20% of available income. It uses hardness casualty advantage to rank
+otherwise viable attacks, retaining the existing retreat/power safety threshold.
+
+### Affordability calibration
+
+Run `node military/balance-report.cjs` for a read-only report using current cost
+helpers, or add `--json` for individual state records. The bundled saves include
+359 state snapshots with income attributes across 21 scenarios; related saves
+are not independent samples, and legacy rolling-income values may be stale.
+
+| Owned tiles | Construction | Full operating cost / turn |
+| --- | ---: | ---: |
+| 100 | $312.50 | $4 |
+| 422 | $1,363.03 | $37.62 |
+| 459 | $1,566.76 | $44.14 |
+| 700 | $3,312.50 | $100 |
+
+In the saved 100–199-tile cohort, median income is about $145 and median
+construction costs 2.6 turns of gross income. The two largest snapshots have
+422 and 459 tiles and enough saved cash for construction. There are no 700-tile
+snapshots, so tests additionally cover the user's 700-tile, $2,000 income,
+$5,000 cash benchmark with a standing army. C3 has one initially productive
+resource tile, belonging to Brown, yielding about 2.19 equipment per turn.

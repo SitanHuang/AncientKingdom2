@@ -63,6 +63,16 @@ function randn_bm() {
 }
 
 var types = {
+    factory: {
+        id: 'factory', defenseBonus: 0.15, initialPopulationWeight: 15, strategicValue: 3,
+        income: function () {},
+        draw: function (x, y) {
+            var context = canvas.getContext('2d');
+            context.font = BLOCK_SIZE - 1 + "px 'Roboto Mono'";
+            context.fillStyle = civs[data[y][x].color].fontColor;
+            context.fillText("厂", x * BLOCK_SIZE, y * BLOCK_SIZE + BLOCK_SIZE);
+        }
+    },
     capital: {
         id: 'capital',
         defenseBonus: 0.55,

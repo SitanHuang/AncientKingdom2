@@ -44,6 +44,8 @@ function world(options = {}) {
     [cell('A', context.types.land), cell('A', context.types.city), cell('B', context.types.land)],
     [cell('A', context.types.land), cell('A', context.types.land), cell('B', context.types.land)]
   ];
+  context.popv2 = {map: context.data.map(line => line.map(tile => tile ?
+    {pop: {[options.culture || context.civs[tile.color]?.culture || 'a']: tile.pop || 10000}} : null))};
   context.regions_genCountryParts = function (_civ, name) {
     const map = {};
     let supplyCenter = null;
@@ -302,7 +304,7 @@ test('conscription uses the country conversion and cannot exceed ten percent per
   assert.equal(ctx.civs.A.nextDecline, 10000);
   assert.equal(ctx.Military.conscript('A', 0, 0, 1000, { name: 'Second' }).ok, false);
   ctx.Military.beginTurn('A');
-  assert.equal(ctx.Military.getSettings('A').conscriptedThisTurn, 0);
+  assert.equal(ctx.civs.A.conscriptedThisTurn, 0);
 });
 
 test('deployed reinforcements join with 0.5 experience', () => {
@@ -695,7 +697,7 @@ test('right-click keeps units selected, passes Alt waypoints, draws arrows, and 
     children: [], insertBefore() {}, style: {}, dataset: {}, classList: { add() {}, remove() {}, toggle() {} },
     appendChild() {}, replaceChildren() {}, addEventListener() {}, setAttribute() {}, querySelector() { return null; }
   });
-  ctx.document = { createElement: element, body: element(), addEventListener() {} };
+  ctx.document = { createElement: element, body: element(), addEventListener() {}, getElementById() { return null; } };
   ctx.window = ctx;
   ctx.showInfo = () => assert.fail('Attack must not open showInfo');
   load(ctx, 'military/ui.js');
@@ -758,4 +760,388 @@ test('replacing an Alt-deferred plan with an ordinary order moves immediately', 
   ctx.Military.orderDivisions([unit.id], 2, 1);
   assert.deepEqual([unit.row, unit.col, unit.movesRemaining], [2, 1, 2]);
   assert.equal(unit.movePlanWaiting, undefined);
+});
+
+// Heavy equipment regressions exercise economics and combat through public APIs.
+test('heavy resources use strict terrain thresholds and ruling-culture population share', () => {
+  const ctx = world();
+  ctx.res_pop_mod = () => 0.08;
+  ctx.res_econ_mod = () => 2;
+  assert.equal(ctx.Military.getHeavyResource(0, 0).output, 10);
+  ctx.res_pop_mod = () => 0.4;
+  assert.equal(ctx.Military.getHeavyResource(0, 0).potential, 0);
+  ctx.res_pop_mod = () => 0.29;
+  ctx.res_econ_mod = () => 0.8;
+  assert.equal(ctx.Military.getHeavyResource(0, 0).potential, 0);
+  ctx.res_econ_mod = () => 1.01;
+  assert.ok(ctx.Military.getHeavyResource(0, 0).output >= 2);
+  ctx.popv2.map[0][0].pop = {};
+  assert.equal(ctx.Military.getHeavyResource(0, 0).output, 0);
+  assert.ok(ctx.Military.getHeavyResource(0, 0).potential > 0);
+  ctx.popv2.map[0][0].pop = {b:1000};
+  assert.equal(ctx.Military.getHeavyResource(0, 0).output, 0);
+  ctx.data[0][0].color = null;
+  assert.equal(ctx.Military.getHeavyResource(0, 0).reason, 'Unowned');
+});
+
+test('factory funding controls cost and output, preserves free production, and runs once per turn', () => {
+  const ctx = world();
+  ctx.res_pop_mod = () => 0.08; ctx.res_econ_mod = () => 2;
+  ctx.data[0][0].type = ctx.types.factory;
+  ctx.civs.A.money = 1000;
+  ctx.Military.setFactoryProductionShare('A', 0.5);
+  const first = ctx.Military.processEquipment('A');
+  assert.equal(first.free, 60);
+  assert.equal(first.factory, 5);
+  assert.equal(first.paid, ctx.Military.getFactoryCosts('A').upkeep * 0.5);
+  assert.equal(ctx.Military.getEquipmentStock('A'), 65);
+  const money = ctx.civs.A.money;
+  assert.equal(ctx.Military.processEquipment('A').duplicate, true);
+  assert.equal(ctx.civs.A.money, money);
+  ctx.turn++;
+  ctx.Military.setFactoryProductionShare('A', 0);
+  const paused = ctx.Military.processEquipment('A');
+  assert.equal(paused.factory, 0); assert.equal(paused.free, 60); assert.equal(paused.paid, 0);
+  ctx.turn++; ctx.civs.A.money = 1; ctx.Military.setFactoryProductionShare('A', 1);
+  const partial = ctx.Military.processEquipment('A');
+  assert.equal(partial.paid, 1); assert.equal(ctx.civs.A.money, 0);
+  assert.ok(partial.factory > 0 && partial.factory < 10);
+});
+
+test('factory prices scale with actual territory and placement preserves tile data', () => {
+  const ctx = world(); ctx.civs.A.money = 100000;
+  const small = ctx.Military.getFactoryCosts('A');
+  const tile = ctx.data[0][0]; tile.custom = 12;
+  assert.equal(ctx.Military.buildFactory('A', 0, 0).ok, true);
+  assert.equal(tile.custom, 12); assert.equal(tile.type.id, 'factory');
+  assert.equal(ctx.Military.buildFactory('A', 0, 0).ok, false);
+  assert.equal(ctx.Military.buildFactory('A', 0, 2).ok, false);
+  ctx.data[0][2].color = 'A';
+  assert.ok(ctx.Military.getFactoryCosts('A').construction > small.construction);
+  ctx.civs.A.money = 0;
+  assert.equal(ctx.Military.buildFactory('A', 0, 1).reason, 'money');
+});
+
+test('supplied equipment requests share stock, obey refill limits, and return or lose equipment correctly', () => {
+  const ctx = world();
+  const a = ctx.Military._addDivision({civ:'A',row:0,col:0,manpower:1000,maxHeavyEquipment:10});
+  const b = ctx.Military._addDivision({civ:'A',row:0,col:1,manpower:1000,maxHeavyEquipment:10});
+  ctx.civs.A.heavyEquipmentStock = 3;
+  ctx.Military.refillEquipment('A');
+  assert.equal(a.heavyEquipment, 1.5); assert.equal(b.heavyEquipment, 1.5);
+  ctx.civs.A.heavyEquipmentStock = 100;
+  ctx.Military.refillEquipment('A'); assert.equal(a.heavyEquipment, 4);
+  ctx.Military.setEquipmentCap(a, 1);
+  assert.equal(a.heavyEquipment, 1); assert.equal(ctx.Military.getEquipmentStock('A'), 98);
+  ctx.data[0][1].color = 'B';
+  ctx.Military.setEquipmentCap(b, 0);
+  assert.equal(ctx.Military.getEquipmentStock('A'), 98);
+  ctx.Military.setEquipmentCap(b, 10);
+  ctx.Military.refillEquipment('A'); assert.equal(b.heavyEquipment, 0);
+  ctx.Military.loseEquipment(a, 500); assert.equal(a.heavyEquipment, 0.5);
+  ctx.Military.disbandDivision(a.id); assert.equal(ctx.Military.getEquipmentStock('A'), 98.5);
+});
+
+test('equipment survives queue deployment and saves, and scales upkeep and hardness', () => {
+  const ctx = world();
+  const q = ctx.Military.createRecruitQueue('A', 1000, {maxHeavyEquipment:100}).queue;
+  assert.equal(q.maxHeavyEquipment, 10); q.manpower = 1000;
+  const baseline = ctx.Military.getFormationUpkeep(q);
+  q.heavyEquipment = 10;
+  assert.equal(ctx.Military.getFormationUpkeep(q), baseline * 1.5);
+  const d = ctx.Military.deployQueue(q.id).division;
+  assert.equal(d.heavyEquipment, 10); assert.equal(ctx.Military.getHardness(d), 1);
+  ctx.Military.init(JSON.parse(JSON.stringify(ctx.military)));
+  assert.equal(ctx.Military.getDivision(d.id).heavyEquipment, 10);
+  ctx.Military.getDivision(d.id).heavyEquipment = NaN;
+  ctx.Military.init(ctx.military); assert.equal(ctx.Military.getDivision(d.id).heavyEquipment, 0);
+});
+
+test('hardness has symmetric bounded casualty effects and manpower-weighted mixed stacks', () => {
+  const ctx = world();
+  const hard = ctx.Military._addDivision({civ:'A',row:0,col:1,manpower:1000,maxHeavyEquipment:10,heavyEquipment:10});
+  const soft = ctx.Military._addDivision({civ:'B',row:0,col:2,manpower:1000});
+  let match = ctx.Military.getEquipmentMatchup([hard], [soft]);
+  assert.equal(match.attackerLossMultiplier, 0.5); assert.equal(match.defenderLossMultiplier, 1.5);
+  match = ctx.Military.getEquipmentMatchup([soft], [hard]);
+  assert.equal(match.attackerLossMultiplier, 1.5); assert.equal(match.defenderLossMultiplier, 0.5);
+  assert.equal(ctx.Military.getEquipmentMatchup([hard], [hard]).attackerLossMultiplier, 1);
+  const other = ctx.Military._addDivision({civ:'A',row:0,col:1,manpower:9000});
+  assert.equal(ctx.Military.getEquipmentMatchup([hard, other], [soft]).attackerHardness, 0.1);
+  const result = ctx.Military.resolveBattle([hard], 0, 2);
+  assert.equal(result.equipmentMatchup.defenderLossMultiplier, 1.5);
+  assert.ok(result.defenderLosses <= 1000);
+  assert.ok(Math.abs(hard.heavyEquipment - hard.manpower / 100) < 1e-9);
+});
+
+test('factory balance is affordable at 100 tiles and steep at 700 tiles', () => {
+  const ctx = world();
+  ctx.data = [Array.from({length:100}, () => cell('A',ctx.types.land))];
+  assert.equal(ctx.Military.getFactoryCosts('A').construction, 312.5);
+  assert.equal(ctx.Military.getFactoryCosts('A').upkeep, 4);
+  ctx.data = [Array.from({length:700}, () => cell('A',ctx.types.land))];
+  assert.equal(ctx.Military.getFactoryCosts('A').construction, 3312.5);
+  assert.equal(ctx.Military.getFactoryCosts('A').upkeep, 100);
+});
+
+test('factory spending reserves refill upkeep and ownership changes transfer production', () => {
+  const ctx = world();
+  ctx.data[0][0].type = ctx.types.factory;
+  const d = ctx.Military._addDivision({civ:'A',row:0,col:0,manpower:1000,maxHeavyEquipment:10});
+  ctx.civs.A.heavyEquipmentStock = 10;
+  ctx.civs.A.money = ctx.Military.getUpkeep('A') * 1.125;
+  assert.equal(ctx.Military.processEquipment('A').paid, 0);
+  assert.equal(d.heavyEquipment, 2.5);
+  assert.equal(ctx.Military.processUpkeep('A').fundedRatio, 1);
+  ctx.data[0][0].color = 'B';
+  assert.equal(ctx.Military.getEquipmentProduction('A').factories.length, 0);
+  assert.equal(ctx.Military.getEquipmentProduction('B').factories.length, 1);
+});
+
+test('shared AI equips elites, funds and builds factories, and pauses excess production', () => {
+  const ctx = world(); load(ctx,'military/ai.js'); ctx.civs.A.ii = 6;
+  ctx.Military._addDivision({civ:'A',row:0,col:0,manpower:10000,maxManpower:10000,experience:2});
+  ctx.MilitaryAI.think(ctx.civs.A,'A');
+  assert.ok(ctx.Military.getDivisions('A').some(d => d.maxHeavyEquipment > 0));
+  assert.equal(ctx.Military.getEquipmentProduction('A').factories.length,1);
+  assert.ok(ctx.Military.getSettings('A').factoryProductionShare > 0);
+  ctx.turn++;
+  ctx.civs.A.heavyEquipmentStock = 100000;
+  ctx.MilitaryAI.think(ctx.civs.A,'A');
+  assert.equal(ctx.Military.getSettings('A').factoryProductionShare,0);
+});
+
+test('a 700-tile AI with $2000 income and $5000 cash can build and fund a factory', () => {
+  const ctx = world(); load(ctx,'military/ai.js');
+  ctx.data = [Array.from({length:700}, () => cell('A',ctx.types.land))];
+  Object.assign(ctx.civs.A,{ii:700,pop:10000000,income:2000,incomesRA:2000,money:5000});
+  ctx.Military._addDivision({civ:'A',row:0,col:0,manpower:500000,maxManpower:500000,experience:2});
+  ctx.MilitaryAI.think(ctx.civs.A,'A');
+  assert.equal(ctx.Military.getEquipmentProduction('A').factories.length,1);
+  assert.ok(ctx.Military.getSettings('A').factoryProductionShare > 0);
+  assert.ok(ctx.civs.A.money >= ctx.Military.getUpkeep('A'));
+});
+
+test('C3 resource production and twenty-turn accumulation match the actual terrain and culture', () => {
+  const saved = vm.runInNewContext('(' + fs.readFileSync(path.join(root,'chunQiuMod.C3.json'),'utf8') + ')');
+  const ctx = world({data:saved.data,civs:saved.civs});
+  ctx.popv2=saved.popv2;
+  load(ctx,'map.js'); load(ctx,'resources.js');
+  ctx.popv2_get_dominant_culture=(row,col)=>{
+    const populations=ctx.popv2.map[row]?.[col]?.pop||{};
+    return Object.entries(populations).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  };
+  const eligible=[];
+  ctx.data.forEach((line,row)=>line.forEach((tile,col)=>{
+    const r=ctx.Military.getHeavyResource(row,col);
+    if(r.output)eligible.push({owner:tile.color,output:r.output});
+  }));
+  assert.equal(eligible.length,1); assert.equal(eligible[0].owner,'Brown');
+  assert.ok(eligible[0].output>2.18&&eligible[0].output<2.19);
+  for(let n=0;n<20;n++){ctx.turn++;ctx.Military.processEquipment('Brown');}
+  assert.ok(Math.abs(ctx.Military.getEquipmentStock('Brown')-eligible[0].output*20)<1e-8);
+});
+
+test('rhombus markers and heavy unit classification require strictly more than 50% hardness', () => {
+  const ctx=world();
+  const element=()=>({children:[],style:{},dataset:{},classList:{add(){},remove(){},toggle(){}},
+    appendChild(){},replaceChildren(){},addEventListener(){},setAttribute(){},querySelector(){return null;}});
+  ctx.document={createElement:element,body:element(),addEventListener(){}};ctx.window=ctx;
+  load(ctx,'military/ui.js');
+  ctx.MilitaryUI.init({military:ctx.Military,getActiveCiv:()=> 'A'});
+  const d=ctx.Military._addDivision({civ:'A',row:0,col:0,manpower:1000,maxHeavyEquipment:10,heavyEquipment:1});
+  let rectangles=0,edges=0;
+  const canvas={save(){},restore(){},beginPath(){},closePath(){},moveTo(){},lineTo(){edges++;},
+    fill(){},stroke(){},fillRect(){rectangles++;},strokeRect(){},fillText(){},strokeText(){}};
+  for (const equipment of [0, 1, 5, 5.01, 10, 5, 0]) {
+    d.heavyEquipment=equipment;rectangles=0;edges=0;
+    const heavy=equipment>5;
+    ctx.MilitaryUI.drawOverlay(canvas,20);
+    assert.equal(ctx.Military.isHeavyUnit(d),heavy);
+    assert.equal(ctx.Military.getDivisionStats(d).unitType,heavy?'Heavy':'Light');
+    assert.equal(rectangles,heavy?0:1);
+    assert.equal(edges,heavy?3:0);
+  }
+});
+
+test('factory types and funding restore canonically without repeating saved production', () => {
+  const ctx=world();ctx.data[0][0].type=ctx.types.factory;
+  ctx.Military.setFactoryProductionShare('A',0.4);
+  ctx.Military.processEquipment('A');
+  const stock=ctx.Military.getEquipmentStock('A');
+  ctx.data=JSON.parse(JSON.stringify(ctx.data));
+  ctx.normalizeCellTypes();
+  ctx.Military.init(JSON.parse(JSON.stringify(ctx.military)));
+  assert.equal(ctx.data[0][0].type,ctx.types.factory);
+  assert.equal(ctx.Military.getSettings('A').factoryProductionShare,0.4);
+  assert.equal(ctx.Military.processEquipment('A').duplicate,true);
+  assert.equal(ctx.Military.getEquipmentStock('A'),stock);
+});
+
+test('free production and surplus stocks increase AI recruitment and assign equipment without instant delivery', () => {
+  function setup(source) {
+    const ctx=world();load(ctx,'military/ai.js');ctx.civs.A.ii=6;
+    if(source==='stock')ctx.civs.A.heavyEquipmentStock=1000;
+    if(source==='terrain'){ctx.res_pop_mod=()=>0.08;ctx.res_econ_mod=()=>2;}
+    return ctx;
+  }
+  const plain=setup(); const baseline=plain.MilitaryAI.plan(plain.civs.A,'A');
+  plain.MilitaryAI.think(plain.civs.A,'A');
+  for(const source of ['stock','terrain']) {
+    const ctx=setup(source); const plan=ctx.MilitaryAI.plan(ctx.civs.A,'A');
+    assert.ok(plan.rawTargetManpower>baseline.rawTargetManpower);
+    assert.ok(plan.upkeepPerMan>baseline.upkeepPerMan, 'budget must anticipate heavy upkeep');
+    ctx.MilitaryAI.think(ctx.civs.A,'A');
+    const queues=ctx.Military.getQueues('A');
+    assert.ok(queues.length>=plain.Military.getQueues('A').length);
+    assert.ok(queues.some(q=>q.maxHeavyEquipment>0));
+    assert.ok(queues.every(q=>q.heavyEquipment===0));
+    const requested=queues.reduce((sum,q)=>sum+q.maxHeavyEquipment,0);
+    assert.ok(requested<=(source==='stock'?1000:480));
+    assert.ok(ctx.Military.getSettings('A').growthShare>0.5);
+  }
+});
+
+test('equipment-rich AI expands beyond the elite fifth and equips emergency conscription requests', () => {
+  const ctx=world();load(ctx,'military/ai.js');ctx.civs.A.ii=6;
+  ctx.civs.A.heavyEquipmentStock=10000;
+  for(let n=0;n<5;n++)ctx.Military._addDivision({civ:'A',row:0,col:0,manpower:1000,maxManpower:1000});
+  ctx.civs.A.war.B=4;ctx.civs.B.war.A=4;
+  ctx.Military._addDivision({civ:'B',row:0,col:2,manpower:30000,maxManpower:30000});
+  ctx.Military._addDivision({civ:'B',row:1,col:2,manpower:30000,maxManpower:30000});
+  ctx.MilitaryAI.think(ctx.civs.A,'A');
+  assert.ok(ctx.Military.getDivisions('A').filter(d=>d.maxHeavyEquipment>0).length>1);
+  const drafted=ctx.civs.A._militaryAI.actions.filter(a=>a.action==='conscript');
+  assert.ok(drafted.length>0);
+  assert.ok(drafted.some(a=>ctx.Military.getDivision(a.detail)?.maxHeavyEquipment>0));
+  assert.ok(ctx.civs.A.conscriptedThisTurn<=ctx.civs.A.pop*0.1);
+});
+
+test('factory cash reservation respects the player military upkeep spending percentage', () => {
+  const ctx=world();ctx.data[0][0].type=ctx.types.factory;
+  ctx.Military._addDivision({civ:'A',row:0,col:0,manpower:1000});
+  ctx.Military.setMaxUpkeepShare('A',0.5);
+  ctx.civs.A.money=ctx.Military.getUpkeep('A')/0.5+1;
+  assert.equal(ctx.Military.processEquipment('A').paid,1);
+  assert.equal(ctx.Military.processUpkeep('A').fundedRatio,1);
+});
+
+test('civ-level military statistics migrate from settings without duplicating stock or overwriting newer values', () => {
+  const ctx=world();
+  delete ctx.civs.A.heavyEquipmentStock;
+  delete ctx.civs.A.conscriptedThisTurn;
+  const report={free:2,factory:5,paid:1};
+  ctx.Military.init({civSettings:{A:{heavyEquipmentStock:12.5,conscriptedThisTurn:100,
+    casualtiesSufferedThisTurn:20,equipmentProduction:report,equipmentProductionTurn:ctx.turn,
+    factoryProductionShare:0.25,customSetting:'kept'}}});
+  assert.equal(ctx.civs.A.heavyEquipmentStock,12.5);
+  assert.equal(ctx.civs.A.conscriptedThisTurn,100);
+  assert.equal(ctx.civs.A.equipmentProduction,report);
+  assert.equal(ctx.Military.getSettings('A').heavyEquipmentStock,undefined);
+  assert.equal(ctx.Military.getSettings('A').conscriptedThisTurn,undefined);
+  assert.equal(ctx.Military.getSettings('A').factoryProductionShare,0.25);
+  assert.equal(ctx.Military.getSettings('A').customSetting,'kept');
+  assert.equal(ctx.Military.processEquipment('A').duplicate,true);
+  ctx.civs.A.heavyEquipmentStock=0;
+  ctx.Military.init({civSettings:{A:{heavyEquipmentStock:100}}});
+  assert.equal(ctx.civs.A.heavyEquipmentStock,0);
+});
+
+test('deployed equipment totals exclude national stock and queues and track cap changes and deployment', () => {
+  const ctx=world();ctx.civs.A.heavyEquipmentStock=100;
+  const d=ctx.Military._addDivision({civ:'A',row:0,col:0,manpower:1000,maxHeavyEquipment:10,heavyEquipment:4});
+  const q=ctx.Military._addQueue({civ:'A',row:0,col:0,manpower:1000,maxHeavyEquipment:10,heavyEquipment:3});
+  assert.equal(ctx.civs.A.deployedHeavyEquipment,4);
+  assert.equal(ctx.civs.A.queuedHeavyEquipment,3);
+  ctx.Military.setEquipmentCap(d,2);
+  assert.equal(ctx.civs.A.deployedHeavyEquipment,2);
+  assert.equal(ctx.civs.A.heavyEquipmentStock,102);
+  ctx.Military.deployQueue(q.id);
+  assert.equal(ctx.civs.A.deployedHeavyEquipment,5);
+  assert.equal(ctx.civs.A.queuedHeavyEquipment,0);
+  ctx.Military.disbandDivision(d.id);
+  assert.equal(ctx.civs.A.deployedHeavyEquipment,3);
+  const civSave=JSON.parse(JSON.stringify(ctx.civs));
+  const militarySave=JSON.parse(JSON.stringify(ctx.military));
+  ctx.civs=civSave;ctx.Military.init(militarySave);
+  assert.equal(ctx.civs.A.deployedHeavyEquipment,3);
+  assert.equal(ctx.civs.A.heavyEquipmentStock,104);
+});
+
+test('AI retains equipped formations despite a low cash cushion instead of returning their equipment to stock', () => {
+  const ctx=world();load(ctx,'military/ai.js');
+  ctx.data=[Array.from({length:100},()=>cell('A',ctx.types.land,50000))];
+  Object.assign(ctx.civs.A,{ii:100,pop:5000000,income:125,incomesRA:125,money:200});
+  ctx.civs.A.war.B=4;ctx.civs.B.war.A=4;
+  ctx.res_pop_mod=()=>0.29;ctx.res_econ_mod=()=>1.01;
+  for(let n=0;n<5;n++)ctx.Military._addDivision({civ:'A',row:0,col:n,manpower:50000,maxManpower:50000,
+    maxHeavyEquipment:500,heavyEquipment:500,movesRemaining:0});
+  assert.ok(ctx.Military.getUpkeep('A')<ctx.civs.A.income);
+  ctx.MilitaryAI.think(ctx.civs.A,'A');
+  assert.equal(ctx.civs.A.deployedHeavyEquipment,2500);
+  assert.equal(ctx.civs.A.heavyEquipmentStock,0);
+  assert.ok(ctx.Military.getDivisions('A').every(d=>d.maxHeavyEquipment===500));
+});
+
+test('free-producing AI can equip 100% of a standing army over time without zeroing deployed equipment', () => {
+  const ctx=world();load(ctx,'military/ai.js');
+  ctx.civs.A.ii=6;ctx.civs.A.war.B=4;ctx.civs.B.war.A=4;
+  ctx.res_pop_mod=()=>0.08;ctx.res_econ_mod=()=>2;
+  const troops=[];
+  for(let n=0;n<5;n++)troops.push(ctx.Military._addDivision({civ:'A',row:0,col:0,manpower:10000,maxManpower:10000,movesRemaining:0}));
+  let previous=0;
+  for(let n=0;n<20;n++) {
+    ctx.turn++;ctx.civs.A.money=10000;
+    ctx.MilitaryAI.think(ctx.civs.A,'A');
+    ctx.Military.processEquipment('A');ctx.Military.processUpkeep('A');
+    const deployed=troops.reduce((sum,d)=>sum+d.heavyEquipment,0);
+    assert.ok(deployed>=previous-1e-8, 'existing equipped troops must not be stripped by replanning');
+    previous=deployed;
+  }
+  assert.ok(troops.every(d=>d.maxHeavyEquipment===100));
+  assert.ok(troops.every(d=>Math.abs(ctx.Military.getHardness(d)-1)<1e-8));
+});
+
+test('peacetime downsizing preserves the last funded equipped division', () => {
+  const ctx=world();load(ctx,'military/ai.js');
+  ctx.data=[Array.from({length:6},()=>cell('A',ctx.types.land))];ctx.civs.A.ii=6;
+  const hard=ctx.Military._addDivision({civ:'A',row:0,col:0,manpower:50000,maxManpower:50000,maxHeavyEquipment:500,heavyEquipment:500});
+  ctx.Military._addDivision({civ:'A',row:0,col:1,manpower:10000,maxManpower:10000,experience:4});
+  for(let n=0;n<8;n++){ctx.turn++;ctx.MilitaryAI.think(ctx.civs.A,'A');}
+  assert.ok(ctx.Military.getDivision(hard.id));
+  assert.equal(ctx.Military.getDivision(hard.id).heavyEquipment,500);
+});
+
+test('ruling-culture minorities contribute proportionally and share changes refresh immediately', () => {
+  const ctx=world();ctx.res_pop_mod=()=>0.08;ctx.res_econ_mod=()=>2;
+  ctx.popv2_get_dominant_culture=()=> 'b';
+  for(const share of [0,0.1,0.25,0.5,0.75,1]) {
+    ctx.popv2.map[0][0].pop={a:1000*share,b:1000*(1-share)};
+    const resource=ctx.Military.getHeavyResource(0,0);
+    assert.equal(resource.potential,10);
+    assert.equal(resource.cultureShare,share);
+    assert.equal(resource.output,10*share);
+  }
+  ctx.popv2.map[0][0].pop={a:100,b:300};
+  ctx.civs.A.culture='b';
+  assert.equal(ctx.Military.getHeavyResource(0,0).output,7.5);
+  ctx.popv2.map[0][0].pop={a:0,b:0};
+  assert.equal(ctx.Military.getHeavyResource(0,0).output,0);
+  delete ctx.popv2.map[0][0];
+  assert.equal(ctx.Military.getHeavyResource(0,0).output,0);
+  delete ctx.popv2;
+  assert.equal(ctx.Military.getHeavyResource(0,0).output,0);
+});
+
+test('culture-weighted fractional production reaches the stockpile without scaling factory output', () => {
+  const ctx=world();ctx.res_pop_mod=(row,col)=>row===0&&col===0?0.08:0.8;ctx.res_econ_mod=()=>2;
+  ctx.popv2.map[0][0].pop={a:250,b:750};
+  ctx.data[0][0].type=ctx.types.factory;
+  const production=ctx.Military.processEquipment('A');
+  assert.equal(production.free,2.5);
+  assert.equal(production.factory,10);
+  assert.equal(ctx.civs.A.heavyEquipmentStock,12.5);
+  ctx.turn++;ctx.popv2.map[0][0].pop={a:750,b:250};
+  assert.equal(ctx.Military.processEquipment('A').free,7.5);
+  assert.equal(ctx.civs.A.heavyEquipmentStock,30);
 });

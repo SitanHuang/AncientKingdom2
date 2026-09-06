@@ -41,15 +41,21 @@ var MilitaryAI = (function () {
     var militaryPlan = plan(civ, civName);
     state.plan = militaryPlan;
 
+    manageEquipment(civ, civName, state);
+    militaryPlan = plan(civ, civName);
+    state.plan = militaryPlan;
+    if (!atWar && militaryPlan.equipment.coverage > 0) Military.setGrowthShare(civName,
+      0.5 + 0.25 * militaryPlan.equipment.coverage);
     trimUnaffordableForces(civ, civName, militaryPlan, state);
     deployQueues(civ, civName, militaryPlan, state);
-    createRecruitQueues(civ, civName, militaryPlan, state);
-
-    // Deployment/recruitment changed available forces.
+    // Deployment changed available forces. Urgent conscription gets first claim
+    // on spare equipment before new long-term training requests.
     militaryPlan = plan(civ, civName);
     state.plan = militaryPlan;
 
     emergencyConscript(civ, civName, militaryPlan, state);
+    militaryPlan = plan(civ, civName);
+    createRecruitQueues(civ, civName, militaryPlan, state);
 
     // Use available movement for one coordinated offensive round.
     attackRound(civ, civName, state);
@@ -66,6 +72,62 @@ var MilitaryAI = (function () {
     // attackRound(civ, civName, state);
 
     return state.plan;
+  }
+
+  // Count existing requests before spending the same stock on another template.
+  function equipmentOutlook(civName) {
+    var formations = Military.getDivisions(civName).concat(Military.getQueues(civName));
+    var p = Military.getEquipmentProduction(civName);
+    var stock = Military.getEquipmentStock(civName);
+    var requests = formations.reduce(function (sum, f) { return sum + Math.max(0, f.maxHeavyEquipment - f.heavyEquipment); }, 0);
+    var equipped = formations.reduce(function (sum, f) { return sum + (f.heavyEquipment || 0); }, 0);
+    var capacity = formations.reduce(function (sum, f) { return sum + f.maxManpower / 100; }, 0);
+    var available = stock + p.free * 8;
+    return { free: p.free, stock: stock, equipped: equipped, available: available + equipped, surplus: Math.max(0, available - requests),
+      coverage: clamp((available + equipped) / Math.max(10, capacity), 0, 1) };
+  }
+
+  function recruitEquipmentCap(civName, manpower, row, col) {
+    if (!Military.isEquipmentSupplied({civ:civName,row:row,col:col})) return 0;
+    var outlook = equipmentOutlook(civName);
+    // These are long-term requests, not reservations against this turn's stock.
+    return outlook.free > 0 || outlook.stock > 0 || outlook.equipped > 0 ? manpower / 100 : 0;
+  }
+
+  function manageEquipment(civ, civName, state) {
+    var formations = Military.getDivisions(civName).concat(Military.getQueues(civName)).sort(function (a, b) {
+      return (b.experience || 1) - (a.experience || 1) || b.manpower - a.manpower;
+    });
+    var outlook = equipmentOutlook(civName);
+    var equipWholeArmy = outlook.free > 0 || outlook.stock > 0 || outlook.equipped > 0;
+    var eliteCount = equipWholeArmy ? formations.length : Math.ceil(formations.length * 0.2);
+    var income = getAvailableIncome(civ);
+    formations.forEach(function (f, index) {
+      // Never remove carried equipment because cash, ranking, or an eight-turn
+      // forecast changed. Normal upkeep and force planning handle affordability.
+      if (index < eliteCount) Military.setEquipmentCap(f, f.maxManpower / 100);
+    });
+    var demand = formations.reduce(function (sum, f) { return sum + Math.max(0, f.maxHeavyEquipment - f.heavyEquipment); }, 0);
+    var p = Military.getEquipmentProduction(civName), stock = Military.getEquipmentStock(civName);
+    var desired = Math.max(0, (demand - stock) / 4 - p.free);
+    var armyCashReserve = Military.getUpkeep(civName) / Math.max(0.01, Military.getSettings(civName).maxUpkeepShare);
+    var affordable = Math.max(0, Math.min(income * 0.2, civ.money - armyCashReserve));
+    Military.setFactoryProductionShare(civName, p.factory && p.cost ? Math.min(1, desired / p.factory, affordable / p.cost) : 0);
+    var cost = Military.getFactoryCosts(civName);
+    if (demand <= stock + 4 * (p.free + p.factory) || !actionAvailable(state) ||
+        p.cost + cost.upkeep > income * 0.2 ||
+        civ.money < cost.construction + armyCashReserve + 2 * (p.cost + cost.upkeep)) return;
+    var best = null, efficiency = -1;
+    data.forEach(function (line, row) { line.forEach(function (tile, col) {
+      if (!tile || tile.color != civName || Military.cellTypeName(tile.type) != 'land' ||
+          !Military.isEquipmentSupplied({civ: civName, row: row, col: col})) return;
+      var local = Military.getTaxEfficiency(civName, row, col);
+      if (local > efficiency) { best = [row, col]; efficiency = local; }
+    }); });
+    if (best && Military.buildFactory(civName, best[0], best[1]).ok) {
+      Military.setFactoryProductionShare(civName, Math.min(1, desired / (p.factory + 10 * efficiency), affordable / (p.cost + cost.upkeep)));
+      record(state, 'build-factory', best);
+    }
   }
 
   function markEliteArmy(civName) {
@@ -131,7 +193,14 @@ var MilitaryAI = (function () {
       );
     }
 
+    var equipment = equipmentOutlook(civName);
+    // A material surplus supports a larger reserve, still bounded by money and population.
+    rawTarget += Math.min(rawTarget * 0.25, equipment.available * 100);
     var upkeepPerMan = getUpkeepPerMan(civ, civName);
+    var existingMen = sum(divisions, 'manpower') + sum(queues, 'manpower');
+    var existingEquipment = divisions.concat(queues).reduce(function (sum, f) { return sum + (f.heavyEquipment || 0); }, 0);
+    var currentCoverage = existingMen ? clamp(existingEquipment * 100 / existingMen, 0, 1) : 0;
+    upkeepPerMan *= (1 + 0.5 * Math.max(currentCoverage, equipment.coverage)) / (1 + 0.5 * currentCoverage);
     var availableIncome = getAvailableIncome(civ);
     var settings = Military.getSettings(civName);
     var upkeepShare = settings.maxUpkeepShare;
@@ -158,6 +227,7 @@ var MilitaryAI = (function () {
 
     return {
       atWar: atWar,
+      equipment: equipment,
       fronts: fronts,
       capital: getCapital(civ, civName),
       basePostManpower: basePostManpower,
@@ -341,16 +411,20 @@ var MilitaryAI = (function () {
     var target = militaryPlan.targetManpower * 1.10;
     var divisions = Military.getDivisions(civName).slice().sort(function (a, b) {
       return Number(isBorderTile(a.row, a.col, civName)) - Number(isBorderTile(b.row, b.col, civName)) ||
+        (a.heavyEquipment || 0) - (b.heavyEquipment || 0) ||
         (a.experience || 1) - (b.experience || 1) ||
         (a.manpower || 0) - (b.manpower || 0);
     });
     var capacity = sum(divisions, "maxManpower") + sum(Military.getQueues(civName), "maxManpower");
+    var remainingDivisions = divisions.length;
     for (var i = 0; i < divisions.length && capacity > target && actionAvailable(state); i++) {
       var division = divisions[i];
       if (isBorderTile(division.row, division.col, civName)) continue;
+      if (remainingDivisions <= 1 && fundedRatio >= 0.90) break;
       var disbanded = Military.disbandDivision(division.id);
       if (!succeeded(disbanded)) continue;
       capacity -= division.maxManpower || 0;
+      remainingDivisions--;
       record(state, "disband-division", division.id);
     }
     state.excessTurns = capacity > target ? state.excessTurns : 0;
@@ -393,8 +467,9 @@ var MilitaryAI = (function () {
 
     var capacityNeeded = Math.ceil(Math.max(0, capacityGap) / MAX_DIVISION_MANPOWER);
     var needed = Math.max(capacityNeeded, Math.max(0, countGap));
-    var outstandingLimit = Math.max(2, Math.ceil(militaryPlan.desiredCount / 2));
-    needed = Math.min(needed, Math.max(0, outstandingLimit - queues.length), 2);
+    var recruitLimit = militaryPlan.equipment.surplus >= MIN_DIVISION_MANPOWER / 100 ? 3 : 2;
+    var outstandingLimit = Math.max(recruitLimit, Math.ceil(militaryPlan.desiredCount / 2));
+    needed = Math.min(needed, Math.max(0, outstandingLimit - queues.length), recruitLimit);
 
     for (var i = 0; i < needed && actionAvailable(state); i++) {
       var remainingNeeded = needed - i;
@@ -405,6 +480,7 @@ var MilitaryAI = (function () {
 
       var result = Military.createRecruitQueue(civName, cap, {
         name: nextName(civ, civName),
+        maxHeavyEquipment: recruitEquipmentCap(civName, cap, militaryPlan.capital?.[0], militaryPlan.capital?.[1]),
         row: militaryPlan.capital?.[0],
         col: militaryPlan.capital?.[1],
         ai: true
@@ -574,8 +650,9 @@ var MilitaryAI = (function () {
   }
 
   function emergencyConscript(civ, civName, militaryPlan, state) {
+    var equipmentReady = equipmentOutlook(civName).surplus >= MIN_DIVISION_MANPOWER / 100;
     if (!militaryPlan.atWar || !actionAvailable(state) ||
-      (militaryPlan.activeManpower >= militaryPlan.targetManpower * 0.75 &&
+      (militaryPlan.activeManpower >= militaryPlan.targetManpower * (equipmentReady ? 0.90 : 0.75) &&
         !capitalThreatened(civ, civName, militaryPlan)) ||
       getLastFundedRatio(civ) < 0.75) return;
 
@@ -583,7 +660,7 @@ var MilitaryAI = (function () {
     if (!urgent.length) return;
 
     var populationCap = Math.max(0, (civ.pop || 0) * 0.10 -
-      Military.getSettings(civName).conscriptedThisTurn);
+      civ.conscriptedThisTurn);
     var stableIncome = Math.max(0, militaryPlan.availableIncome);
     var cashReserve = Math.max(25, civ.govExp || 0, stableIncome * 0.5);
     var spendable = Math.max(0, (civ.money || 0) - cashReserve);
@@ -593,7 +670,7 @@ var MilitaryAI = (function () {
       totalUpkeepCapacity - militaryPlan.activeManpower - militaryPlan.queueManpower);
     var raised = 0;
 
-    for (var i = 0; i < urgent.length && raised < 2 && actionAvailable(state); i++) {
+    for (var i = 0; i < urgent.length && raised < (equipmentReady ? 3 : 2) && actionAvailable(state); i++) {
       var need = urgent[i];
       var perMan = averageDefensePerMan(civName, need.post.row, need.post.col);
       var powerDeficit = Math.max(0, need.enemyPower * 1.25 - need.friendlyPower);
@@ -613,6 +690,7 @@ var MilitaryAI = (function () {
 
       var result = Military.conscript(civName, need.post.row, need.post.col, manpower, {
         name: nextName(civ, civName),
+        maxHeavyEquipment: recruitEquipmentCap(civName, manpower, need.post.row, need.post.col),
         ai: true
       });
       if (!succeeded(result)) continue;
@@ -751,7 +829,9 @@ var MilitaryAI = (function () {
 
         var attackPower = powerValue(Military.estimatePower(attackers, pos[0], pos[1], false));
         var defensePower = powerValue(Military.estimatePower(enemies, pos[0], pos[1], true));
+        var equipment = Military.getEquipmentMatchup(attackers, enemies);
         var ratio = defensePower > 0 ? attackPower / defensePower : Infinity;
+        var equipmentAdvantage = equipment.defenderLossMultiplier / equipment.attackerLossMultiplier;
         var recapture = cell._oldcolor === civName;
         var enemyOccupied = enemies.length > 0;
         var threshold = recapture ? 1.05 : (enemyOccupied ? 1.15 : 1.25);
@@ -762,7 +842,7 @@ var MilitaryAI = (function () {
 
         var strategic = Number(cell.type?.strategicValue) || 1;
         var score = (enemyOccupied ? 1000 : 0) + (recapture ? 700 : 0) +
-          Math.min(10, ratio) * 100 + strategic * 20 - cost.money;
+          Math.min(10, ratio) * 100 * equipmentAdvantage + strategic * 20 - cost.money;
         candidates.push({
           attackers: attackers,
           row: pos[0],
