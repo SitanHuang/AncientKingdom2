@@ -355,6 +355,7 @@
 <button onclick="showYear = JSON.parse(prompt('draw yr={}', JSON.stringify(showYear || {yr: true, offset: 0})) || {yr: true,offset: 0,});drawCanvas()">yr?</button>
 <button onclick="showCellBorder = !showCellBorder; drawCanvas();">cells?</button>
 <button onclick="MilitaryUI.setUnitMarkersVisible(!MilitaryUI.areUnitMarkersVisible())">units?</button>
+<button onclick="count=0;MilitaryUI.setBattleMarkersVisible(!MilitaryUI.areBattleMarkersVisible())">battles?</button>
 <button onclick="BLOCK_SIZE --;drawCanvas()">-</button>
 <button onclick="BLOCK_SIZE ++;drawCanvas()">+</button>
 <button onclick="alert('POPV2_FLAG_USE_UNI_CULTURE:=' + popv2_set_uni_culture(!POPV2_FLAG_USE_UNI_CULTURE))">culture?</button>

@@ -7,9 +7,14 @@ var Military = (function (api) {
   var civIndex = {};
   var queueIndex = {};
   var indexDirty = true;
+  var recentBattles = [];
+  var battleReferenceRounds = 4;
 
   function init(saved) {
-    if (saved) military = saved;
+    if (saved) {
+      military = saved;
+      recentBattles = [];
+    }
 
     military.divisions = military.divisions || {};
     military.queues = military.queues || {};
@@ -312,7 +317,37 @@ var Military = (function (api) {
     };
   }
 
+  function recordBattle(battle) {
+    recentBattles.push(battle);
+  }
+
+  function battleRoundLength() {
+    return Math.max(1, typeof civOrders == "undefined" ? Object.keys(civs).length : civOrders.length);
+  }
+
+  function getRecentBattles() {
+    var firstTurn = turn - battleRoundLength();
+    return recentBattles.filter(function (battle) { return battle.turn >= firstTurn; });
+  }
+
+  function getBattleLossReference() {
+    var roundLength = battleRoundLength();
+    var roundStart = turn - turn % roundLength;
+    var firstTurn = roundStart - battleReferenceRounds * roundLength;
+    var completedBattles = recentBattles.filter(function (battle) {
+      return battle.turn >= firstTurn && battle.turn < roundStart && battle.losses > 0;
+    });
+    var sample = completedBattles.length ? completedBattles : getRecentBattles();
+    var losses = sample.map(function (battle) { return battle.losses; })
+      .filter(function (loss) { return loss > 0; })
+      .sort(function (a, b) { return a - b; });
+    return losses[Math.ceil(losses.length * 0.9) - 1] || 1;
+  }
+
   function beginTurn(civName) {
+    var roundLength = battleRoundLength();
+    var firstBattleTurn = turn - turn % roundLength - battleReferenceRounds * roundLength;
+    recentBattles = recentBattles.filter(function (battle) { return battle.turn >= firstBattleTurn; });
     var stats = getCivStats(civName);
     if (!stats) return;
     stats.conscriptedThisTurn = 0;
@@ -355,6 +390,9 @@ var Military = (function (api) {
 
   api.armyColors = armyColors;
   api.init = init;
+  api.recordBattle = recordBattle;
+  api.getRecentBattles = getRecentBattles;
+  api.getBattleLossReference = getBattleLossReference;
   api.migrateLegacyCells = migrateLegacyCells;
   api.getSettings = getSettings;
   api.getCivStats = getCivStats;

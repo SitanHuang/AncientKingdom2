@@ -18,6 +18,7 @@
     var recruitmentPanel = null;
     var showManpowerOverlay = true;
     var showUnitMarkers = true;
+    var showBattleMarkers = false;
     var lastActiveCiv = null;
     var options = {};
 
@@ -1188,12 +1189,76 @@
         context.restore();
     }
 
+    function drawBattleMarkers(context, blockSize) {
+        var tiles = new Map();
+        api.getRecentBattles().forEach(function (battle) {
+            var key = battle.row + "," + battle.col;
+            var tile = tiles.get(key);
+            if (!tile) {
+                tile = { row: battle.row, col: battle.col, losses: 0, battles: 0 };
+                tiles.set(key, tile);
+            }
+            tile.losses = Math.max(tile.losses, battle.losses);
+            tile.battles++;
+        });
+
+        if (!tiles.size) return;
+        var lossReference = api.getBattleLossReference();
+        context.save();
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.font = "bold 10px sans-serif";
+        tiles.forEach(function (tile) {
+            var x = (tile.col + 0.5) * blockSize;
+            var showLabel = blockSize >= 28;
+            var y = (tile.row + (showLabel ? 0.39 : 0.5)) * blockSize;
+            var scale = Math.sqrt(Math.min(1, tile.losses / lossReference));
+            var halfSize = Math.max(1.5, Math.min(16, blockSize * Math.max(0.12, scale * 0.29)));
+
+            context.beginPath();
+            context.moveTo(x - halfSize, y - halfSize);
+            context.lineTo(x + halfSize, y + halfSize);
+            context.moveTo(x + halfSize, y - halfSize);
+            context.lineTo(x - halfSize, y + halfSize);
+            context.lineCap = "round";
+            context.lineWidth = Math.max(2, Math.min(5, blockSize * 0.18));
+            context.strokeStyle = "#522320";
+            context.stroke();
+            context.lineWidth *= 0.5;
+            context.strokeStyle = "#ffcf89";
+            context.stroke();
+
+            if (showLabel) {
+                var label = manpowerLabel(tile.losses);
+                if (tile.battles > 1) label += " · ×" + tile.battles;
+                var labelY = (tile.row + 0.85) * blockSize;
+                context.lineWidth = 2.5;
+                context.strokeStyle = "#522320";
+                context.strokeText(label, x, labelY);
+                context.fillStyle = "#fff2dc";
+                context.fillText(label, x, labelY);
+            }
+        });
+        context.restore();
+    }
+
+    function battleTooltip(row, col) {
+        if (!showBattleMarkers) return "";
+
+        return api.getRecentBattles().filter(function (battle) {
+            return battle.row === row && battle.col === col;
+        }).map(function (battle) {
+            return battle.attacker + " vs. " + battle.defender + " · " + number(battle.losses) + " losses";
+        }).join("\n");
+    }
+
     function drawOverlay(context, blockSize) {
         var totals = getTileStacks();
         if (showUnitMarkers) {
             drawUnitMarkers(context, blockSize, totals);
             if (showManpowerOverlay) drawManpower(context, blockSize, totals);
         }
+        if (showBattleMarkers) drawBattleMarkers(context, blockSize);
         drawOrders(context, blockSize);
         drawSelection(context, blockSize);
     }
@@ -1206,6 +1271,11 @@
 
     function setUnitMarkersVisible(enabled) {
         showUnitMarkers = !!enabled;
+        redraw();
+    }
+
+    function setBattleMarkersVisible(enabled) {
+        showBattleMarkers = !!enabled;
         redraw();
     }
 
@@ -1255,6 +1325,9 @@
         drawOverlay: drawOverlay,
         setManpowerOverlay: setManpowerOverlay,
         setUnitMarkersVisible: setUnitMarkersVisible,
+        setBattleMarkersVisible: setBattleMarkersVisible,
+        areBattleMarkersVisible: function () { return showBattleMarkers; },
+        battleTooltip: battleTooltip,
         isManpowerOverlayEnabled: function () { return showManpowerOverlay; },
         areUnitMarkersVisible: function () { return showUnitMarkers; },
         getSelection: function () { return selectedIds.slice(); },

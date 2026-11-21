@@ -1176,6 +1176,81 @@ test('a single order exposes each completed battle in a chained route', () => {
   assert.ok(result.battles.every(b=>b.captured));
 });
 
+test('battle markers show recent player and AI attacks across turn changes', () => {
+  const ctx = world();
+  ctx.Math.random = () => 0.5;
+  ctx.civOrders = ['A', 'B'];
+  let activeCiv = 'A';
+  const element = () => ({
+    style: {}, dataset: {}, classList: { add() {}, remove() {}, toggle() {} },
+    appendChild() {}, replaceChildren() {}, addEventListener() {}, setAttribute() {}, querySelector() { return null; }
+  });
+  ctx.document = { createElement: element, body: element(), addEventListener() {} };
+  ctx.window = ctx;
+  load(ctx, 'military/ui.js');
+  ctx.MilitaryUI.init({ military: ctx.Military, getActiveCiv: () => activeCiv });
+  ctx.MilitaryUI.setUnitMarkersVisible(false);
+  ctx.civs.A.war.B = 4;
+  ctx.civs.B.war.A = 4;
+  const playerDivision = ctx.Military._addDivision({ civ: 'A', row: 0, col: 1, manpower: 10000 });
+  ctx.Military._addDivision({ civ: 'B', row: 0, col: 2, manpower: 500 });
+  const aiDivision = ctx.Military._addDivision({ civ: 'B', row: 2, col: 2, manpower: 1000 });
+
+  assert.equal(ctx.MilitaryUI.areBattleMarkersVisible(), false);
+  const [playerBattle] = ctx.Military.orderDivisions([playerDivision.id], 0, 2, { human: true }).battles;
+  const playerLosses = playerBattle.attackerCasualties + playerBattle.defenderCasualties;
+  assert.equal(ctx.MilitaryUI.battleTooltip(0, 2), '');
+  ctx.turn++;
+  activeCiv = 'B';
+  ctx.Military.beginTurn(activeCiv);
+  ctx.MilitaryUI.refresh();
+  const aiBattle = ctx.Military.attack([aiDivision.id], 2, 1, { ai: true });
+  assert.equal(aiBattle.ok, true);
+  const aiLosses = aiBattle.attackerCasualties + aiBattle.defenderCasualties;
+  ctx.turn++;
+  activeCiv = 'A';
+  ctx.Military.beginTurn(activeCiv);
+  ctx.MilitaryUI.refresh();
+
+  const markers = [];
+  const canvas = {
+    save() {}, restore() {}, beginPath() { markers.push([]); },
+    moveTo(x, y) { markers.at(-1).push([x, y]); },
+    lineTo(x, y) { markers.at(-1).push([x, y]); },
+    stroke() {}, strokeText() {}, fillText() {}
+  };
+  ctx.MilitaryUI.drawOverlay(canvas, 24);
+  assert.equal(markers.length, 0);
+  ctx.MilitaryUI.setBattleMarkersVisible(true);
+  ctx.MilitaryUI.drawOverlay(canvas, 24);
+  assert.deepEqual(markers.map(([[x1, y1], [x2, y2]]) => [(x1 + x2) / 2, (y1 + y2) / 2]),
+    [[60, 12], [36, 60]]);
+  assert.ok(markers[0][1][0] - markers[0][0][0] > markers[1][1][0] - markers[1][0][0]);
+  assert.equal(ctx.MilitaryUI.battleTooltip(0, 2), `A vs. B · ${playerLosses.toLocaleString()} losses`);
+  assert.equal(ctx.MilitaryUI.battleTooltip(2, 1), `B vs. A · ${aiLosses.toLocaleString()} losses`);
+  assert.equal(ctx.Military.getBattleLossReference(), playerLosses);
+
+  ctx.turn++;
+  assert.equal(ctx.MilitaryUI.battleTooltip(0, 2), '');
+  assert.equal(ctx.Military.getRecentBattles().length, 1);
+  ctx.Military.init({});
+  assert.equal(ctx.Military.getRecentBattles().length, 0);
+});
+
+test('battle loss normalization uses the map-wide 90th percentile from the last four completed rounds', () => {
+  const ctx = world({ turn: 10 });
+  ctx.civOrders = ['A', 'B'];
+  ctx.Military.recordBattle({ turn: 1, losses: 20000 });
+  for (let size = 1; size <= 10; size++) {
+    ctx.Military.recordBattle({ turn: 8, row: size, losses: size * 100 });
+  }
+  ctx.Military.recordBattle({ turn: 10, losses: 10000 });
+  ctx.Military.beginTurn('A');
+  assert.equal(ctx.Military.getBattleLossReference(), 900);
+  ctx.turn++;
+  assert.equal(ctx.Military.getBattleLossReference(), 900);
+});
+
 test('the top-right battle report remains visible after an attacking force is destroyed and closes explicitly', () => {
   const ctx=world();ctx.Math.random=()=>0.5;
   const nodes=[];

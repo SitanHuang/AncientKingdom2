@@ -307,6 +307,14 @@ var Military = (function (api) {
     var afterEquipment = api.getEquipmentMatchup(api.resolveDivisions(attackerIds), api.resolveDivisions(defenderIds));
     equipmentMatchup.attackerHardnessAfter = afterEquipment.attackerHardness;
     equipmentMatchup.defenderHardnessAfter = afterEquipment.defenderHardness;
+    api.recordBattle({
+      turn: turn,
+      row: row,
+      col: col,
+      attacker: attackerName,
+      defender: defenderName,
+      losses: attackerCasualties + defenderCasualties
+    });
     return {
       ok: true,
       captured: captured,

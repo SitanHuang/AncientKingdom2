@@ -78,8 +78,14 @@ function diplomacyTooltip(row, col) {
 
 function updateDiplomacyTooltip(event) {
     if (!canvas) return;
-    var cell = (diplomacyViewCiv || gpem) && canvasEventToCell(event);
-    canvas.title = cell ? (gpem ? heavyResourceTooltip(cell.row, cell.col) : diplomacyTooltip(cell.row, cell.col)) : "";
+    var cell = canvasEventToCell(event);
+    if (!cell) {
+        canvas.title = "";
+        return;
+    }
+    var mapTooltip = gpem ? heavyResourceTooltip(cell.row, cell.col) : diplomacyTooltip(cell.row, cell.col);
+    var battleTooltip = typeof MilitaryUI != "undefined" ? MilitaryUI.battleTooltip(cell.row, cell.col) : "";
+    canvas.title = [mapTooltip, battleTooltip].filter(Boolean).join("\n");
 }
 
 function drawCellGrid(context, rows, cols, blockSize, canvasScale) {
