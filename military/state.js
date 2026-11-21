@@ -42,6 +42,7 @@ var Military = (function (api) {
     division.id = division.id || "d" + military.nextDivisionId++;
     division.name = division.name || "Division " + String(division.id).replace(/\D/g, "");
     division.manpower = Math.max(0, Math.round(division.manpower || 0));
+    division.recruits ??= { [civs[division.civ]?.culture || division.civ]: division.manpower };
     division.maxManpower = Math.max(division.manpower, Math.round(division.maxManpower || division.manpower));
     division.experience = division.experience || 1;
     division.morale = division.morale || 1;
@@ -63,6 +64,7 @@ var Military = (function (api) {
     queue.id = queue.id || "q" + military.nextQueueId++;
     queue.name = queue.name || "Division " + String(queue.id).replace(/\D/g, "");
     queue.manpower = Math.max(0, Math.round(queue.manpower || 0));
+    queue.recruits ??= { [civs[queue.civ]?.culture || queue.civ]: queue.manpower };
     queue.maxManpower = Math.max(queue.manpower, Math.round(queue.maxManpower || queue.manpower));
     queue.experience = queue.experience || 1;
     queue.recoveredLastTurn = queue.recoveredLastTurn || 0;
@@ -164,6 +166,19 @@ var Military = (function (api) {
     return division;
   }
 
+  function defectDivision(division, successor) {
+    var parent = division.civ;
+    division.civ = successor;
+    division.moveTargets = [];
+    division.movesRemaining = 0;
+    delete division.movePlanWaiting;
+    indexDirty = true;
+    updateCivTotal(parent);
+    updateCivTotal(successor);
+    api.resetGrowthRequests(parent);
+    api.resetGrowthRequests(successor);
+  }
+
   function setDivisionArmy(id, color) {
     var division = military.divisions[id];
     if (!division) return { ok: false, reason: "missing-division" };
@@ -210,7 +225,7 @@ var Military = (function (api) {
     if (!civ || typeof regions_genCountryParts != "function") return civName + ":0";
     var parts = regions_genCountryParts(civ, civName);
     var part = parts.map[row + ":" + col];
-    return civName + ":" + (part == null ? "detached" : part);
+    return civName + ":" + (part == null ? "detached:" + row + ":" + col : part);
   }
 
   function getCapital(civName) {
@@ -218,7 +233,8 @@ var Military = (function (api) {
     if (!civ) return null;
     if (typeof regions_genCountryParts == "function") {
       var parts = regions_genCountryParts(civ, civName);
-      if (parts.supplyCenter) return parts.supplyCenter.slice(0, 2);
+      const center = parts.supplyCenter;
+      if (center && data[center[0]]?.[center[1]]?.color === civName) return center.slice(0, 2);
     }
     if (civ.birth && data[civ.birth[0]] && data[civ.birth[0]][civ.birth[1]] &&
       data[civ.birth[0]][civ.birth[1]].color == civName) return civ.birth.slice(0, 2);
@@ -422,6 +438,7 @@ var Military = (function (api) {
   api._removeDivision = removeDivision;
   api._removeQueue = removeQueue;
   api._moveDivision = moveDivision;
+  api.defectDivision = defectDivision;
   api._touch = function () { indexDirty = true; };
 
   return api;
@@ -445,7 +462,7 @@ var Military = (function (api) {
   }
   function stock(civName) { return finite((api.getCivStats(civName) || {}).heavyEquipmentStock); }
   function returnEquipment(f, amount) {
-    if (supplied(f)) civs[f.civ].heavyEquipmentStock = stock(f.civ) + finite(amount);
+    if (amount > 0 && supplied(f)) civs[f.civ].heavyEquipmentStock = stock(f.civ) + finite(amount);
   }
   function setCap(f, value) {
     if (typeof f == 'string') f = api.getDivision(f) || api.getQueue(f);
@@ -490,13 +507,28 @@ var Military = (function (api) {
     var scale = 1 + Math.pow(owned(civName).length / balance.sizeScale, 2);
     return { construction: balance.factoryPrice * (1 + Math.pow(owned(civName).length / balance.constructionSizeScale, 2)), upkeep: balance.factoryUpkeep * scale };
   }
+  function utilization(row, col) {
+    var tile = data[row][col];
+    var owner = civs[tile.color];
+    if (!owner || typeof POPV2_FLAG_USE_UNI_CULTURE !== 'undefined' && POPV2_FLAG_USE_UNI_CULTURE) return 1;
+    var cell = typeof popv2 === "object" && popv2?.map?.[row]?.[col];
+    var populations = cell?.pop || {};
+    var total = cell?.totPop ?? Object.values(populations).reduce((sum, n) => sum + n, 0);
+    var share = total ? (populations[owner.culture] || 0) / total : 0;
+    var years = tile.acquiredTurn == null ? Infinity : Math.max(0, turn - tile.acquiredTurn) / (4 * civOrders.length);
+    var speed = 1 + api.clamp(owner.gov?.mods?.PADMN || 0, -0.25, 0.25);
+    var integrated = Math.min(0.65, 0.35 + years * 0.015 * speed);
+    return integrated + (1 - integrated) * share;
+  }
+  api.getBuildingUtilization = utilization;
+
   function production(civName) {
     var free = 0, factory = 0, factories = [], price = costs(civName);
     owned(civName).forEach(function (point) {
       var r = resource(point[0], point[1]);
       free += r.output;
       if (r.factory) {
-        var output = balance.factoryOutput * api.getTaxEfficiency(civName, point[0], point[1]);
+        var output = balance.factoryOutput * utilization(point[0], point[1]) * api.getTaxEfficiency(civName, point[0], point[1]);
         factory += output;
         factories.push({ row: point[0], col: point[1], output: output });
       }

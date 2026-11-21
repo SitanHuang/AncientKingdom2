@@ -40,7 +40,7 @@ function dynasty_assign_candidate() {
   for (let x of civNames) {
     let civ = civs[x];
     totPop += civ.pop || 0;
-    totInc += civ.incomesRA || 0;
+    totInc += realIncomeOf(civ);
 
     if (civ.mandate) {
       prevCiv = x;
@@ -56,7 +56,7 @@ function dynasty_assign_candidate() {
   // check new candidate
   for (let x of civNames) {
     let civ = civs[x];
-    if (civ.pop > popReq && civ.incomesRA > incReq) {
+    if (civ.pop > popReq && realIncomeOf(civ) > incReq) {
       if (prevCiv && prevCiv != x)
         delete civs[prevCiv].mandate;
       if (!civ.mandate) {
@@ -78,7 +78,7 @@ function dynasty_assign_candidate() {
     factor = Math.max(0.4, 1 - factor / 200);
 
     let civ = civs[prevCiv];
-    if (civ.pop < popReq * factor || civ.incomesRA < incReq * factor)
+    if (civ.pop < popReq * factor || realIncomeOf(civ) < incReq * factor)
       delete civ.mandate;
   }
 }

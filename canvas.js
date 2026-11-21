@@ -76,16 +76,58 @@ function diplomacyTooltip(row, col) {
         quarters + " quarter" + (quarters === 1 ? "" : "s") + " until expiry";
 }
 
+function tileWasAssessed(tile) {
+    return tile._incomeOwner === tile.color && tile._incomeBuilding === cellTypeId(tile.type);
+}
+
+function econMapValue(tile, row, col) {
+    if (!tile?.color || !tile.type) return 0;
+    if (g_bycountry) return econMetric === "real" ? realIncomeOf(civs[tile.color]) : civs[tile.color].income || 0;
+    if (econMetric === "adjusted") return !tile._incomeOwner || tileWasAssessed(tile) ? tile._econ || 0 : 0;
+    if (tileWasAssessed(tile)) return tile._realIncome;
+    return tileIncomeFactors(tile, popv2_get_totpop(row, col), res_econ_mod(row, col)).real;
+}
+
+function econTooltip(row, col) {
+    const tile = data[row]?.[col];
+    if (!tile?.color || !tile.type) return "";
+    const civ = civs[tile.color];
+    const population = popv2_get_totpop(row, col);
+    const local = popv2?.map?.[row]?.[col];
+    const share = (local?.pop?.[civ.culture] || 0) / Math.max(1, population);
+    const factors = tileIncomeFactors(tile, population, res_econ_mod(row, col));
+    const percent = value => (100 * value).toFixed(1) + "%";
+    const money = value => "$" + value.toFixed(2);
+    const assessed = tileWasAssessed(tile);
+    const adjusted = assessed || (!tile._incomeOwner && Number.isFinite(tile._econ)) ? money(tile._econ) : "pending";
+    const lines = [
+        tile.color + " · " + cellTypeId(tile.type) + " (" + row + ", " + col + ")",
+        "Real output " + money(assessed ? tile._realIncome : factors.real) + " · Last adjusted tax " + adjusted,
+        "Current expected base " + money(factors.base) + " · Population ×" + factors.populationFactor.toFixed(2) +
+            " · Economic terrain ×" + factors.terrain.toFixed(2),
+        civ.culture + " population " + percent(share) + " · Building utilization " + percent(Military.getBuildingUtilization(row, col)),
+        "Current regional tax efficiency " + percent(regions_taxEff(civ, tile.color, row, col)),
+        "Current tax modifiers: government " + percent(civ.gov?.mods?.EGRVG || 0) +
+            " · Reserves " + percent(-(civ.imodDueToReserve || 0))
+    ];
+    if (assessed && tile._taxBaseRoll != null) lines.push("Last building roll " + money(tile._taxBaseRoll * (1 - (civ.gdpIncomeMod ?? INCOMEMOD))));
+    if (g_bycountry) lines.push("Country real output " + money(realIncomeOf(civ)) + " · Adjusted tax " + money(civ.income || 0));
+    return lines.join("\n");
+}
+
 function updateDiplomacyTooltip(event) {
     if (!canvas) return;
-    var cell = canvasEventToCell(event);
+    const pointer = event.originalEvent || event;
+    canvasHoverPoint = { clientX: pointer.clientX, clientY: pointer.clientY };
+    var cell = canvasEventToCell(pointer);
     if (!cell) {
         canvas.title = "";
         return;
     }
-    var mapTooltip = gpem ? heavyResourceTooltip(cell.row, cell.col) : diplomacyTooltip(cell.row, cell.col);
+    var mapTooltip = econMapVisible ? econTooltip(cell.row, cell.col) : gpem ? heavyResourceTooltip(cell.row, cell.col) : diplomacyTooltip(cell.row, cell.col);
     var battleTooltip = typeof MilitaryUI != "undefined" ? MilitaryUI.battleTooltip(cell.row, cell.col) : "";
-    canvas.title = [mapTooltip, battleTooltip].filter(Boolean).join("\n");
+    const title = [mapTooltip, battleTooltip].filter(Boolean).join("\n");
+    if (canvas.title !== title) canvas.title = title;
 }
 
 function drawCellGrid(context, rows, cols, blockSize, canvasScale) {
@@ -122,8 +164,8 @@ function canvasScreenshot(force) {
     GALLERY_DATA.push({
         img: image,
         pop: window.average && window.average.pop || 0,
-        gdp: Math.floor(window.average?.income),
-        gdpPerCapita: Math.floor(1000 * 1e6 * window.average?.income / window.average?.pop) / 1000,
+        gdp: Math.floor(realIncomeOf(window.average)),
+        gdpPerCapita: Math.floor(1000 * 1e6 * realIncomeOf(window.average) / window.average?.pop) / 1000,
         year: Math.floor(turn / civOrders.length) / 4,
         dynasty: dynasty_get_mandate(),
         contenders: civOrders.filter(x => civs[x].mandateInAcquirement).join(", ")
@@ -207,6 +249,9 @@ function median(values){
 
 gp=0;
 ge=0;
+var econMetric = "real";
+var econMapVisible = false;
+var canvasHoverPoint = null;
 gte=0;
 gdef=0;
 gpm=0;
@@ -215,6 +260,13 @@ gpem=0;
 g_bycountry=0;
 
 gp_culture = -1; // -1 = all, 1 = mixed, string = specific
+
+function setEconMap(enabled) {
+    ge = enabled;
+    if (enabled) gp = gte = gdef = gpm = gem = gpem = 0;
+    count = 0;
+    drawCanvas();
+}
 
 function drawCanvas(compare, relationship, pop) {
     let start = new Date();
@@ -229,6 +281,19 @@ function drawCanvas(compare, relationship, pop) {
         };
     canvas = $('canvas')[0];
     diplomacyViewCiv = relationship || null;
+    econMapVisible = ge && !relationship && !pop && !gte && !gdef && !gpm && !gem && !gpem;
+    let maxIncome = 1;
+    if (econMapVisible) {
+        if (g_bycountry) {
+            for (const civ of Object.values(civs)) {
+                maxIncome = Math.max(maxIncome, econMetric === "real" ? realIncomeOf(civ) : civ.income || 0);
+            }
+        } else {
+            data.forEach((line, row) => line.forEach((tile, col) => {
+                maxIncome = Math.max(maxIncome, econMapValue(tile, row, col));
+            }));
+        }
+    }
     var heavyLegend = document.getElementById('heavy-resource-legend');
     if (heavyLegend) heavyLegend.hidden = !gpem;
     var heavyDetail = document.getElementById('heavy-resource-detail');
@@ -236,7 +301,6 @@ function drawCanvas(compare, relationship, pop) {
         heavyDetail.hidden = !gpem;
         if (gpem && heavyDetail.dataset.row != null) heavyDetail.textContent = heavyResourceTooltip(Number(heavyDetail.dataset.row), Number(heavyDetail.dataset.col));
     }
-    canvas.title = "";
     var logicalWidth = BLOCK_SIZE * data[0].length;
     var logicalHeight = BLOCK_SIZE * data.length;
     var canvasScale = sizeCanvasForDisplay(canvas, logicalWidth, logicalHeight, BLOCK_SIZE);
@@ -404,14 +468,14 @@ function drawCanvas(compare, relationship, pop) {
                     }
                     continue;
                 } else if (ge) {
-                    let p = (g_bycountry ? civs[d.color].income : d._econ) || 0;
-                    let max = g_bycountry ? Math.floor(max_econ_country || max_econ) : max_econ;
+                    let p = econMapValue(d, row, col);
+                    let max = maxIncome;
                     context.fillStyle = `rgb(${250 - p / max * 5}, ${250 - p / max * 125}, ${250 - p / max * 250})`;
                     context.fillRect(col * BLOCK_SIZE, row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
                     if (!g_bycountry) {
                         context.font = BLOCK_SIZE / 2 + "px 'Roboto Mono'";
                         context.fillStyle = 'black';
-                        if (d._econ > 0.5) context.fillText(Math.round(d._econ) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
+                        if (p > 0.5) context.fillText(Math.round(p) + '', col * BLOCK_SIZE, row * BLOCK_SIZE + BLOCK_SIZE);
                     }
                     continue;
                 } else {
@@ -620,6 +684,7 @@ function drawCanvas(compare, relationship, pop) {
     }
 
     if (typeof MilitaryUI != 'undefined') MilitaryUI.drawOverlay(context, BLOCK_SIZE);
+    if (canvasHoverPoint) updateDiplomacyTooltip(canvasHoverPoint);
 
     // BLOCK_SIZE -= 0.17;
     $('#canvasTime').text((new Date() - start) + 'ms');
@@ -653,14 +718,16 @@ function onClick(row, col, event) {
             alert('Land is occupied, please reselect.');
         } else {
             getNeighbors(row, col, function (neighbor, neighborRow, neighborCol) {
+                if (neighbor.color !== civName) neighbor.acquiredTurn = turn;
                 neighbor.color = civName;
                 neighbor.type = types.land;
                 getNeighbors(neighborRow, neighborCol, function (outerNeighbor) {
+                    if (outerNeighbor.color !== civName) outerNeighbor.acquiredTurn = turn;
                     outerNeighbor.color = civName;
                     outerNeighbor.type = types.land;
                 });
             });
-            data[row][col] = { color: civName, type: types.capital };
+            data[row][col] = { color: civName, acquiredTurn: turn, type: types.capital };
             civ.birth = [row, col];
             civ.money = 50;
             civ.politic = 0;
@@ -675,14 +742,16 @@ function onClick(row, col, event) {
 function heavyResourceTooltip(row, col) {
     var r = Military.getHeavyResource(row, col), tile = data[row] && data[row][col];
     if (!tile) return '';
+    var utilization = tile.color ? Military.getBuildingUtilization(row, col) : 0;
     var text = 'Heavy equipment (' + row + ', ' + col + '): potential ' + r.potential.toFixed(2) +
         ', free output ' + r.output.toFixed(2) + '/turn. Ruling-culture share ' + (r.cultureShare * 100).toFixed(1) + '%. ' + r.reason +
         '. Pop mod ' + r.popMod.toFixed(2) + ', econ mod ' + r.econMod.toFixed(2) + '.';
     if (r.factory && tile.color) {
-        text += ' Factory capacity ' + (10 * Military.getTaxEfficiency(tile.color, row, col)).toFixed(2) + '/turn.';
+        text += ' Factory capacity ' + (10 * utilization * Military.getTaxEfficiency(tile.color, row, col)).toFixed(2) + '/turn.';
         var last = tile._heavyProduction;
         if (tile.color === civOrders[i]) text += last && last.owner === tile.color ?
             ' Last output ' + last.output.toFixed(2) + ', funded ' + Math.round(last.funding * 100) + '%.' : ' Awaiting production.';
     }
+    if (tile.color) text += ' Building utilization ' + Math.round(utilization * 100) + '%.';
     return text;
 }

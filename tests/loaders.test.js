@@ -11,7 +11,7 @@ function context() {
     i: 1, data: [], civs: { B: {}, A: {} }, military: {}, turn: 12, popv2: {},
     showYear: {}, MESSAGES: [], AGGRESSIVENESS: 1, RCHANCEMOD: 1, INCOMEMOD: 1,
     MANDATE_THRESHOLD: 1, localStorage: {},
-    popv2_init() {}, normalizeCellTypes() {}, drawCanvas() {},
+    popv2_init() {}, normalizeCellTypes() {}, initializeRealIncome() {}, drawCanvas() {},
     Military: { init() {}, migrateLegacyCells() {} },
     MilitaryUI: { clearSelection() {}, refresh() { ctx.refreshedIndex = ctx.i; } },
     showInfo() { ctx.displayedIndex = ctx.i; },
@@ -49,5 +49,13 @@ test('older saves and invalid saved indexes preserve the current player index', 
     const ctx = context();
     ctx.load_gamesave({ str: JSON.stringify({ data: [], civs: { A: {}, B: {} }, ...fields }) });
     assert.equal(ctx.i, 1);
+  }
+});
+
+test('scenario rebellion modifiers retain zero and reset to the default when omitted', () => {
+  const ctx = context();
+  for (const [fields, expected] of [[{rmod: 0}, 0], [{rmod: 0.08}, 0.08], [{}, 0.2]]) {
+    ctx.load_gamesave({ str: JSON.stringify({ data: [], civs: { A: {}, B: {} }, ...fields }) });
+    assert.equal(ctx.RCHANCEMOD, expected);
   }
 });

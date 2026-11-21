@@ -17,16 +17,7 @@ var AI = {
         if (!civ.mandateInAcquirement || civ.mandate || civ.pop < _dynastyPopReq * 0.6)
             delete civ.mandateInAcquirement;
 
-        if (civ.gov && Math.random() < 0.3) {
-            // demote all, refresh court
-            Object.keys(civ.gov.advisors)
-                .forEach(x => gov_demote_to_bureaucrat(civ.gov, x));
-            gov_refresh(civ, civName);
-        }
-
-        while (civ.gov && Object.keys(civ.gov.advisors).length < GOV_ADVISORS_PER_CIV)
-            this.handleGov(civ, civName);
-
+        if (civ.gov) this.handleGov(civ, civName);
         civ.outGate = true;
 
         if (civ.inGatesDisallowed && civ.neighbors) {
@@ -84,7 +75,7 @@ var AI = {
                         [...civOrders].sort(_ => Math.random() - 0.5).forEach((x) => {
                             if (isAtWar(civs[x], k) && !isAtWar(civ, x) && x != civName) {
                                 if (!isPeace(civ, x)) {
-                                    if (((civs[x].ii * 0.5 < civ.ii || civs[x].income > civ.income) && Math.random() < 0.9) ||
+                                    if (((civs[x].ii * 0.5 < civ.ii || (civs[x].income || 0) > (civ.income || 0)) && Math.random() < 0.9) ||
                                         Math.random() < 0.3 && !civ.mandateInAcquirement)
                                         promptForAlliance(civName, x) || promptForPact(civName, x);
                                     else if (!civ.mandateInAcquirement)
@@ -97,10 +88,10 @@ var AI = {
                                 }
                             }
                             if (isAlliance(civ, k) && isAlliance(civs[x], k) && !isAlliance(civ, x) && !isAtWar(civ, x)) {
-                                if (((civs[x].income > civ.income * 0.7) && Math.random() < 0.3) ||
+                                if ((((civs[x].income || 0) > (civ.income || 0) * 0.7) && Math.random() < 0.3) ||
                                     Math.random() < 0.1 ||
-                                    (civs[x].income > civ.income * 0.5 && civs[x].ii > civ.ii * 0.5 &&
-                                     civs[k].income > civ.income * 0.8 && civs[k].ii > civ.ii * 0.8 && Math.random() < 0.7))
+                                    ((civs[x].income || 0) > (civ.income || 0) * 0.5 && civs[x].ii > civ.ii * 0.5 &&
+                                     (civs[k].income || 0) > (civ.income || 0) * 0.8 && civs[k].ii > civ.ii * 0.8 && Math.random() < 0.7))
                                     promptForAlliance(civName, x) || promptForPact(civName, x);
                                 else
                                     promptForPact(civName, x);
@@ -223,7 +214,7 @@ var AI = {
         candidate = candidate || candidates[0];
         if (!candidate)
             return;
-        gov_promote_to_advisors(gov, candidate);
+        gov_ai_appoint(gov, candidate, modMap);
         gov_refresh(civ, civName);
     },
     tryResearch: function(civ) {
@@ -242,8 +233,8 @@ var AI = {
             var alliance = false;
 
             let warChance = 0;
-            if (civ.income * 1.2 > civ2.income)
-                warChance += Math.min(0.25, Math.max(0, civ.income / civ2.income / 10)) || 0;
+            if ((civ.income || 0) * 1.2 > (civ2.income || 0))
+                warChance += Math.min(0.25, Math.max(0, (civ.income || 0) / (civ2.income || 0) / 10)) || 0;
             if (civ.technology * 1.2 > civ2.technology)
                 warChance += Math.min(0.25, civ.technology / civ2.technology) || 0;
             if (civ.ii * 1.2 > civ2.ii)
@@ -265,16 +256,7 @@ var AI = {
             warChance *= (civ2.rchance || 0) + 1;
 
             // if (warChance > 0.25) {
-            if (civ.em / civ.ii > civ2.em / civ2.ii)
-                warChance *= 0.80;
-            else
-                warChance *= 1.2;
-            if (civ.pm / civ.ii * 0.8 > civ2.pm / civ2.ii)
-                warChance *= 0.35;
-            if (civ.pm / civ.ii > civ2.pm / civ2.ii)
-                warChance *= 0.35;
-            else
-                warChance *= 1.5;
+            warChance *= relativeLandValue(civ, civ2);
             // }
 
             if (civ.mandate) {
@@ -356,16 +338,7 @@ var AI = {
                 if (civ.culture == civ2.culture) {
                     warChance *= 2;
                 } else {
-                    if (civ.em / civ.ii > civ2.em / civ2.ii)
-                        warChance *= 0.80;
-                    else
-                        warChance *= 1.2;
-                    if (civ.pm / civ.ii * 0.8 > civ2.pm / civ2.ii)
-                        warChance *= 0.35;
-                    if (civ.pm / civ.ii > civ2.pm / civ2.ii)
-                        warChance *= 0.35;
-                    else
-                        warChance *= 1.5;
+                    warChance *= relativeLandValue(civ, civ2);
 
                     if (oppressedPop > 500000) {
                         warChance *= 1.5 + Math.min(10, Math.max(0, oppressedPop / civ.pop * 10));
@@ -389,7 +362,7 @@ var AI = {
                 const majorWar = civ.culture != civ2.culture && oppressedPop < 500000 ? false : (Math.random() < Math.sqrt(warChance) ? (1 + warChance) : 0);
                 if (!declareWar(civName, cn, undefined, undefined, majorWar))
                     return;
-            } else if ((civ2.ii * 0.5 < civ.ii || civ2.income > civ.income) && Math.random() > 0.6)
+            } else if ((civ2.ii * 0.5 < civ.ii || (civ2.income || 0) > (civ.income || 0)) && Math.random() > 0.6)
                 alliance = true;
               else if (civ.income * 0.5 > civ2.ii && civ.happiness < 60 && Math.random() > 0.8 && (!civ.war || Object.getOwnPropertyNames(civ.war).length <= 4))
                 alliance = true;
@@ -492,6 +465,7 @@ var AI = {
 
             data[row][col] = {
                 color: civName,
+                acquiredTurn: data[row][col]?.color === civName ? data[row][col].acquiredTurn : turn,
                 type: type,
             };
             // if (land.pop > 10000)
@@ -539,6 +513,7 @@ var AI = {
 
             data[row][col] = {
                 color: civName,
+                acquiredTurn: data[row][col]?.color === civName ? data[row][col].acquiredTurn : turn,
                 type: types.land
             };
             civ.landsBuilt = (civ.landsBuilt || 0) + 1;
@@ -546,6 +521,7 @@ var AI = {
                 if (!l.color) {
                     data[r][c] = {
                         color: civName,
+                        acquiredTurn: turn,
                         type: types.land
                     };
                 }

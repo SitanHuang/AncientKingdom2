@@ -36,6 +36,7 @@
     <script src="map.js"></script>
     <script src="resources.js"></script>
     <script src="regions.js"></script>
+    <script src="rebellions.js"></script>
     <script src="dynasty.js"></script>
     <script src="canvas.js"></script>
     <script src="gallery.js"></script>
@@ -241,8 +242,8 @@
             <th>Family</th>
             <th>Age</th>
             <th>Modifiers</th>
-            <th>Legitimacy</th>
-            <th class="action">Abdicate</th>
+            <th>Cohesion</th><th>Legitimacy</th>
+            <th class="action">Actions</th>
         </thead>
         <tbody>
 
@@ -355,7 +356,7 @@
 <button onclick="showYear = JSON.parse(prompt('draw yr={}', JSON.stringify(showYear || {yr: true, offset: 0})) || {yr: true,offset: 0,});drawCanvas()">yr?</button>
 <button onclick="showCellBorder = !showCellBorder; drawCanvas();">cells?</button>
 <button onclick="MilitaryUI.setUnitMarkersVisible(!MilitaryUI.areUnitMarkersVisible())">units?</button>
-<button onclick="count=0;MilitaryUI.setBattleMarkersVisible(!MilitaryUI.areBattleMarkersVisible())">battles?</button>
+<button title="Recent battles. Cross color shows the losing civilization. Size shows total losses. A red center means the losing side lost a division." onclick="count=0;MilitaryUI.setBattleMarkersVisible(!MilitaryUI.areBattleMarkersVisible())">battles?</button>
 <button onclick="BLOCK_SIZE --;drawCanvas()">-</button>
 <button onclick="BLOCK_SIZE ++;drawCanvas()">+</button>
 <button onclick="alert('POPV2_FLAG_USE_UNI_CULTURE:=' + popv2_set_uni_culture(!POPV2_FLAG_USE_UNI_CULTURE))">culture?</button>
@@ -434,16 +435,18 @@
                 popv2 = scenario.popv2;
                 civs = scenario.civs;
                 military = scenario.military || {};
-                RCHANCEMOD = scenario.rmod || RCHANCEMOD;
+                RCHANCEMOD = scenario.rmod ?? 0.2;
                 AGGRESSIVENESS = scenario.agr || AGGRESSIVENESS;
-                INCOMEMOD = scenario.imod || INCOMEMOD;
+                INCOMEMOD = scenario.imod ?? INCOMEMOD;
                 MANDATE_THRESHOLD = scenario.mthre || MANDATE_THRESHOLD;
                 civOrders = Object.keys(civs).sort();
-                i = 0;
+                i = Number.isInteger(scenario.i) && civOrders[scenario.i] ? scenario.i : 0;
+                turn = scenario.turn || 0;
                 popv2_init();
                 Military.init(military);
                 Military.migrateLegacyCells();
                 normalizeCellTypes();
+                initializeRealIncome();
                 MilitaryUI.clearSelection();
                 MilitaryUI.refresh();
                 drawCanvas();
@@ -525,8 +528,8 @@ c:
 <button onclick="stopIntervals()">STOP</button>
 <button onclick="TIMEOUT_DELAY = Math.max(5, (parseInt(prompt('delay=', TIMEOUT_DELAY)) | 0) || TIMEOUT_DELAY || 20)">delay=</button>
 <button onclick="AGGRESSIVENESS = (parseFloat(prompt('AGGRESSIVENESS=', AGGRESSIVENESS))) || AGGRESSIVENESS || 0.5">aggrs.=</button>
-<button onclick="RCHANCEMOD = (parseFloat(prompt('RCHANCEMOD=', RCHANCEMOD))) || RCHANCEMOD || 1">Reb md=</button>
-<button onclick="INCOMEMOD = (parseFloat(prompt('INCOMEMOD=', INCOMEMOD))) || INCOMEMOD || 0.3">GDP md=</button>
+<button onclick="setRebellionModifier()">Reb md=</button>
+<button onclick="const value = parseFloat(prompt('INCOMEMOD=', INCOMEMOD)); if (Number.isFinite(value)) { INCOMEMOD = value; initializeRealIncome(); drawCanvas(); }">Tax md=</button>
 <button onclick="MANDATE_THRESHOLD = (parseFloat(prompt('MANDATE_THRESHOLD=', MANDATE_THRESHOLD))) || MANDATE_THRESHOLD || 0.55">dyn. thre=</button>
 <button id="aiToggleBtn" onclick="toggleAI()">AI: Auto</button>
 <div id="heatmap" style="width: 700px;height: 700px">
@@ -535,7 +538,8 @@ c:
 <button onclick="gpem=0;gp=!gp;gp_culture=-1;drawCanvas()">Pop</button>
 <button onclick="gpem=0;gp=!gp;gp_culture=1;drawCanvas()">Cultures</button>
 <button onclick="gpem=0;gp=!gp;gp_culture=3;drawCanvas()">HCult</button>
-<button onclick="gpem=0;ge=!ge;drawCanvas()">Econ</button>
+<button onclick="setEconMap(!ge)">Econ</button>
+<select aria-label="Econ map income measure" onchange="econMetric=this.value;setEconMap(true)"><option value="real">GDP</option><option value="adjusted">Tax</option></select>
 <button onclick="gpem=0;gte=!gte;drawCanvas()">Tax Eff</button>
 <button onclick="gpem=0;gdef=!gdef;drawCanvas()">Def Mod</button>
 <button onclick="gpem=0;gpm=!gpm;drawCanvas()">Pop Mod</button>
@@ -570,7 +574,8 @@ c:
 <th role="columnheader" data-sort-method=number>Mil.</th>
 <th role="columnheader" data-sort-method="number" class="extra" title="Heavy equipment carried by deployed divisions; excludes training queues and stockpile">Heavy Eq.</th>
 <th role="columnheader" data-sort-method=number>Net $</th>
-<th role="columnheader" data-sort-method=number>Income</th>
+<th role="columnheader" data-sort-method=number>GDP</th>
+<th role="columnheader" data-sort-method=number>Tax</th>
 <th role="columnheader" data-sort-method=number>Pol.</th>
 <th role="columnheader" data-sort-method=number>Money</th>
 <th role="columnheader" data-sort-method=number>Reb. %</th>
@@ -598,7 +603,8 @@ c:
 <div id="hisGraph" style="width: 761px;height: 50px;margin-left: 30px;"></div>
 <h3>Military size:</h3>
 <div id="militaryGraph" style="width: 800px;height: 600px"></div>
-<h3>Income:</h3>
+<h3>Income</h3>
+<select id="income-history-metric" aria-label="Income history measure" onchange="drawIncomeHistory()"><option value="real">Real output</option><option value="adjusted">Adjusted tax</option></select>
 <div id="incGraph" style="width: 800px;height: 600px"></div>
 <h3>Power:</h3>
 <div id="pwrGraph" style="width: 800px;height: 600px"></div>

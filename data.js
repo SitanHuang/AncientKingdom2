@@ -78,9 +78,10 @@ var types = {
         defenseBonus: 0.55,
         initialPopulationWeight: 55,
         strategicValue: 6,
+        taxYield: 55,
         income: function (civ) {
             civ.politic += randn_bm() * 10;
-            civ.money += randn_bm() * 55;
+            civ.money += randn_bm() * this.taxYield;
             civ.happiness += randn_bm() * 0.1 * (1 - civ.ii / data.length / data[0].length);
         },
         draw: function (x, y) {
@@ -111,9 +112,10 @@ var types = {
         defenseBonus: 0,
         initialPopulationWeight: 1,
         strategicValue: 1,
+        taxYield: 5,
         income: function (civ) {
             civ.politic -= randn_bm() / 55;
-            civ.money += randn_bm() * 5;
+            civ.money += randn_bm() * this.taxYield;
         },
         draw: function () {
         }
@@ -123,9 +125,10 @@ var types = {
         defenseBonus: 0.35,
         initialPopulationWeight: 35,
         strategicValue: 3,
+        taxYield: 35,
         income: function (civ) {
             // civ.politic += randn_bm();
-            civ.money += randn_bm() * 35;
+            civ.money += randn_bm() * this.taxYield;
             civ.happiness += Math.max(randn_bm() * 0.12 * (1 - civ.ii / data.length / data[0].length), 0.05);
         },
         draw: function (x, y) {
@@ -159,9 +162,10 @@ var types = {
         defenseBonus: 0.25,
         initialPopulationWeight: 25,
         strategicValue: 4.5,
+        taxYield: 7,
         income: function (civ) {
             civ.politic += randn_bm() / 4;
-            civ.money += randn_bm() * 7;
+            civ.money += randn_bm() * this.taxYield;
             civ.happiness += randn_bm() * 0.01 * (1 - civ.ii / data.length / data[0].length);
         },
         draw: function (x, y) {
@@ -176,9 +180,10 @@ var types = {
         defenseBonus: 0.15,
         initialPopulationWeight: 15,
         strategicValue: 2,
+        taxYield: 5,
         income: function (civ) {
             civ.politic += randn_bm() / 7;
-            civ.money += randn_bm() * 5;
+            civ.money += randn_bm() * this.taxYield;
         },
         draw: function (x, y) {
             var context = canvas.getContext('2d');
@@ -192,9 +197,10 @@ var types = {
         defenseBonus: 0.05,
         initialPopulationWeight: 5,
         strategicValue: 2,
+        taxYield: 1,
         income: function (civ) {
             civ.politic += randn_bm() / 20;
-            civ.money += randn_bm();
+            civ.money += randn_bm() * this.taxYield;
         },
         draw: function (x, y) {
             var context = canvas.getContext('2d');
@@ -244,6 +250,48 @@ function cellTypeId(type) {
         if (source === types[id].draw.toString()) return id;
     }
     return null;
+}
+
+var INCOMEMOD = 0.55;
+
+// randn_bm is symmetric around 0.5. Expected output needs no random draw.
+function tileIncomeFactors(tile, population, terrain) {
+    const referencePopulation = Math.max(1000, Math.min(1500000, population));
+    const populationFactor = Math.max(0.5, 1 + Math.log1p(referencePopulation / 45000) - Math.log(2));
+    const base = (types[cellTypeId(tile.type)]?.taxYield || 0) / 2;
+    const gross = base * populationFactor * terrain;
+    return { base: base * (1 - INCOMEMOD), populationFactor, terrain, gross, real: gross * (1 - INCOMEMOD) };
+}
+
+function assessTileTax(baseRoll, factors, policy, reservePenalty, efficiency, utilization) {
+    const gross = baseRoll * factors.populationFactor * factors.terrain;
+    const taxable = gross * (policy - reservePenalty);
+    return {
+        taxable,
+        adjusted: taxable * efficiency * utilization,
+        preReserve: factors.gross * policy * efficiency * utilization
+    };
+}
+
+function realIncomeOf(civ) {
+    return civ?.realIncome ?? civ?.income ?? 0;
+}
+
+function initializeRealIncome() {
+    const missing = new Set(Object.keys(civs).filter(name => !Number.isFinite(civs[name].realIncome) || civs[name].gdpIncomeMod !== INCOMEMOD));
+    if (!missing.size) return;
+    for (const name of missing) civs[name].realIncome = 0;
+    data.forEach((line, row) => line.forEach((tile, col) => {
+        if (!tile?.type || !missing.has(tile.color)) return;
+        const population = popv2?.map?.[row]?.[col]?.totPop ?? tile.pop ?? 0;
+        const output = tileIncomeFactors(tile, population, res_econ_mod(row, col)).real;
+        if (tile._incomeOwner === tile.color) tile._realIncome = output;
+        civs[tile.color].realIncome += output;
+    }));
+    for (const name of missing) {
+        civs[name].realIncome = Math.round(civs[name].realIncome * 100) / 100;
+        civs[name].gdpIncomeMod = INCOMEMOD;
+    }
 }
 
 function normalizeCellTypes() {

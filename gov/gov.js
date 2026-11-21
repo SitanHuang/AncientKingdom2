@@ -18,19 +18,51 @@ function gov_exec(civ, civName) {
 
   gov_refresh(civ, civName);
 
+  gov.legitimacy += gov_legitimacy_change(civ);
   const leader = gov.persons[gov.leader];
   if (POPV2_FLAG_USE_UNI_CULTURE) {
     leader.culture = civ.culture = POPV2_UNI_CULTURE;
     return;
   }
-  if (civ.culture) {
-    leader.culture = leader.culture ?? civ.culture;
+  civ.culture ??= leader.culture || civName;
+  leader.culture ??= civ.culture;
+  const majority = gov_majority(civ);
+  if (majority !== gov.majorityCulture) {
+    gov.majorityCulture = majority;
+    gov.majorityQuarters = 0;
   }
-  civ.culture = leader.culture;
+  gov.majorityQuarters = (gov.majorityQuarters || 0) + 1;
+  if (civ.ai && majority && majority !== civ.culture) {
+    const support = civ._poptable[majority] / civ._poptable_tot;
+    const chance = support ** 3 * gov.legitimacy / 100 * gov.majorityQuarters / (40 + gov.majorityQuarters);
+    if (Math.random() < chance * 0.1) gov_adopt_culture(civ);
+  }
+}
+
+function gov_legitimacy_change(civ) {
+  const happiness = Math.min(100, Math.max(0, civ.happiness ?? 50));
+  const cohesion = Math.min(100, Math.max(0, civ.gov.cohesion * 100));
+  return (0.7 * happiness + 0.3 * cohesion - (civ.gov.legitimacy ?? 50)) * 0.02;
+}
+
+function gov_majority(civ) {
+  const cultures = Object.entries(civ._poptable || {}).sort((a, b) => b[1] - a[1]);
+  return cultures[0]?.[1] > 0 ? cultures[0][0] : null;
+}
+
+function gov_adopt_culture(civ) {
+  civ.gov.legitimacy ??= 50;
+  const culture = gov_majority(civ);
+  if (POPV2_FLAG_USE_UNI_CULTURE || !culture || culture === civ.culture || civ.gov.legitimacy < 20) return false;
+  civ.gov.legitimacy -= 20;
+  civ.culture = culture;
+  civ.gov.persons[civ.gov.leader].culture = culture;
+  return true;
 }
 
 function gov_refresh(civ, civName) {
   const gov = civ.gov;
+  gov.legitimacy ??= 50;
   // sum modifiers
   _gov_sum_modifiers(gov);
 
@@ -90,7 +122,7 @@ function _gov_trigger_succession(civ, gov) {
 
   person_remove(civ, gov.leader);
 
-  gov_demote_to_bureaucrat(gov, successor);
+  if (successor.pos === GOV_POSITIONS.ADVISOR) gov_demote_to_bureaucrat(gov, successor, true);
 
   // on top of the demotion debuffs
   if (successor.family != leader.family) {
@@ -103,12 +135,16 @@ function _gov_trigger_succession(civ, gov) {
 
   successor.pos = GOV_POSITIONS.LEADER;
   gov.leader = successor.id;
+  const share = (civ._poptable?.[successor.culture] || 0) / Math.max(1, civ._poptable_tot || 0);
+  if (!POPV2_FLAG_USE_UNI_CULTURE && Math.random() < share * share) civ.culture = successor.culture;
 }
 
-function gov_demote_to_bureaucrat(gov, person) {
-  if (!person?.id)
-    person = gov.persons[person];
+function gov_demote_to_bureaucrat(gov, person, succession = false) {
+  gov.legitimacy ??= 50;
+  if (typeof person !== "object") person = gov.persons[person];
 
+  if (person?.pos !== GOV_POSITIONS.ADVISOR || (!succession && gov.legitimacy < 5)) return false;
+  if (!succession) gov.legitimacy -= 5;
   person.pos = GOV_POSITIONS.BUREAUCRAT;
   delete gov.advisors[person.id];
 
@@ -118,13 +154,16 @@ function gov_demote_to_bureaucrat(gov, person) {
   return true;
 }
 
-function gov_promote_to_advisors(gov, person) {
-  if (!person?.id)
-    person = gov.persons[person];
+function gov_promote_to_advisors(gov, person, replaceId) {
+  gov.legitimacy ??= 50;
+  if (typeof person !== "object") person = gov.persons[person];
 
-  if (person.pos != GOV_POSITIONS.BUREAUCRAT)
+  if (person?.pos != GOV_POSITIONS.BUREAUCRAT || gov.legitimacy < (replaceId ? 10 : 5))
     return false;
 
+  if (Object.keys(gov.advisors).length - (replaceId ? 1 : 0) >= GOV_ADVISORS_PER_CIV) return false;
+  if (replaceId && !gov_demote_to_bureaucrat(gov, replaceId)) return false;
+  gov.legitimacy -= 5;
   person.pos = GOV_POSITIONS.ADVISOR;
   gov.advisors[person.id] = 1;
 
@@ -260,4 +299,15 @@ function _gov_age_spawn_death(civ, civName, gov) {
       push_msg(person_disprole(p) + ' ' + person_dispname(p) + ' of ' + civName + ' has abdicated at the age of ' + (p.age | 0) + '.', [civName]);
     }
   });
+}
+
+function gov_ai_appoint(gov, candidate, weights) {
+  const advisors = Object.keys(gov.advisors).map(id => gov.persons[id]);
+  if (advisors.length < GOV_ADVISORS_PER_CIV) return gov_promote_to_advisors(gov, candidate);
+  const value = person => person_custom_mod_value(person, weights);
+  const incumbent = advisors.sort((a, b) => value(a) - value(b))[0];
+  const gain = Math.max(0, value(candidate) - value(incumbent));
+  const elapsed = (turn - (gov.lastAppointment ?? -Infinity)) / civOrders.length;
+  const chance = gain / (1 + gain) * gov.legitimacy / 100 * Math.min(1, elapsed / 4);
+  if (Math.random() < chance && gov_promote_to_advisors(gov, candidate, incumbent.id)) gov.lastAppointment = turn;
 }

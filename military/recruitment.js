@@ -34,9 +34,30 @@ var Military = (function (api) {
     if (maxManpower < 1) return { ok: false, reason: "invalid-manpower" };
 
     api.getCivStats(civName);
-    var remainingTurnCap = Math.max(0, Math.floor((civ.pop || 0) * 0.1) - civ.conscriptedThisTurn);
-    var remainingPopulation = Math.max(0, Math.floor((civ.pop || 0) * 0.9 - (civ.nextDecline || 0)));
-    var manpower = Math.min(maxManpower, remainingTurnCap, remainingPopulation);
+    var culture = civ.culture || civName;
+    var sources = [];
+    var totalAvailable = 0;
+    var pending = [[row, col]];
+    var seen = new Set([row + ':' + col]);
+    while (pending.length) {
+      var [r, c] = pending.pop();
+      var cell = popv2?.map?.[r]?.[c];
+      if (cell?.pop?.[culture]) {
+        var available = Math.floor(Math.min(cell.pop[culture], populationTotal(cell) - 2500));
+        if (available > 0) {
+          sources.push({ row: r, col: c, available: available });
+          totalAvailable += available;
+        }
+      }
+      for (const point of api.getNeighbors(r, c)) {
+        const key = point.join(':');
+        if (seen.has(key) || data[point[0]][point[1]].color !== civName) continue;
+        seen.add(key);
+        pending.push(point);
+      }
+    }
+    var turnCap = Math.floor(((civ.pop || 0) + civ.conscriptedThisTurn) * 0.1);
+    var manpower = Math.min(maxManpower, turnCap - civ.conscriptedThisTurn, totalAvailable);
     if (manpower < 1) return { ok: false, reason: "population-cap" };
 
     var cost = api.legacyEquivalent(civ, manpower) * 2;
@@ -47,7 +68,14 @@ var Military = (function (api) {
     };
 
     civ.money -= cost;
-    civ.nextDecline = (civ.nextDecline || 0) + manpower;
+    var left = manpower;
+    sources.forEach(function (source) {
+      var taken = Math.min(left, Math.round(left * source.available / totalAvailable));
+      changePopulation(source.row, source.col, culture, -taken);
+      left -= taken;
+      totalAvailable -= source.available;
+    });
+    changeCivilianTotal(civ, culture, -manpower);
     civ.conscriptedThisTurn += manpower;
 
     var division = api._addDivision({
@@ -82,8 +110,9 @@ var Military = (function (api) {
     if (!queue) return { ok: false, reason: "missing-queue" };
     if (queue.manpower < 1) return { ok: false, reason: "empty-queue" };
 
-    var capital = api.getCapital(queue.civ);
-    if (!capital) return { ok: false, reason: "no-territory" };
+    var useQueueTile = opts.row === queue.row && opts.col === queue.col && data[queue.row]?.[queue.col]?.color === queue.civ;
+    var location = useQueueTile ? [queue.row, queue.col] : api.getCapital(queue.civ);
+    if (!location) return { ok: false, reason: "no-territory" };
     var manpower = queue.manpower;
 
     var division = api._addDivision({
@@ -91,9 +120,10 @@ var Military = (function (api) {
       name: opts.name || queue.name,
       maxHeavyEquipment: queue.maxHeavyEquipment,
       heavyEquipment: queue.heavyEquipment,
-      row: capital[0],
-      col: capital[1],
+      row: location[0],
+      col: location[1],
       manpower: manpower,
+      recruits: queue.recruits,
       maxManpower: queue.maxManpower,
       experience: queue.experience || 1,
       morale: 1,
@@ -114,7 +144,7 @@ var Military = (function (api) {
     var division = api._removeDivision(id);
     if (!division) return { ok: false, reason: "missing-division" };
     api.returnEquipment(division, division.heavyEquipment);
-    returnPopulation(division.civ, division.manpower);
+    returnPopulation(division, division.manpower);
     resetGrowthRequests(division.civ);
     return { ok: true, manpower: division.manpower, division: division };
   }
@@ -123,19 +153,66 @@ var Military = (function (api) {
     var queue = api._removeQueue(id);
     if (!queue) return { ok: false, reason: "missing-queue" };
     api.returnEquipment(queue, queue.heavyEquipment);
-    returnPopulation(queue.civ, queue.manpower);
+    returnPopulation(queue, queue.manpower);
     resetGrowthRequests(queue.civ);
     return { ok: true, manpower: queue.manpower, queue: queue };
   }
 
-  function returnPopulation(civName, manpower) {
-    var civ = civs[civName];
-    if (civ) civ.nextDecline = (civ.nextDecline || 0) - Math.max(0, Math.round(manpower));
+  function populationTotal(cell) {
+    return cell.totPop ?? Object.values(cell.pop).reduce((sum, n) => sum + n, 0);
   }
 
-  function offerGrowth(civName, row, col, positiveGrowth) {
-    positiveGrowth = Math.max(0, positiveGrowth || 0);
-    var available = Math.floor(positiveGrowth * api.getSettings(civName).growthShare);
+  function changePopulation(row, col, culture, amount) {
+    var cell = popv2.map[row][col];
+    var total = populationTotal(cell);
+    cell.pop[culture] = (cell.pop[culture] || 0) + amount;
+    cell.hist ??= {};
+    cell.hist[culture] ??= 0;
+    data[row][col].pop = cell.totPop = total + amount;
+  }
+
+  function changeCivilianTotal(civ, culture, amount) {
+    civ.pop = Math.max(0, (civ.pop || 0) + amount);
+    if (civ._poptable) {
+      civ._poptable[culture] = Math.max(0, (civ._poptable[culture] || 0) + amount);
+      civ._poptable_tot = Math.max(0, (civ._poptable_tot || 0) + amount);
+    }
+  }
+
+  function removeRecruits(formation, manpower) {
+    var removed = {};
+    var total = Object.values(formation.recruits).reduce((sum, n) => sum + n, 0);
+    var left = Math.round(manpower);
+    for (const [culture, count] of Object.entries(formation.recruits)) {
+      if (!count || !left) continue;
+      var amount = Math.min(count, left, Math.round(left * count / total));
+      removed[culture] = amount;
+      formation.recruits[culture] -= amount;
+      total -= count;
+      left -= amount;
+    }
+    return removed;
+  }
+  api.removeRecruits = removeRecruits;
+
+  function returnPopulation(formation, manpower) {
+    var removed = removeRecruits(formation, manpower);
+    var point = [formation.row, formation.col];
+    if (data[point[0]]?.[point[1]]?.color !== formation.civ) point = api.getCapital(formation.civ);
+    if (!point || !popv2?.map?.[point[0]]?.[point[1]]) return;
+    var civ = civs[formation.civ];
+    for (const [culture, amount] of Object.entries(removed)) {
+      changePopulation(point[0], point[1], culture, amount);
+      changeCivilianTotal(civ, culture, amount);
+    }
+  }
+
+  function offerGrowth(civName, row, col, positiveGrowth, eligibleGrowth) {
+    positiveGrowth = Math.max(0, Math.floor(positiveGrowth || 0));
+    var culture = civs[civName].culture || civName;
+    var cell = popv2?.map?.[row]?.[col];
+    var eligible = Math.min(positiveGrowth, eligibleGrowth ?? (cell ? positiveGrowth * (cell.pop[culture] || 0) / Math.max(1, populationTotal(cell)) : 0));
+    var available = Math.floor(eligible * api.getSettings(civName).growthShare);
     var partKey = api.getPartKey(civName, row, col);
     var requests = getGrowthRequests(civName, partKey).map(function (request) {
       var deficit = Math.max(0, request.target.maxManpower - request.target.manpower);
@@ -178,28 +255,29 @@ var Military = (function (api) {
         ? 0.75 * getTaxEfficiency(civName, target.row, target.col)
         : getRecoveryChance(civName, target.row, target.col);
       if (Math.random() >= recoveryChance) return;
-      var gained = Math.min(request.deficit, request.growth * request.multiplier) * 0.7;
+      var gained = Math.min(Math.round(Math.min(request.deficit, request.growth * request.multiplier) * 0.7),
+        eligible - recruited - recovered, cell.pop[culture] || 0, Math.max(0, populationTotal(cell) - 2500));
       if (!gained) return;
       var oldManpower = target.manpower;
       var gainedExperience = request.recruited ? 1 : 0.9;
+      changePopulation(row, col, culture, -gained);
+      target.recruits[culture] = (target.recruits[culture] || 0) + gained;
       target.manpower += gained;
       target.experience = (oldManpower * (target.experience || 1) + gained * gainedExperience) /
         target.manpower;
       target.recoveredThisTurn = (target.recoveredThisTurn || 0) + gained;
       if (request.recruited) {
         recruited += gained;
-        civs[civName].nextDecline = (civs[civName].nextDecline || 0) + gained * 0.5;
       } else {
         recovered += gained;
-        civs[civName].nextDecline = (civs[civName].nextDecline || 0) + gained;
       }
     });
     api.updateCivTotal(civName);
 
     return {
       offered: positiveGrowth,
-      diverted: diverted,
-      civilianGrowth: positiveGrowth - diverted,
+      diverted: recruited + recovered,
+      civilianGrowth: positiveGrowth - recruited - recovered,
       recovered: recovered,
       recruited: recruited
     };
@@ -307,11 +385,14 @@ var Military = (function (api) {
         var loss = Math.min(formation.manpower, Math.round(
           Math.max(1000, formation.manpower * 0.1)
         ));
-        api.loseEquipment(formation, loss);
+        var equipment = formation.heavyEquipment;
+        returnPopulation(formation, loss);
         formation.manpower -= loss;
+        api.normalizeEquipment(formation);
+        api.returnEquipment(formation, equipment - formation.heavyEquipment);
         returned += loss;
       });
-      returnPopulation(civName, returned);
+
       divisions.forEach(function (division) {
         if (division.manpower <= 0) api._removeDivision(division.id);
       });

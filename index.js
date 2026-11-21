@@ -1,7 +1,6 @@
 readMap();
 TIMEOUT_DELAY = 20;
 RCHANCEMOD = 0.2;
-INCOMEMOD = 0.55;
 
 lazyDrawCml = false;
 
@@ -17,6 +16,7 @@ ready = function () {
     Military.init(military);
     Military.migrateLegacyCells();
     normalizeCellTypes();
+    initializeRealIncome();
     MilitaryUI.init({
         military: Military,
         recruitmentTarget: '#military-recruitment-anchor',
@@ -38,6 +38,7 @@ ready = function () {
         }
         drawCanvas()
     }).on("mousemove", updateDiplomacyTooltip).on("mouseleave", function () {
+        canvasHoverPoint = null;
         this.title = "";
     }).click(function (e) {
         var cell = canvasEventToCell(e);
@@ -350,6 +351,7 @@ buy = function (type, price) {
                         if (!l.color) {
                             data[r][c] = {
                                 color: civName,
+                                acquiredTurn: turn,
                                 type: type
                             };
                         }
@@ -360,6 +362,7 @@ buy = function (type, price) {
                 }
                 data[row][col] = {
                     color: civName,
+                    acquiredTurn: data[row][col]?.color === civName ? data[row][col].acquiredTurn : turn,
                     type: type,
                 };
                 // if (land.pop > 10000)
@@ -417,9 +420,7 @@ turn = 0;
 averageData = {income: 0, happiness: 0, logistics: 0, technology: 0, ii: 0, politic: 0, money: 0, population: 0}
 poptable_hook(averageData);
 max_pop = 200000;
-max_econ = 0;
 max_pop_country = 200000;
-max_econ_country = 0;
 
 max_hist_val = 0;
 
@@ -443,11 +444,11 @@ endTurn = function () {
         delete civ.capital;
     }
 
-    const oldRealInc = (civ.income + 10) / (1 - (civ.imodDueToReserve || 0));
+    const reserveIncome = civ.preReserveIncome ?? ((civ.income || 0) / Math.max(0.1, 1 - (civ.imodDueToReserve || 0)));
 
     civ.imodDueToReserve = 0;
-    if (civ.income > 100 && oldRealInc > 100 && civ.money > 100 && civ.ii > 10 && civ.money / oldRealInc > 4)
-        civ.imodDueToReserve = Math.min(0.9, Math.max(0, Math.log(civ.money / oldRealInc - 3) * 0.2));
+    if (reserveIncome > 100 && civ.money > 100 && civ.ii > 10 && civ.money / reserveIncome > 4)
+        civ.imodDueToReserve = Math.min(0.9, Math.max(0, Math.log(civ.money / reserveIncome - 3) * 0.2));
     const imodDTR = civ.imodDueToReserve;
     civ.happiness = !isNaN(civ.happiness) ? civ.happiness + (1.5 - civ.happiness / 100) : 60;
     civ.happiness = Math.round(Math.max(0, Math.min(100, civ.happiness)) * 100) / 100;
@@ -463,7 +464,6 @@ endTurn = function () {
     civ._hapDec = 1;
     civ.inGatesDisallowed = civ.inGatesDisallowed || {};
     civ.outGate = civ.outGate === undefined ? true : civ.outGate;
-    civ._perished = 0;
 
     let _newColorGrid = data.map(x => x.map(x => null));
 
@@ -539,6 +539,8 @@ endTurn = function () {
 
     let cityCount = 0;
     let income = 0;
+    let realIncome = 0;
+    let preReserveIncome = 0;
     let expense = 0;
     let oldpop = civ.pop || (civ.pop = 0);
     civ.pop = 0;
@@ -573,7 +575,6 @@ endTurn = function () {
     nextDecline += civ.nextDecline || 0;
 
     max_pop = 0;
-    max_econ = 0;
     max_hist_val = 0;
 
     iterateMathRandom((row, col) => {
@@ -582,8 +583,6 @@ endTurn = function () {
         let dPop = popv2_get_totpop(row, col);
 
         max_pop = Math.max(max_pop, dPop);
-        if (d?._econ)
-          max_econ = Math.max(max_econ, d._econ);
 
         max_hist_val = Math.max(max_hist_val, popv2_get_tothist(row, col));
 
@@ -763,10 +762,12 @@ endTurn = function () {
             popv2_apply_delta(row, col, -dPop * 0.04);
             popv2_apply_delta(row, col, dPop * 0.04);
 
-            var militaryGrowth = Military.offerGrowth(civName, row, col, Math.max(0, Math.round(delta)));
-            delta -= militaryGrowth.diverted;
-            d._militaryGrowth = militaryGrowth.diverted;
+            const localPop = popv2.map[row][col].pop;
+            const beforeGrowth = localPop[civ.culture] || 0;
             popv2_apply_delta(row, col, Math.round(delta + 1));
+            const eligibleGrowth = Math.max(0, (localPop[civ.culture] || 0) - beforeGrowth);
+            const militaryGrowth = Military.offerGrowth(civName, row, col, Math.max(0, delta), eligibleGrowth);
+            d._militaryGrowth = militaryGrowth.diverted;
 
             popv2_record_history(row, col);
 
@@ -787,6 +788,7 @@ endTurn = function () {
             let _oldhap = civ.happiness + 0;
 
             d.type.income(civ);
+            const utilization = Military.getBuildingUtilization(row, col);
 
             let change = civ.money - _oldmoney;
 
@@ -796,31 +798,28 @@ endTurn = function () {
               change = 0;
             }
 
-            if (change > 0) {
-                // if (!noGrowth) {
-                const baseline = 45000;
-                const refPop = Math.max(Math.min(1500000, dPop), 1000);
-                let efficiency = Math.log((refPop + baseline) / baseline) + (1 - Math.log(2));
-
-                let nchange = change * Math.max(0.5, efficiency) * res_econ_mod(row, col);
-                // 2/20/24, adjusting for lower population, hence the 0.10
-                nchange *= 1 + (civ.gov.mods.EGRVG || 0) - INCOMEMOD - imodDTR; // econ reduction factor
-
-                const taxEff = regions_taxEff(civ, civName, row, col);
-                tebi += nchange;
-                nchange *= taxEff; // tax efficiency
-                civ.teb += nchange;
-
-                d._econ = nchange;
-                civ.money -= change - nchange;
-                income += nchange;
-                civ.emb += res_econ_mod(row, col);
+            const factors = tileIncomeFactors(d, dPop, res_econ_mod(row, col));
+            d._incomeOwner = civName;
+            d._incomeBuilding = cellTypeId(d.type);
+            d._realIncome = factors.real;
+            realIncome += factors.real;
+            d._taxBaseRoll = Math.max(0, change);
+            d._preReserveIncome = 0;
+            d._econ = 0;
+            d._exp = 0;
+            if (change > 0 || factors.gross > 0) {
+                const policy = 1 + (civ.gov.mods.EGRVG || 0) - INCOMEMOD;
+                const taxEfficiency = regions_taxEff(civ, civName, row, col);
+                const tax = assessTileTax(d._taxBaseRoll, factors, policy, imodDTR, taxEfficiency, utilization);
+                d._preReserveIncome = tax.preReserve;
+                preReserveIncome += tax.preReserve;
+                tebi += tax.taxable;
+                civ.teb += tax.taxable * taxEfficiency;
+                d._econ = tax.adjusted;
+                civ.money += tax.adjusted - change;
+                income += tax.adjusted;
+                civ.emb += factors.terrain;
                 embi++;
-                // } else {
-                //     income += change;
-                //     d._econ = change;
-                // }
-                max_econ = Math.max(max_econ, d._econ);
             } else {
                 d._exp = -change;
                 expense -= change;
@@ -829,7 +828,7 @@ endTurn = function () {
             change = civ.technology - _oldtech;
             if (change > 0) {
                 let nchange = change * dPop / 150000;
-                nchange *= 1 + (civ.gov.mods.OSTOI || 0);
+                nchange *= utilization * (1 + (civ.gov.mods.OSTOI || 0));
                 civ.technology -= change - nchange;
             };
 
@@ -892,12 +891,10 @@ endTurn = function () {
         civ.teb = Math.round(civ.teb / (tebi) * 100) / 100;
 
     max_pop_country = 0;
-    max_econ_country = 0;
     max_avg_pm_country = 0;
     max_avg_em_country = 0;
     Object.values(civs).forEach(x => {
       max_pop_country = Math.max(x.pop || 0, max_pop_country);
-      max_econ_country = Math.max(x.income || 0, max_econ_country);
       max_avg_pm_country = Math.max(x._avgpm || 0, max_avg_pm_country);
       max_avg_em_country = Math.max(x._avgem || 0, max_avg_em_country);
     });
@@ -910,6 +907,13 @@ endTurn = function () {
 //     let expense = civ.military / 2.0;
 //     let income = expense - oldMoney + civ.money;
 
+    const previousOutput = civ.realIncome;
+    civ.gdpIncomeMod = INCOMEMOD;
+    civ.realIncome = Math.round(realIncome * 100) / 100;
+    civ.preReserveIncome = preReserveIncome;
+    const outputGrowth = previousOutput > 0 ? (civ.realIncome / previousOutput - 1) * 100 : 0;
+    civ.realIncomeGrowthHistory ??= [];
+    civ.realIncomeGrowthRA = rollingAverage(civ.realIncomeGrowthHistory, outputGrowth, 12);
     civ.income = Math.round(income * 100) / 100;
 
     civ.incomes = civ.incomes || Array(12).fill(0);
@@ -917,7 +921,7 @@ endTurn = function () {
     civ.incomesRA = Math.round(civ.incomesRA * 100) / 100;
 
     let oldInc = civ.incomes[civ.incomes.length - 2] || Infinity;
-    let incomeRAdiff = Math.round((civ.income - oldInc) / oldInc * 10000) / 100;
+    let incomeRAdiff = Number.isFinite(oldInc) ? Math.round((civ.income - oldInc) / oldInc * 10000) / 100 : 0;
 
     civ.incomeRAdiffs = civ.incomeRAdiffs || Array(12).fill(0);
     civ.incomeRAdiffsRA = rollingAverage(civ.incomeRAdiffs, incomeRAdiff, 12) || 0;
@@ -975,109 +979,22 @@ endTurn = function () {
     if (civ.ii > 0)
         gov_exec(civ, civName);
 
-    // rebel pops: for own civ
-    if (Math.random() < civ.rchance && Math.random() < RCHANCEMOD) {
-        console.log("== triggering rebellion in", civName, "with chance=", civ.rchance);
-        push_msg(`Rebellions in ${civName} are attempting an uprising.`, [civName, ...Object.keys(civ.neighbors)]);
-        if (popRebel(null, civName))
-            civ.rchance *= 0.35;
-    }
-
-    // rebel pops: for perished civs
-    if (ii <= 2 && turn >= 10 * 4 * civOrders.length && (Math.random() < 0.0012
-    // || (1 + turn) % (88 * 4 * civOrders.length) <= 14
-    ) && civ.technology >= 0 && Math.random() < RCHANCEMOD) {
-       // auto pick target
-        console.log("## triggering rebellion for", civName);
-        if (Math.random() < 0.7 && civ.birth) {
-            let targetCiv = data[civ.birth[0]][civ.birth[1]].color;
-            targetCiv.rchance *= 100; // cause a cascade
-            if (popRebel(civName, targetCiv, civ.birth))
-              push_msg(`Descendants of ${civName} are attempting an uprising in ${targetCiv}.`, [civName, targetCiv]);
-        } else {
-            delete civ.birth;
-            popRebel(civName);
-        }
-    }
-
     if (civ.ii >= 2) {
-        let rchance = (20 / Math.max(1, civ.happiness || 100) - 0.1) + ((Math.max(0, 1 - (civ.gov.cohesion || 1))) || 0);
-        rchance *= (1 + rchance);
-        rchance *= 0.0001 * (1 + civ.ii / data.length / data[0].length * 10) * (1 + civ.years / 75);
-        if (civ.ii < 200)
-            rchance /= 10;
-        if (civ.mandate && civ.years < 100)
-            rchance /= 2;
-        if (civ.mandate) {
-            let reserves = getReserves(civ);
-            let income = civ.income || 0;
-            if (income > 0 && reserves > income * 10) {
-                rchance *= 1 + Math.min(0.6, (reserves / (income * 10) - 1) * 0.2);
-            }
-        }
-        if (civ.popchangeperc < 0)
-            rchance *= Math.pow(-civ.popchangeperc, 2);
-        if (civ.politic < 5)
-            rchance *= 1.3;
-        if (civ.happiness < 50)
-            rchance *= 1.4;
-        if (civ.happiness < 0)
-            rchance *= 1.5;
-        if (civ.gov.cohesion > 1)
-            rchance *= 0.8;
-        if (civ.gov.cohesion > 1.1)
-            rchance *= 0.8;
-        if (civ.gov.cohesion > 1.2)
-            rchance *= 0.6;
-        if (civ.gov.cohesion > 1.4)
-            rchance *= 0.5;
-        if (civ.gov.cohesion < 0.9)
-            rchance *= 1.5;
-        if (civ.gov.cohesion < 0.85)
-            rchance *= 1.5;
-        if (civ.gov.cohesion < 0.45)
-            rchance *= 2.5;
-
-        const decayAlpha = civ.mandate ? dynasty_decay_func(civ, 0.9) : 0.7;
-
-        civ.rchance = rchance > civ.rchance ?
-            (civ.rchance || 0) * 0.3 + rchance * 0.7 :
-            (civ.rchance || 0) * (1 - decayAlpha) + rchance * decayAlpha;
-
-        civ.rchance *= 1 + (civ.gov.mods.ORBRD || 0);
+        rebellionQuarter(civ, civName, maginitude);
     } else {
         civ.landsBuilt = 0;
 
         civ.rchance = 0;
+        civ.culturalPressure = 0;
+        civ.rebellionProbability = 0;
         civ.years = 0;
         delete civ._hadMandate;
         civ.technology = 0;
 
-        for (const occupierName of civOrders) {
-            const occupier = civs[occupierName];
 
-            const ownCulture = civ.culture;
-            const occupierCulture = occupier.culture;
-            const oppressedPop = occupier._poptable?.[ownCulture];
-
-            if (occupier.ii > 0 && ownCulture != occupierCulture && oppressedPop > 100000) {
-                const perc = oppressedPop / occupier.pop;
-                const mod = 1 + perc;
-
-                // eternal unrest for perished civs
-                occupier.rchance = occupier.rchance * 1.020 + 0.0025;
-                occupier._perished++;
-
-                if (perc > 0.05) {
-                    occupier.rchance += Math.min(1, perc) / 20;
-                    occupier.rchance *= Math.min(2, Math.max(0, mod || 0));
-                }
-            }
-        }
     }
 
-    civ.rchance *= 1 + civ.rchance;
-    civ.rchance = Math.min(0.50, civ.rchance);
+
 
     triggerMandateOpportunism(civName, civ);
 
@@ -1086,145 +1003,12 @@ endTurn = function () {
 
 };
 
-// if civ doesnt have birth, will assign birth
-popRebel = function (civName, target, source) {
-    if (!civName) {
-        // need to find a rebel
-        let candidates = civOrders.filter(x => civs[x].ii <= 2 && civs[x].technology >= 0).sort(() => Math.random() - 0.5);
-
-        // find a perished civ inside target
-        for (let cn of candidates) {
-            if (civs[cn].birth && data[civs[cn].birth[0]][civs[cn].birth[1]]?.color == target) {
-                civName = cn;
-                break;
-            }
-        }
-
-        if (!civName && !(civName = candidates[0]))
-            return false;
-    }
-    let civ = civs[civName];
-    if (!target) {
-        let choices = civOrders.filter(x => civs[x].ii >= 2).sort((a, b) => civs[b].ii - civs[a].ii);
-
-        let totChances = choices.reduce((prev, x) => prev + civs[x].rchance, 0);
-
-        let adjusted = choices.map(x => [x, Math.sqrt(civs[x].rchance / totChances)]);
-
-        if (!adjusted.length)
-            return false;
-
-        let i = 0;
-        while (!target) {
-            let chance = (adjusted[i][1] += 0.1);
-            console.log('Rebel ->', adjusted[i][0], chance);
-            if (Math.random() < chance)
-                target = adjusted[i][0];
-            if (++i >= adjusted.length)
-                i = 0;
-        }
-    }
-    // really shouldn't be popping rebels due to descendants when rchance < 0.1%
-    // this allows for actual peace periods instead of non stop wars
-    // a good balance between 1 civ domination and multi
-    if (Math.random() >= civs[target].rchance * 1000) {
-      return false;
-    }
-    if (!source) {
-        // find target city
-        let choices = [];
-        for (let r = 0;r < data.length;r++) {
-            for (let c = 0;c < data[r].length;c++) {
-                let d = data[r][c];
-                let dPop = popv2_get_totpop(r, c);
-                if (d?.color == target && d?.growth >= 1)
-                    choices.push([r, c, (d._d + dPop) / regions_taxEff(civs[target], target, r, c)]);
-            }
-        }
-        source = choices.sort((a, b) => b[2] - a[2])[0]?.splice(0, 2);
-        if (source)
-            civ.birth = source;
-        else
-            source = [data.length, data[0].length].map(x => x * Math.random() | 0);
-    }
-    if (civName == target) return false;
-    console.log('Rebel=', civName, ': target=', target, 'source=', source);
-
-    civ.ii = 1;
-    let oldii = civs[target].ii;
-
-    // circle method (old)
-    findNearbyCitiesOfLargestCiv(source, civName, target);
-
-    let targetBirth = civs[target].birth;
-
-    // // old civ's birth is inside new nation -> need to remove birth so it
-    // // doesn't cause eternal unrest in new nation
-    // if (targetBirth && data[targetBirth[0]][targetBirth[1]]?.color == civName)
-    //     delete civs[target].birth;
-
-    civs[target].happiness *= 0.6;
-    civs[target].politic *= 0.4;
-
-    if (civs[target].gov)
-        gov_opinion_rebel(civs[target], target, civs[target].gov);
-
-    civ.war = civ.war || {};
-    civs[target].war = civs[target].war || {};
-    delete civs[target].war[civName];
-    delete civ.war[target];
-
-    civ.landsBuilt = Math.ceil((civs[target].landsBuilt || 0) * 0.8);
-
-    civ.money = 100 + civ.ii * 5;
-    civ.politic = 50;
-    civ.happiness = 100;
-    civ.rchance = 0;
-    civ.years = 0;
-    delete civ._hadMandate;
-
-    delete civ.gov;
-    gov_init(civ, civName);
-    gov_exec(civ, civName);
-
-    if (civs[target].deposit > 0) {
-        civ.deposit = civs[target].deposit * civ.ii / oldii;
-        civs[target].deposit -= civ.deposit;
-        civ.money += civs[target].money * civ.ii / oldii;
-        civs[target].money -= civ.money;
-    } else {
-        civ.deposit = 1000;
-    }
-
-
-    var sum = 0;
-
-    if (Math.random() < 0.8 || civs[target].mandate > 1)
-        declareWar(target, civName, true, `as a result of the ${civName} rebellion.`, 5 + 5*(civs[target].rchance || 0))
-
-    civOrders.forEach(function (civN) {
-        sum = Math.max(civs[civN].technology, sum);
-    });
-
-    civ.technology = Math.max(1, sum * (Math.random() * 0.5 + 0.5));
-
-    if (!civ.birth) return true;
-
-    let b = civ.birth;
-    b = data[b[0]][b[1]];
-    if (b.color == civName && b.type.draw.toString() != types.capital.draw.toString()) {
-        b.type = types.capital;
-    }
-
-    return true;
-};
-
 showInfo = function () {
     var factoryButton = document.getElementById('factory-build');
     if (factoryButton) {
         var factoryCosts = Military.getFactoryCosts(civOrders[i]);
         factoryButton.textContent = 'Factory ($' + factoryCosts.construction.toFixed(2) + ')';
-        factoryButton.title = 'Produces up to 10 equipment per turn, scaled by local tax efficiency. Full operating cost $' +
+        factoryButton.title = 'Produces up to 10 equipment per turn, scaled by local tax efficiency and building utilization. Full operating cost $' +
             factoryCosts.upkeep.toFixed(2) + '/turn. Adjust Factory production % in Military.';
     }
     var civ = civs[civOrders[i]];
@@ -1280,17 +1064,18 @@ showInfo = function () {
                     "Deposit: " + Math.floor(civ.deposit * 100) / 100 + `/${Math.floor(depositCap)}(${Math.round((civ.depRate - 1)*100*100)/100}% interest)\n` +
                     `Technology: ${civ.technology} (+${civ.techinc}, ${civ._techFromAllies ? `${civ._techFromAllies} from allies, ` : ''}8-turn RA=+${civ.techincRA})\n` +
                     "Political Powers: " + civ.politic + (civ._polFromAllies ? ` (${Math.round(civ._polFromAllies * 100) / 100} from allies) \n` : '\n') +
-                    `Legitimacy: ${Math.round(civ.gov?.cohesion * 10000) / 100}\n` +
+                    `Legitimacy: ${(civ.gov?.legitimacy ?? 50).toFixed(1)}\n` +
                     "Population: " + civ.pop + ` (+${civ.popchange}, +${civ.popchangeperc}%, 4-turn RA=+${civ.popchangepercRA}%)\n` +
                     `Military: ${Math.round(activeManpower)} men in ${divisions.length} divisions; ${Math.round(queuedManpower)} training in ${recruitQueues.length} queues\n` +
                     `Military requests: ${Math.round(requestedManpower)}; recovered/trained: +${Math.round(recoveredManpower)}; upkeep: $${Math.round(upkeep.paid * 100) / 100}/$${Math.round(upkeep.needed * 100) / 100} (${Math.round(upkeep.fundedRatio * 100)}% funded, ${Math.round(upkeep.deserted || 0)} deserted)\n` +
                     `Military casualties since last turn: ${Math.round(militaryCasualties.suffered)} lost; ${Math.round(militaryCasualties.inflicted)} inflicted\n` +
-                    `Happiness: ${Math.round(civ.happiness * 100) / 100} % (Rebellion chance: ${Math.round(civ.rchance * 100000) / 1000}%; x${Math.round((civ._hapDec) * 100) / 100} from unnatural deaths; ${civ._perished || 0} rebel movements)\n` +
+                    `Happiness: ${Math.round(civ.happiness * 100) / 100} % (Rebellion chance: ${Math.round((civ.rebellionProbability ?? civ.rchance) * 100000) / 1000}%; x${Math.round((civ._hapDec) * 100) / 100} from unnatural deaths)\n` +
                     "Urbanization: " + civ.urban + "% (" + civ.cityCount + ")\n" +
                     `Migrants: ${civ.migrantsOutTotal} total displaced, ${civ.migrantsOutSuccessful} migrated out, ${civ.migrantsIn} in; net=${civ.migrantsIn - civ.migrantsOutSuccessful} <button onclick="manageMigrants()">Manage</button>\n` +
                     "==Statistics==\n" +
                     "        " + (civ.oldMoney) + "\n" +
-                    ` + Tax     ${civ.income} (12-turn RA=$${civ.incomesRA}, +${civ.incomeRAdiffsRA}%, reduction due to high reserve: -${Math.round(civ.imodDueToReserve * 10000) / 100}%, tax eff. = ${Math.round(civ.teb*100)}%) \n` +
+                    ` Real output  $${realIncomeOf(civ).toFixed(2)}\n` +
+                    ` + Adjusted tax     ${civ.income} (12-turn RA=$${civ.incomesRA}, +${civ.incomeRAdiffsRA}%, reduction due to high reserve: -${Math.round(civ.imodDueToReserve * 10000) / 100}%, tax eff. = ${Math.round(civ.teb*100)}%) \n` +
                     (civ.spentOnUrban > 0 ? ` - Urban overflow $${Math.round(civ.spentOnUrban * 100) / 100}\n` : "") +
                     " - Expense " + Math.round((civ.expense) * 100) / 100 + "  (Logistics " + civ.logistics + ")\n" +
                     " - Gov     " + Math.round(civ.govExp * 100) / 100 + "  (Government Offices in " + civ.ii + " counties, " + civ.occupiedII + " are occupied)\n" +
@@ -1332,6 +1117,38 @@ let _militaryData = [];
 let _incomeData = [];
 let _pwrData = [];
 let _techData = [];
+
+function recordIncomeHistory(year) {
+    const sample = { date: year, real: 0, adjusted: 0 };
+    const recent = _incomeData.length > 4 ? _incomeData.slice(-4) : [];
+    for (const name of civOrders) {
+        for (const metric of ['real', 'adjusted']) {
+            const key = name + '.' + metric;
+            const rawKey = key + '.raw';
+            const current = (metric === 'real' ? realIncomeOf(civs[name]) : civs[name].income || 0) / 1000;
+            const values = recent.map(row => row[rawKey]).filter(Number.isFinite);
+            sample[rawKey] = current;
+            sample[key] = values.reduce((sum, n) => sum + n, current) / (values.length + 1);
+            sample[metric] += sample[key];
+        }
+    }
+    _incomeData.push(sample);
+}
+
+function drawIncomeHistory() {
+    if (!_incomeData.length) return;
+    const metric = document.getElementById('income-history-metric').value;
+    $('#incGraph').html('');
+    let chart = d3_timeseries().width(800).height(600)
+        .addSerie(_incomeData, { x: 'date', y: metric }, { interpolate: 'linear', color: 'grey', width: 2 });
+    chart.xscale.tickFormat(date => date.valueOf().toString());
+    for (const name of civOrders) {
+        chart = chart.addSerie(_incomeData, { x: 'date', y: name + '.' + metric },
+            { interpolate: 'linear', color: civs[name].color, width: 1 });
+    }
+    chart('#incGraph');
+}
+
 let enableGraph = true;
 
 let hisChart = new HistoryChart('#hisGraph', 761, 25);
@@ -1362,6 +1179,7 @@ prepareTurn = function () {
             politic: averageData.politic / civOrders.length,
             money: averageData.money / civOrders.length,
             pop: averageData.population,
+            realIncome: Object.values(civs).reduce((sum, civ) => sum + realIncomeOf(civ), 0),
             income: averageData.income
         };
 
@@ -1437,32 +1255,8 @@ prepareTurn = function () {
             });
             militaryChart('#militaryGraph');
 
-            let incObj = { date: currentYear, inc: 0};
-            civOrders.forEach(x => {
-                let last = 0;
-                if (_incomeData.length > 4) {
-                    for (let i = 1; i <= 4; i++) {
-                        last += _incomeData[_incomeData.length - i][x + '.h'];
-                    }
-                    incObj[x] = (last + civs[x].income / 1000) / 5;
-                } else {
-                    incObj[x] = civs[x].income / 1000;
-                }
-                incObj[x + '.h'] = civs[x].income / 1000;
-                incObj.inc += incObj[x];
-            });
-            _incomeData.push(incObj);
-
-            $('#incGraph').html('');
-            var iChart = d3_timeseries()
-                .width(800)
-                .height(600)
-                .addSerie(_incomeData, { x: 'date', y: 'inc' }, { interpolate: 'linear', color: 'grey', width: 2 });
-            iChart.xscale.tickFormat(timeFormat);
-            civOrders.forEach(x => {
-                iChart = iChart.addSerie(_incomeData,{x:'date',y: x},{interpolate:'linear', color: civs[x].color, width: 1});
-            });
-            iChart('#incGraph');
+            recordIncomeHistory(currentYear);
+            drawIncomeHistory();
 
             let pwrObj = { date: currentYear, pwr: 0};
             civOrders.forEach(x => {
@@ -1546,7 +1340,7 @@ prepareTurn = function () {
 
     document.getElementById('year').innerText =
         'Population: ' + (window.average && window.average.pop || 0) +
-        `, GDP: ${Math.floor(window.average?.income)}M (${Math.floor(1000 * 1e6 * window.average?.income / window.average?.pop) / 1000} per capita)` +
+        `, GDP: ${Math.floor(window.average?.realIncome)}M (${Math.floor(1000 * 1e6 * window.average?.realIncome / window.average?.pop) / 1000} per capita)` +
         ', Year: ' + (Math.floor(turn / civOrders.length) / 4) +
         ', Dynasty: ' + dynasty_get_mandate();
 
@@ -1616,7 +1410,7 @@ manageMigrants = function () {
             tr.append(`<td>${(civ._migrantInfo.from[civName] || 0) - ((civ._migrantInfo.to[civName] || [0])[0] || 0)}</td>`);
             tr.append(`<td>${Math.round(civ2.happiness)}</td>`);
             tr.append(`<td>${Math.round((civ._migrantInfo.to[civName] || [0,0])[1] * 100)}</td>`);
-            tr.append(`<td>${Math.round(civ2.rchance * 100000) / 1000}</td>`);
+            tr.append(`<td>${Math.round((civ2.rebellionProbability ?? civ2.rchance) * 100000) / 1000}</td>`);
             tr.append(`<td>${civ2.outGate ? '' : 'Disallowing emigration;'}${allowIn2 ? '' : ' Disallowing immigrants from us'}</td>`);
             tr.append(`<td><button>${allowIn ? 'Allowing entrance' : 'Disallowing entrance'}</button></td>`);
             tr.find('button').click(() => {
@@ -1648,8 +1442,8 @@ refreshTable = function () {
             refreshTable();
         });
         let power = Math.min(Math.max(0, Math.sqrt(Math.sqrt(Math.sqrt((civ.deposit + civ.money) / 2)) +
-            Math.min(2, civ.popchangepercRA / 5) + (civ.pmb - 1) * 2 + (civ.emb - 1) * 2 + Math.min(2, civ.incomeRAdiffsRA / 2) +
-            civ.income / 10 + civ.politic / 3 + ((civ.ii / 1000 + 0.2) * civ.ii * civ.urban / 100) - 3 +
+            Math.min(2, civ.popchangepercRA / 5) + (civ.pmb - 1) * 2 + (civ.emb - 1) * 2 + Math.min(2, (civ.incomeRAdiffsRA || 0) / 2) +
+            (civ.income || 0) / 10 + civ.politic / 3 + ((civ.ii / 1000 + 0.2) * civ.ii * civ.urban / 100) - 3 +
             civ.technology / 10 + Math.min(130, civ.happiness) / 10 + Math.min(100000000 / 50000, civ.pop / 50000)) +
             - Math.min(0.05, civ.rchance) * 100), 100) || NaN;
 
@@ -1684,8 +1478,8 @@ refreshTable = function () {
         tr.append(`<td>${Math.round(civ.urban * 100) / 100 || ''}</td>`)
         tr.append(`<td>${Math.round(civ.pop / civ.ii) || ''}</td>`)
         tr.append(`<td class="extra">${Math.round(civ.imodDueToReserve * 100) || ''}</td>`)
-        tr.append(`<td class="extra">${Math.round(civ.income / civ.pop * 1e6) || ''}</td>`)
-        tr.append(`<td class="extra">${civ.incomeRAdiffsRA || ''}</td>`)
+        tr.append(`<td class="extra">${Math.round(realIncomeOf(civ) / civ.pop * 1e6) || ''}</td>`)
+        tr.append(`<td class="extra">${civ.realIncomeGrowthRA?.toFixed(2) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.deposit) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.technology * 100) / 100 || ''}</td>`)
         tr.append(`<td>${(civ.years) || ''}</td>`)
@@ -1696,10 +1490,11 @@ refreshTable = function () {
         tr.append(`<td>${Math.round(civ.military) || ''}</td>`)
         tr.append(`<td class="extra">${Math.round(civ.deployedHeavyEquipment * 10) / 10}</td>`)
         tr.append(`<td>${Math.round(civ.newMoney - civ.oldMoney) || ''}</td>`)
+        tr.append(`<td>${Math.round(realIncomeOf(civ))}</td>`)
         tr.append(`<td>${Math.round(civ.income) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.politic) || ''}</td>`)
         tr.append(`<td>${Math.round(civ.money) || ''}</td>`);
-        tr.append(`<td>${Math.round(civ.rchance * 100000) / 1000 || ''}</td>`);
+        tr.append(`<td>${Math.round((civ.rebellionProbability ?? civ.rchance) * 100000) / 1000 || ''}</td>`);
         tr.append(`<td class="extra">${Math.round((civ.migrantsIn || civ._migrantsInLast || 0) - (civ.migrantsOutSuccessful || civ._migrantsOutSuccessfulLast || 0)) || ''}</td>`);
         tr.append(`<td class="extra">${Math.round(civ.gov?.cohesion * 100) || ''}</td>`);
         tr.append(`<td>${Math.round(civ.power * 100) / 100 || ''}</td>`);

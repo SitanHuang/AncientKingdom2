@@ -171,7 +171,7 @@ test('recruit queues apply the current training yield and cost upkeep', () => {
   ctx.Math.random = () => 0.5;
   const result = ctx.Military.createRecruitQueue('A', 2000, { name: 'First' });
   assert.equal(result.ok, true);
-  assert.equal(ctx.Military.offerGrowth('A', 0, 0, 100).diverted, 50);
+  assert.equal(ctx.Military.offerGrowth('A', 0, 0, 100).diverted, 70);
   assert.equal(result.queue.manpower, 70);
   assert.equal(ctx.Military.getUpkeep('A'), 70 / 100 / 4);
 
@@ -219,7 +219,7 @@ test('local tax efficiency reduces recovery and training success chance', () => 
   assert.equal(recoveredDivision.manpower, 1070);
 });
 
-test('small-country recovery can exceed diverted growth and fades toward baseline', () => {
+test('small-country recovery draws the actual recruits from civilian growth', () => {
   const small = world();
   small.Math.random = () => 0.5;
   const smallDivision = small.Military._addDivision({
@@ -236,9 +236,9 @@ test('small-country recovery can exceed diverted growth and fades toward baselin
   const largeResult = large.Military.offerGrowth('A', 0, 0, 100);
 
   assert.equal(small.Military.getRecoveryMultiplier('A'), 2);
-  assert.equal(smallResult.diverted, 50);
+  assert.equal(smallResult.diverted, 70);
   assert.equal(smallResult.recovered, 70);
-  assert.ok(smallResult.recovered > smallResult.diverted);
+  assert.equal(smallResult.recovered, smallResult.diverted);
   assert.ok(large.Military.getRecoveryMultiplier('A') < 1.1);
   assert.ok(largeResult.recovered < smallResult.recovered);
   assert.equal(smallDivision.manpower, 1070);
@@ -269,7 +269,7 @@ test('recovery chance declines below baseline as country size grows', () => {
   assert.equal(small.Military.getRecoveryChance('A', 0, 0), 0.75);
   assert.ok(large.Military.getRecoveryChance('A', 0, 0) < 0.75);
   const smallRecovery = small.Military.offerGrowth('A', 0, 0, 100).recovered;
-  assert.ok(Math.abs(smallRecovery - 50 * (1 + 1 / 6) * 0.7) < 1e-12);
+  assert.ok(smallRecovery === Math.round(50 * (1 + 1 / 6) * 0.7));
   assert.equal(large.Military.offerGrowth('A', 0, 0, 100).recovered, 0);
   assert.ok(Math.abs(smallDivision.manpower - (1000 + smallRecovery)) < 1e-12);
   assert.equal(largeDivision.manpower, 1000);
@@ -301,7 +301,8 @@ test('conscription uses the country conversion and cannot exceed ten percent per
   assert.equal(result.ok, true);
   assert.equal(result.manpower, 10000);
   assert.equal(result.cost, 200);
-  assert.equal(ctx.civs.A.nextDecline, 10000);
+  assert.equal(ctx.civs.A.pop, 90000);
+  assert.equal(ctx.civs.A.nextDecline || 0, 0);
   assert.equal(ctx.Military.conscript('A', 0, 0, 1000, { name: 'Second' }).ok, false);
   ctx.Military.beginTurn('A');
   assert.equal(ctx.civs.A.conscriptedThisTurn, 0);
@@ -332,7 +333,7 @@ test('pooled upkeep includes queues and applies fixed desertion when underfunded
   assert.equal(result.fundedRatio, 0.5);
   assert.equal(result.deserted, 2000);
   assert.equal(queue.manpower, 4000);
-  assert.equal(ctx.civs.A.nextDecline, -2000);
+  assert.equal(ctx.popv2.map[0][0].pop.a, 12000);
 });
 
 test('upkeep is calculated per formation from its local tax efficiency', () => {
@@ -464,6 +465,7 @@ test('retreating defenders disperse to least-filled tiles and may destroy their 
   const result = ctx.Military.attack([attacker.id], 1, 1, { ignoreCost: true });
 
   assert.equal(result.retreated.defender, true, JSON.stringify({ before, result }));
+  assert.equal(ctx.Military.getRecentBattles()[0].defenderDestroyed, 0);
   assert.equal(ctx.data[1][1].type, ctx.types.land);
   assert.deepEqual([
     ctx.Military.getDivisionsAt(0, 1, 'B').length,
@@ -713,6 +715,7 @@ test('right-click keeps units selected, passes Alt waypoints, draws arrows, and 
   ctx.MilitaryUI.onTileRightClick(1, 2);
   ctx.MilitaryUI.onTileRightClick(2, 2, { altKey: true });
   assert.equal(unit.moveTargets.length, 2);
+  ctx.MilitaryUI.setBattleMarkersVisible(false);
   let lines = 0;
   const canvas = { save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() { lines++; },
     stroke() {}, closePath() {}, fill() {}, fillText() {}, strokeRect() {} };
@@ -1014,7 +1017,7 @@ test('equipment-rich AI expands beyond the elite fifth and equips emergency cons
   const drafted=ctx.civs.A._militaryAI.actions.filter(a=>a.action==='conscript');
   assert.ok(drafted.length>0);
   assert.ok(drafted.some(a=>ctx.Military.getDivision(a.detail)?.maxHeavyEquipment>0));
-  assert.ok(ctx.civs.A.conscriptedThisTurn<=ctx.civs.A.pop*0.1);
+  assert.ok(ctx.civs.A.conscriptedThisTurn <= (ctx.civs.A.pop + ctx.civs.A.conscriptedThisTurn) * 0.1);
 });
 
 test('factory cash reservation respects the player military upkeep spending percentage', () => {
@@ -1133,17 +1136,17 @@ test('ruling-culture minorities contribute proportionally and share changes refr
   assert.equal(ctx.Military.getHeavyResource(0,0).output,0);
 });
 
-test('culture-weighted fractional production reaches the stockpile without scaling factory output', () => {
+test('foreign-majority factories retain mature occupation output alongside free cultural production', () => {
   const ctx=world();ctx.res_pop_mod=(row,col)=>row===0&&col===0?0.08:0.8;ctx.res_econ_mod=()=>2;
   ctx.popv2.map[0][0].pop={a:250,b:750};
   ctx.data[0][0].type=ctx.types.factory;
   const production=ctx.Military.processEquipment('A');
   assert.equal(production.free,2.5);
-  assert.equal(production.factory,10);
-  assert.equal(ctx.civs.A.heavyEquipmentStock,12.5);
+  assert.equal(production.factory,7.375);
+  assert.equal(ctx.civs.A.heavyEquipmentStock,9.875);
   ctx.turn++;ctx.popv2.map[0][0].pop={a:750,b:250};
   assert.equal(ctx.Military.processEquipment('A').free,7.5);
-  assert.equal(ctx.civs.A.heavyEquipmentStock,30);
+  assert.equal(ctx.civs.A.heavyEquipmentStock,26.5);
 });
 
 test('right-click orders return battle snapshots only when combat actually executes', () => {
@@ -1196,7 +1199,8 @@ test('battle markers show recent player and AI attacks across turn changes', () 
   ctx.Military._addDivision({ civ: 'B', row: 0, col: 2, manpower: 500 });
   const aiDivision = ctx.Military._addDivision({ civ: 'B', row: 2, col: 2, manpower: 1000 });
 
-  assert.equal(ctx.MilitaryUI.areBattleMarkersVisible(), false);
+  assert.equal(ctx.MilitaryUI.areBattleMarkersVisible(), true);
+  ctx.MilitaryUI.setBattleMarkersVisible(false);
   const [playerBattle] = ctx.Military.orderDivisions([playerDivision.id], 0, 2, { human: true }).battles;
   const playerLosses = playerBattle.attackerCasualties + playerBattle.defenderCasualties;
   assert.equal(ctx.MilitaryUI.battleTooltip(0, 2), '');
@@ -1206,28 +1210,31 @@ test('battle markers show recent player and AI attacks across turn changes', () 
   ctx.MilitaryUI.refresh();
   const aiBattle = ctx.Military.attack([aiDivision.id], 2, 1, { ai: true });
   assert.equal(aiBattle.ok, true);
-  const aiLosses = aiBattle.attackerCasualties + aiBattle.defenderCasualties;
   ctx.turn++;
   activeCiv = 'A';
   ctx.Military.beginTurn(activeCiv);
   ctx.MilitaryUI.refresh();
 
-  const markers = [];
+  const paths = [];
+  const colors = [];
   const canvas = {
-    save() {}, restore() {}, beginPath() { markers.push([]); },
-    moveTo(x, y) { markers.at(-1).push([x, y]); },
-    lineTo(x, y) { markers.at(-1).push([x, y]); },
-    stroke() {}, strokeText() {}, fillText() {}
+    save() {}, restore() {}, beginPath() { paths.push([]); },
+    moveTo(x, y) { paths.at(-1).push([x, y]); },
+    lineTo(x, y) { paths.at(-1).push([x, y]); },
+    stroke() { colors.push(this.strokeStyle); }, strokeText() {}, fillText() {}
   };
   ctx.MilitaryUI.drawOverlay(canvas, 24);
-  assert.equal(markers.length, 0);
+  assert.equal(paths.length, 0);
   ctx.MilitaryUI.setBattleMarkersVisible(true);
   ctx.MilitaryUI.drawOverlay(canvas, 24);
-  assert.deepEqual(markers.map(([[x1, y1], [x2, y2]]) => [(x1 + x2) / 2, (y1 + y2) / 2]),
-    [[60, 12], [36, 60]]);
+  const markers = paths.filter(path => path.length === 4);
+  assert.ok(colors.includes(ctx.civs.A.color) && colors.includes(ctx.civs.B.color));
+  const centers = markers.map(([[x1, y1], [x2, y2]]) => [(x1 + x2) / 2, (y1 + y2) / 2]);
+  assert.deepEqual(centers, [[60, 12], [36, 60]]);
+  assert.deepEqual(colors.filter(color => color !== '#402d29'), [ctx.civs.B.color, ctx.civs.A.color]);
   assert.ok(markers[0][1][0] - markers[0][0][0] > markers[1][1][0] - markers[1][0][0]);
-  assert.equal(ctx.MilitaryUI.battleTooltip(0, 2), `A vs. B · ${playerLosses.toLocaleString()} losses`);
-  assert.equal(ctx.MilitaryUI.battleTooltip(2, 1), `B vs. A · ${aiLosses.toLocaleString()} losses`);
+  assert.equal(ctx.MilitaryUI.battleTooltip(0, 2), `A ${playerBattle.attackerCasualties.toLocaleString()} losses vs. B ${playerBattle.defenderCasualties.toLocaleString()} losses`);
+  assert.equal(ctx.MilitaryUI.battleTooltip(2, 1), `B ${aiBattle.attackerCasualties.toLocaleString()} losses vs. A ${aiBattle.defenderCasualties.toLocaleString()} losses`);
   assert.equal(ctx.Military.getBattleLossReference(), playerLosses);
 
   ctx.turn++;
@@ -1269,6 +1276,16 @@ test('the top-right battle report remains visible after an attacking force is de
   ctx.Military._addDivision({civ:'B',row:0,col:2,manpower:50000});
   ctx.MilitaryUI.selectTile(0,1);
   ctx.MilitaryUI.onTileRightClick(0,2);
+  ctx.MilitaryUI.setBattleMarkersVisible(true);
+  assert.match(ctx.MilitaryUI.battleTooltip(0, 2), /A 50 losses, 1 division destroyed/);
+  ctx.MilitaryUI.setUnitMarkersVisible(false);
+  const strokes = [];
+  ctx.MilitaryUI.drawOverlay({
+    save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() {}, strokeRect() {},
+    stroke() { strokes.push(this.strokeStyle); }
+  }, 24);
+  assert.ok(strokes.includes(ctx.civs.A.color));
+  assert.ok(strokes.includes('#ff5450'));
   const panel=nodes.find(n=>n.id==='military-unit-panel');
   const report=nodes.find(n=>n.className==='military-battle-report');
   const text=n=>[n.textContent||'',...n.children.map(text)].join(' ');
@@ -1313,4 +1330,222 @@ test('experience reporting respects capped veterans and excludes destroyed troop
   assert.equal(result.experience.attacker.after,4);
   assert.equal(result.experience.attacker.gained,0);
   assert.equal(result.attackerRemaining,ctx.Military.getDivision(veteran.id).manpower);
+});
+
+test('levies exhaust only connected eligible civilians and disband in their enlisted culture', () => {
+  const ctx = world();
+  for (const row of ctx.popv2.map) for (const cell of row) cell.pop = { b: 10000 };
+  ctx.popv2.map[0][0].pop.a = 800;
+  ctx.popv2.map[2][0].pop.a = 9000;
+  ctx.data[1][0] = ctx.data[1][1] = null;
+  const raised = ctx.Military.conscript('A', 0, 1, 2000);
+  assert.equal(raised.manpower, 800);
+  assert.equal(ctx.popv2.map[0][0].pop.a, 0);
+  assert.equal(ctx.popv2.map[2][0].pop.a, 9000);
+  const money = ctx.civs.A.money;
+  assert.equal(ctx.Military.conscript('A', 0, 0, 500).ok, false);
+  assert.equal(ctx.civs.A.money, money);
+  ctx.civs.A.culture = 'b';
+  ctx.Military.disbandDivision(raised.division.id);
+  assert.equal(ctx.popv2.map[0][1].pop.a, 800);
+  assert.equal(ctx.popv2.map[0][1].pop.b, 10000);
+});
+
+test('foreign occupation recovers output with tenure and responds to advisors and ruling culture', () => {
+  const ctx = world();
+  ctx.civOrders = ['A', 'B'];
+  ctx.popv2.map[0][0].pop = { b: 10000 };
+  ctx.data[0][0].acquiredTurn = ctx.turn;
+  const utilization = () => ctx.Military.getBuildingUtilization(0, 0);
+  assert.equal(utilization(), 0.35);
+  ctx.turn += 80;
+  assert.equal(utilization(), 0.5);
+  ctx.civs.A.gov.mods.PADMN = 0.25;
+  assert.equal(utilization(), 0.5375);
+  ctx.turn += 80;
+  assert.equal(utilization(), 0.65);
+  ctx.civs.A.culture = 'b';
+  assert.equal(utilization(), 1);
+});
+
+test('cabinet replacements charge atomically and cultural adoption survives government refresh', () => {
+  const ctx = world();
+  for (const file of ['gov/names.data.js', 'gov/persons.js', 'gov/gov.js']) load(ctx, file);
+  ctx.POPV2_FLAG_USE_UNI_CULTURE = false;
+  const civ = ctx.civs.A;
+  ctx.gov_init(civ, 'A');
+  const gov = civ.gov;
+  const first = ctx.person_add(civ, { pos: 1 });
+  const second = ctx.person_add(civ, { pos: 1 });
+  assert.equal(ctx.gov_promote_to_advisors(gov, first), true);
+  assert.equal(gov.legitimacy, 45);
+  gov.legitimacy = 9;
+  assert.equal(ctx.gov_promote_to_advisors(gov, second, first), false);
+  assert.ok(gov.advisors[first]);
+  gov.legitimacy = 40;
+  assert.equal(ctx.gov_promote_to_advisors(gov, second, first), true);
+  assert.equal(gov.legitimacy, 30);
+  civ._poptable = { a: 20, b: 80 };
+  civ._poptable_tot = 100;
+  assert.equal(ctx.gov_adopt_culture(civ), true);
+  assert.equal(gov.legitimacy, 10);
+  ctx.gov_refresh(civ, 'A');
+  assert.equal(civ.culture, 'b');
+  assert.ok(ctx.gov_legitimacy_change(civ) > 0);
+});
+
+function rebellionWorld() {
+  const ctx = world();
+  let seed = 17;
+  ctx.Math.random = () => (seed = (Math.imul(1664525, seed) + 1013904223) >>> 0) / 4294967296;
+  for (const file of ['utils.js', 'gov/names.data.js', 'gov/persons.js', 'gov/gov.js',
+    'gov/scenarios.js', 'population_v2.js', 'rebellions.js']) load(ctx, file);
+  ctx.data = Array.from({ length: 5 }, () => Array.from({ length: 10 }, () => cell('A', ctx.types.land)));
+  ctx.popv2.map = ctx.data.map(row => row.map((_, col) => {
+    const culture = col < 4 ? 'a' : 'local';
+    return { pop: { [culture]: 10000 }, hist: { [culture]: 200000 }, totPop: 10000, totHist: 200000 };
+  }));
+  ctx.civOrders = ['A', 'B'];
+  Object.assign(ctx.civs.A, { birth: [2, 0], ii: 50, pop: 500000, culture: 'a' });
+  Object.assign(ctx.civs.B, { birth: [2, 9], ii: 0, culture: 'old dynasty' });
+  ctx.gov_init(ctx.civs.A, 'A');
+  ctx.res_pop_mod = (_, c) => c < 4 ? 1.5 : 0.6;
+  ctx.res_econ_mod = (_, c) => c < 4 ? 1.2 : 0.8;
+  ctx.resolveAIForCiv = () => ({ calculateWarChances(parent) { parent._warChances = { B: 0.25 }; } });
+  ctx.declareWar = () => true;
+  ctx.push_msg = () => {};
+  return ctx;
+}
+
+test('a restored civilization takes its culture and capital from its connected independence movement', () => {
+  const ctx = rebellionWorld();
+  assert.equal(ctx.popRebel(null, 'A', [2, 9], true), true);
+  const rebel = ctx.civs.B;
+  assert.equal(rebel.culture, 'local');
+  assert.equal(rebel.gov.persons[rebel.gov.leader].culture, 'local');
+  assert.equal(ctx.data[2][0].color, 'A');
+  const [r, c] = rebel.birth;
+  assert.equal(ctx.data[r][c].type, ctx.types.capital);
+  const seen = new Set();
+  const pending = [[r, c]];
+  while (pending.length) {
+    const point = pending.pop();
+    const key = point.join(':');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    for (const next of ctx.Military.getNeighbors(...point)) {
+      if (ctx.data[next[0]][next[1]].color === 'B') pending.push(next);
+    }
+  }
+  assert.equal(rebel.ii, seen.size);
+  assert.ok(ctx.relativeLandValue(ctx.civs.A, rebel) < 1);
+  assert.equal(ctx.civs.A.ii + rebel.ii, 50);
+});
+
+test('a full queue without an owned deployment tile survives until land is available', () => {
+  const ctx = world();
+  load(ctx, 'military/ai.js');
+  const queue = ctx.Military._addQueue({ civ: 'A', row: 0, col: 0, maxManpower: 1000, manpower: 1000 });
+  for (const row of ctx.data) for (const tile of row) tile.color = 'B';
+  ctx.civs.A.ii = 6;
+  ctx.civs.A.money = 100000;
+  ctx.MilitaryAI.think(ctx.civs.A, 'A');
+  assert.equal(ctx.Military.getQueue(queue.id), queue);
+  assert.equal(ctx.Military.deployQueue(queue.id).reason, 'no-territory');
+  ctx.data[2][0].color = 'A';
+  const result = ctx.Military.deployQueue(queue.id);
+  assert.equal(result.ok, true);
+  assert.deepEqual([result.division.row, result.division.col], [2, 0]);
+});
+
+for (const supplied of [true, false]) {
+  test(`desertion, disbanding and queue cancellation in ${supplied ? 'supplied' : 'isolated'} territory`, () => {
+    const ctx = world();
+    ctx.data[0][2].color = 'A';
+    const getRegions = ctx.regions_genCountryParts;
+    ctx.regions_genCountryParts = function (civ, name) {
+      const regions = getRegions(civ, name);
+      if (!supplied) regions.map['0:2'] = 1;
+      return regions;
+    };
+    const army = ctx.Military._addDivision({ civ: 'A', row: 0, col: 2, manpower: 2000, maxHeavyEquipment: 20, heavyEquipment: 16.5 });
+    const queue = ctx.Military._addQueue({ civ: 'A', row: 0, col: 2, manpower: 500, maxHeavyEquipment: 5, heavyEquipment: 3.5 });
+    ctx.civs.A.money = 0;
+    ctx.Military.processUpkeep('A');
+    assert.equal(army.heavyEquipment, 10);
+    assert.equal(queue.heavyEquipment, 0);
+    assert.equal(ctx.Military.getEquipmentStock('A'), supplied ? 10 : 0);
+    ctx.Military.disbandDivision(army.id);
+    ctx.Military.cancelQueue(queue.id);
+    assert.equal(ctx.Military.getEquipmentStock('A'), supplied ? 20 : 0);
+    const second = ctx.Military._addQueue({ civ: 'A', row: 0, col: 2, manpower: 500, maxHeavyEquipment: 5, heavyEquipment: 2.75 });
+    ctx.Military.cancelQueue(second.id);
+    assert.equal(ctx.Military.getEquipmentStock('A'), supplied ? 22.75 : 0);
+  });
+}
+
+test('restoration pressure follows living minority share and counts a lost culture once', () => {
+  const ctx = world();
+  load(ctx, 'rebellions.js');
+  const parent = ctx.civs.A;
+  parent._poptable = { a: 800000, b: 200000 };
+  parent._poptable_tot = 1000000;
+  const pressure = () => ctx.culturalMovements(parent)[0].pressure;
+  const ordinary = pressure();
+  ctx.civs.B.lastSovereignCulture = 'b';
+  const restoration = pressure();
+  assert.ok(restoration > ordinary);
+  ctx.civs.C = { ii: 0, lastSovereignCulture: 'b' };
+  assert.equal(pressure(), restoration);
+  parent._poptable = { a: 950000, b: 50000 };
+  assert.ok(pressure() < restoration);
+  parent.gov.legitimacy = 100;
+  parent.gov.cohesion = 1.5;
+  parent.years = 100;
+  parent.happiness = 100;
+  parent.ii = 100;
+  ctx.civOrders = ['A', 'B', 'C'];
+  ctx.Math.random = () => 0.99;
+  ctx.RCHANCEMOD = 0;
+  ctx.rebellionQuarter(parent, 'A');
+  assert.equal(parent.rebellionProbability, 0);
+  assert.ok(parent.rchance >= pressure());
+  ctx.RCHANCEMOD = 0.08;
+  ctx.rebellionQuarter(parent, 'A');
+  assert.ok(parent.rebellionProbability >= 0.08 * pressure());
+});
+
+
+test('a garrison mutiny transfers the division and a bounded province to its successor', () => {
+  const ctx = rebellionWorld();
+  const unit = ctx.Military._addDivision({ civ: 'A', row: 2, col: 9, manpower: 5000,
+    maxHeavyEquipment: 50, heavyEquipment: 37.5, morale: 0.3, moveTargets: [[2, 8]] });
+  const seedRandom = ctx.Math.random;
+  const draws = [0, 0];
+  ctx.Math.random = () => draws.length ? draws.shift() : seedRandom();
+  ctx.civs.A.years = 10;
+  ctx.RCHANCEMOD = 0.2;
+  ctx.rebellionQuarter(ctx.civs.A, 'A');
+  assert.equal(ctx.Military.getDivision(unit.id).civ, 'B');
+  assert.equal(ctx.Military.getDivisions('A').length, 0);
+  assert.equal(ctx.Military.getDivisionsAt(2, 9, 'B')[0], unit);
+  assert.equal(unit.heavyEquipment, 37.5);
+  assert.equal(unit.manpower, 5000);
+  assert.equal(unit.moveTargets.length, 0);
+  assert.ok(ctx.civs.B.ii >= 3 && ctx.civs.B.ii <= Math.ceil(1.5 * Math.sqrt(50)));
+});
+
+test('disaster unrest can detach a small province from a homogeneous realm', () => {
+  const ctx = rebellionWorld();
+  ctx.civs.A.years = 10;
+  ctx.civs.A.gov.legitimacy = 95;
+  ctx.RCHANCEMOD = 0.08;
+  for (const row of ctx.popv2.map) for (const cell of row) cell.pop = { a: 10000 };
+  const seedRandom = ctx.Math.random;
+  const draws = [0, 0.5];
+  ctx.Math.random = () => draws.length ? draws.shift() : seedRandom();
+  ctx.rebellionQuarter(ctx.civs.A, 'A', 0.25);
+  assert.equal(ctx.civs.B.culture, 'a');
+  assert.ok(ctx.civs.B.ii >= 3 && ctx.civs.B.ii <= Math.ceil(1.5 * Math.sqrt(50)));
+  assert.equal(ctx.civs.A.ii + ctx.civs.B.ii, 50);
 });

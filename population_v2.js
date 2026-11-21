@@ -249,6 +249,11 @@ function popv2_unify_cultures() {
     popv2_unify_poptable(civ);
   }
 
+  if (typeof military !== 'undefined' && military) {
+    for (const formation of [...Object.values(military.divisions || {}), ...Object.values(military.queues || {})]) {
+      formation.recruits = { [POPV2_UNI_CULTURE]: formation.manpower };
+    }
+  }
   if (typeof averageData !== 'undefined') popv2_unify_poptable(averageData);
 
   data.forEach((tiles, row) => tiles.forEach((tile, col) => {

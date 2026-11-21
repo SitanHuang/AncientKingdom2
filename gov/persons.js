@@ -90,6 +90,13 @@ const GOV_PERSON_MODS = {
     },
   ],
   "POLITICAL": [
+    {
+      id: "PADMN",
+      name: "Provincial integration speed",
+      min: -0.10,
+      max: 0.25,
+      ai: 'desc'
+    },
     { // done
       id: "OMVPC",
       name: "Movement political cost",

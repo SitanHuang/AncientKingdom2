@@ -18,7 +18,7 @@
     var recruitmentPanel = null;
     var showManpowerOverlay = true;
     var showUnitMarkers = true;
-    var showBattleMarkers = false;
+    var showBattleMarkers = true;
     var lastActiveCiv = null;
     var options = {};
 
@@ -44,7 +44,7 @@
             "no-territory": "This civilization has no deployment territory.",
             "invalid-manpower": "Enter a positive manpower amount.",
             "not-owned": "The selected tile is not owned by this civilization.",
-            "population-cap": "The population or per-turn conscription limit has been reached.",
+            "population-cap": "No eligible ruling-culture recruits remain in this connected territory or the quarterly levy is exhausted.",
             "money": "There is not enough money for that conscription.",
             "empty-queue": "That training queue has no manpower to deploy.",
             "missing-queue": "That training queue no longer exists.",
@@ -1189,17 +1189,41 @@
         context.restore();
     }
 
+    function drawBattleCross(context, x, y, halfSize, color, destroyed) {
+        context.beginPath();
+        context.moveTo(x - halfSize, y - halfSize);
+        context.lineTo(x + halfSize, y + halfSize);
+        context.moveTo(x + halfSize, y - halfSize);
+        context.lineTo(x - halfSize, y + halfSize);
+        context.lineCap = "round";
+        var width = Math.max(1.5, Math.min(5, halfSize * 0.72));
+        context.strokeStyle = "#402d29";
+        context.lineWidth = width + 1.4;
+        context.stroke();
+        context.strokeStyle = color;
+        context.lineWidth = width;
+        context.stroke();
+        if (destroyed) {
+            context.strokeStyle = "#fff1dd";
+            context.lineWidth = Math.max(1.5, width * 0.66);
+            context.stroke();
+            context.strokeStyle = "#ff5450";
+            context.lineWidth = Math.max(1, width * 0.42);
+            context.stroke();
+        }
+    }
+
     function drawBattleMarkers(context, blockSize) {
         var tiles = new Map();
         api.getRecentBattles().forEach(function (battle) {
             var key = battle.row + "," + battle.col;
             var tile = tiles.get(key);
             if (!tile) {
-                tile = { row: battle.row, col: battle.col, losses: 0, battles: 0 };
+                tile = { battle: battle, count: 0 };
                 tiles.set(key, tile);
             }
-            tile.losses = Math.max(tile.losses, battle.losses);
-            tile.battles++;
+            if (battle.losses >= tile.battle.losses) tile.battle = battle;
+            tile.count++;
         });
 
         if (!tiles.size) return;
@@ -1209,29 +1233,20 @@
         context.textBaseline = "middle";
         context.font = "bold 10px sans-serif";
         tiles.forEach(function (tile) {
-            var x = (tile.col + 0.5) * blockSize;
+            var battle = tile.battle;
+            var x = (battle.col + 0.5) * blockSize;
             var showLabel = blockSize >= 28;
-            var y = (tile.row + (showLabel ? 0.39 : 0.5)) * blockSize;
-            var scale = Math.sqrt(Math.min(1, tile.losses / lossReference));
-            var halfSize = Math.max(1.5, Math.min(16, blockSize * Math.max(0.12, scale * 0.29)));
-
-            context.beginPath();
-            context.moveTo(x - halfSize, y - halfSize);
-            context.lineTo(x + halfSize, y + halfSize);
-            context.moveTo(x + halfSize, y - halfSize);
-            context.lineTo(x - halfSize, y + halfSize);
-            context.lineCap = "round";
-            context.lineWidth = Math.max(2, Math.min(5, blockSize * 0.18));
-            context.strokeStyle = "#522320";
-            context.stroke();
-            context.lineWidth *= 0.5;
-            context.strokeStyle = "#ffcf89";
-            context.stroke();
+            var y = (battle.row + (showLabel ? 0.39 : 0.5)) * blockSize;
+            var scale = Math.sqrt(Math.min(1, battle.losses / lossReference));
+            var halfSize = Math.max(1.3, Math.min(16, blockSize * Math.max(0.10, scale * 0.29)));
+            var loser = battle.captured ? battle.defender : battle.attacker;
+            var destroyed = battle.captured ? battle.defenderDestroyed : battle.attackerDestroyed;
+            drawBattleCross(context, x, y, halfSize, civColor(loser), destroyed > 0);
 
             if (showLabel) {
-                var label = manpowerLabel(tile.losses);
-                if (tile.battles > 1) label += " · ×" + tile.battles;
-                var labelY = (tile.row + 0.85) * blockSize;
+                var label = manpowerLabel(battle.losses);
+                if (tile.count > 1) label += " · ×" + tile.count;
+                var labelY = (battle.row + 0.85) * blockSize;
                 context.lineWidth = 2.5;
                 context.strokeStyle = "#522320";
                 context.strokeText(label, x, labelY);
@@ -1248,7 +1263,13 @@
         return api.getRecentBattles().filter(function (battle) {
             return battle.row === row && battle.col === col;
         }).map(function (battle) {
-            return battle.attacker + " vs. " + battle.defender + " · " + number(battle.losses) + " losses";
+            function side(name, casualties, destroyed) {
+                var label = name + " " + number(casualties) + " losses";
+                if (destroyed) label += ", " + destroyed + (destroyed === 1 ? " division" : " divisions") + " destroyed";
+                return label;
+            }
+            return side(battle.attacker, battle.attackerCasualties, battle.attackerDestroyed) + " vs. " +
+                side(battle.defender, battle.defenderCasualties, battle.defenderDestroyed);
         }).join("\n");
     }
 

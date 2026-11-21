@@ -313,6 +313,11 @@ var Military = (function (api) {
       col: col,
       attacker: attackerName,
       defender: defenderName,
+      attackerCasualties: attackerCasualties,
+      defenderCasualties: defenderCasualties,
+      captured: captured,
+      attackerDestroyed: attackerIds.filter(id => !api.getDivision(id)).length,
+      defenderDestroyed: defenderIds.filter(id => !api.getDivision(id)).length,
       losses: attackerCasualties + defenderCasualties
     });
     return {
@@ -396,6 +401,7 @@ var Military = (function (api) {
     }
     weighted.forEach(function (item) {
       api.loseEquipment(item.division, item.loss);
+      api.removeRecruits(item.division, item.loss);
       item.division.manpower -= item.loss;
     });
   }
@@ -457,9 +463,11 @@ var Military = (function (api) {
   function captureTile(attackerName, defenderName, row, col) {
     var tile = data[row][col];
     tile.color = attackerName;
+    tile.acquiredTurn = turn;
     if (!tile._oct || tile._oct <= 0 || !tile._oldcolor) tile._oldcolor = defenderName;
     var attacker = civs[attackerName];
     var defender = civs[defenderName];
+    if (defender?.culture) defender.lastSovereignCulture = defender.culture;
     tile._oct = (tile._oct || (((attacker.war && attacker.war[defenderName]) ||
       (defender && defender.war && defender.war[attackerName])) + 2.5) || 3) + 1;
     if (attacker._parts) attacker._parts.lastUpdated = 4;

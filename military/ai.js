@@ -444,6 +444,7 @@ var MilitaryAI = (function () {
       if (!full && !emergencyReady) return;
 
       var location = queueLocation(queue, militaryPlan.capital, civName);
+      if (!location) return;
       var result = Military.deployQueue(queue.id, {
         row: location[0],
         col: location[1],
@@ -1006,7 +1007,7 @@ var MilitaryAI = (function () {
     if (!other) return 1;
     var land = (other.ii || 1) / Math.max(1, civ.ii || 1);
     var population = (other.pop || 1) / Math.max(1, civ.pop || 1);
-    var income = Math.max(1, other.income || 0) / Math.max(1, civ.income || 0);
+    var income = Math.max(1, (other.income || 0)) / Math.max(1, (civ.income || 0));
     return Math.max(0.25, (land + population + income) / 3);
   }
 

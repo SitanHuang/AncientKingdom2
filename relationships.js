@@ -220,8 +220,8 @@ function promptForAlliance(civName, civName2) {
         for (let [key, value] of Object.entries(civ.war)) {
             if (key == civName || key == civName2) continue;
             if (isAlliance(civs[key], civName) && isAlliance(civs[key], civName2) &&
-                ((civ2.income > civ.income * 0.5 && civ2.ii > civ.ii * 0.5 &&
-                 civs[key].income > civ.income * 0.8 && civs[key].ii > civ.ii * 0.8 && Math.random() < 0.6) || Math.random() < 0.1)) {
+                (((civ2.income || 0) > (civ.income || 0) * 0.5 && civ2.ii > civ.ii * 0.5 &&
+                 (civs[key].income || 0) > (civ.income || 0) * 0.8 && civs[key].ii > civ.ii * 0.8 && Math.random() < 0.6) || Math.random() < 0.1)) {
                 deal = true;
                 break;
             }

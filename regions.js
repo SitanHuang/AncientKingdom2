@@ -113,7 +113,7 @@ function regions_genCountryParts(civ, civName) {
 
       if (tile.type) {
         popTot += tile.pop || 0;
-        econTot += tile._econ || 0;
+        econTot += tile._realIncome ?? tile._econ ?? 0;
         if (useBirth ?
           civ.birth[0] == parsedKey[0] && civ.birth[1] == parsedKey[1] :
           cellTypeId(tile.type) == 'capital') {

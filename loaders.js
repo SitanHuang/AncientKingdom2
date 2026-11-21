@@ -13,8 +13,8 @@ function load_gamesave({
   military = o.military || {};
   MESSAGES = o.msg || MESSAGES;
   AGGRESSIVENESS = o.agr || AGGRESSIVENESS;
-  RCHANCEMOD = o.rmod || RCHANCEMOD;
-  INCOMEMOD = o.imod || INCOMEMOD;
+  RCHANCEMOD = o.rmod ?? 0.2;
+  INCOMEMOD = o.imod ?? INCOMEMOD;
   MANDATE_THRESHOLD = o.mthre || MANDATE_THRESHOLD;
   civOrders = Object.keys(civs).sort();
   if (Number.isInteger(o.i) && o.i >= 0 && o.i < civOrders.length) i = o.i;
@@ -23,6 +23,7 @@ function load_gamesave({
   Military.init(military);
   Military.migrateLegacyCells();
   normalizeCellTypes();
+  initializeRealIncome();
   MilitaryUI.clearSelection();
   MilitaryUI.refresh();
   showInfo();

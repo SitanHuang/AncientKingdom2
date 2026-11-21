@@ -154,6 +154,8 @@ abdicate = null;
     $('#govMods').html(buildModsTable(gov));
 
     const leader = gov.persons[gov.leader];
+    const advisors = Object.keys(gov.advisors).map(id => gov.persons[id]);
+    const cabinetFull = advisors.length >= GOV_ADVISORS_PER_CIV;
 
     $('#govLeader tbody').html(
       `
@@ -164,7 +166,11 @@ abdicate = null;
         text-align: right;
         color: ${stepColor(gov.cohesion, [[0.9, 'red'], [1.1, '#bd8218'], [2, 'green']])}
       ">${Math.round(gov.cohesion * 10000) / 100}</td>
+      <td>${(gov.legitimacy ?? 50).toFixed(1)} (${gov_legitimacy_change(civ).toFixed(2)}/quarter)</td>
       <td class="action">
+        ${!POPV2_FLAG_USE_UNI_CULTURE && gov_majority(civ) && gov_majority(civ) !== civ.culture ? '<button onclick="adoptGovCulture()">Adopt ' + gov_majority(civ) + ' (20)</button>' : ''}
+        ${cabinetFull ? '<label>Advisor to replace <select id="gov-replacement">' +
+          advisors.map(p => '<option value="' + p.id + '">' + person_dispname(p) + '</option>').join('') + '</select></label>' : ''}
         <button onclick="abdicate()"> Abdicate </button>
       </td>
       `
@@ -182,7 +188,7 @@ abdicate = null;
         ${ buildPersonCols(p, true, true)  }
         <td>${person_successor_score(leader, p) | 0}
         <td class="action">
-          <button onclick="demoteGov(${p.id})"> Demote </button>
+          <button onclick="demoteGov(${p.id})"> Demote (5) </button>
         </td>
       `;
     });
@@ -203,7 +209,7 @@ abdicate = null;
         ${ buildPersonCols(p, true, true)  }
         <td>${person_successor_score(leader, p) | 0}
         <td class="action">
-          <button onclick="promoteGov(${p.id})"> Promote </button>
+          <button onclick="promoteGov(${p.id})"> ${Object.keys(gov.advisors).length < GOV_ADVISORS_PER_CIV ? 'Promote (5)' : 'Replace (10)'} </button>
         </td>
       `;
     });
@@ -218,25 +224,24 @@ abdicate = null;
     window.tableSetup5.refresh();
 
     promoteGov = function(pid) {
-      if (Object.keys(gov.advisors).length >= GOV_ADVISORS_PER_CIV) {
-        alert('Max number of advisors reached!');
-        return false;
-      }
-
-      if (!gov_promote_to_advisors(gov, pid))
-        alert('Failed.');
-
+      const replaceId = cabinetFull ? $('#gov-replacement').val() : null;
+      if (!gov_promote_to_advisors(gov, pid, replaceId)) alert('Insufficient legitimacy.');
       gov_refresh(civs[civName], civName);
       refreshGov();
     }
 
     demoteGov = function(pid) {
       if (!gov_demote_to_bureaucrat(gov, pid))
-        alert('Failed.');
+        alert('Dismissal costs 5 legitimacy.');
 
       gov_refresh(civs[civName], civName);
       refreshGov();
     }
+
+    window.adoptGovCulture = function() {
+      if (!gov_adopt_culture(civ)) alert('Adoption costs 20 legitimacy.');
+      refreshGov();
+    };
 
     abdicate = function() {
       alert('The leader is set to abdicate at the end of the turn.');

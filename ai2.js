@@ -160,14 +160,7 @@ var AI2 = (function () {
   }
 
   function refreshGovernment(civ, civName) {
-    if (civ.gov && Math.random() < 0.3) {
-      Object.keys(civ.gov.advisors)
-        .forEach(x => gov_demote_to_bureaucrat(civ.gov, x));
-      gov_refresh(civ, civName);
-    }
-    while (civ.gov && Object.keys(civ.gov.advisors).length < GOV_ADVISORS_PER_CIV) {
-      handleGov(civ, civName);
-    }
+    if (civ.gov) handleGov(civ, civName);
   }
 
   function updateInGatesPolicy(civ, civName) {
@@ -620,7 +613,7 @@ var AI2 = (function () {
     if (!civ2) return 0;
     var ii = safeDiv(civ2.ii, civ.ii, 1);
     var pop = safeDiv(civ2.pop, civ.pop, 1);
-    var inc = safeDiv(civ2.income, civ.income, 1);
+    var inc = safeDiv((civ2.income || 0), (civ.income || 0), 1);
     return (ii + pop + inc) / 3;
   }
 
@@ -679,8 +672,8 @@ var AI2 = (function () {
       var warChance = 0;
       var sameCulture = civ.culture && civ2.culture && civ.culture === civ2.culture;
 
-      if (mode === "offense" && civ.income * 1.2 > civ2.income) {
-        warChance += ratioScore(civ.income, civ2.income, 10, 0.25);
+      if (mode === "offense" && (civ.income || 0) * 1.2 > (civ2.income || 0)) {
+        warChance += ratioScore((civ.income || 0), (civ2.income || 0), 10, 0.25);
       }
       if (civ.technology * 1.2 > civ2.technology) {
         warChance += ratioScore(civ.technology, civ2.technology, 1, 0.25);
@@ -722,11 +715,7 @@ var AI2 = (function () {
         if (sameCulture) {
           warChance *= 2;
         } else {
-          if (civ.em / civ.ii > civ2.em / civ2.ii) warChance *= 0.80;
-          else warChance *= 1.2;
-          if (civ.pm / civ.ii * 0.8 > civ2.pm / civ2.ii) warChance *= 0.35;
-          if (civ.pm / civ.ii > civ2.pm / civ2.ii) warChance *= 0.35;
-          else warChance *= 1.5;
+          warChance *= relativeLandValue(civ, civ2);
           if (oppressedPop > 500000) {
             warChance *= 1.5 + Math.min(10, Math.max(0, oppressedPop / civ.pop * 10));
           } else {
@@ -827,7 +816,7 @@ var AI2 = (function () {
 
     var candidate = candidates[0];
     if (!candidate) return;
-    gov_promote_to_advisors(gov, candidate);
+    gov_ai_appoint(gov, candidate, modMap);
     gov_refresh(civ, civName);
   }
 
@@ -918,6 +907,7 @@ var AI2 = (function () {
       var land = data[row][col];
       data[row][col] = {
         color: civName,
+        acquiredTurn: data[row][col]?.color === civName ? data[row][col].acquiredTurn : turn,
         type: type
       };
       if (land?._oldcolor) data[row][col]._oldcolor = land._oldcolor;
@@ -956,6 +946,7 @@ var AI2 = (function () {
       if (moneySpent > maxMoney || civ.money < moneySpent) return;
       data[row][col] = {
         color: civName,
+        acquiredTurn: data[row][col]?.color === civName ? data[row][col].acquiredTurn : turn,
         type: types.land
       };
       civ.landsBuilt = (civ.landsBuilt || 0) + 1;
@@ -963,6 +954,7 @@ var AI2 = (function () {
         if (!l.color) {
           data[r][c] = {
             color: civName,
+            acquiredTurn: turn,
             type: types.land
           };
         }
