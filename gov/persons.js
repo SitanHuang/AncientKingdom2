@@ -92,7 +92,7 @@ const GOV_PERSON_MODS = {
   "POLITICAL": [
     {
       id: "PADMN",
-      name: "Provincial integration speed",
+      name: "Building efficiency",
       min: -0.10,
       max: 0.25,
       ai: 'desc'

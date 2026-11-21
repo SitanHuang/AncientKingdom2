@@ -94,7 +94,6 @@ function econTooltip(row, col) {
     const civ = civs[tile.color];
     const population = popv2_get_totpop(row, col);
     const local = popv2?.map?.[row]?.[col];
-    const share = (local?.pop?.[civ.culture] || 0) / Math.max(1, population);
     const factors = tileIncomeFactors(tile, population, res_econ_mod(row, col));
     const percent = value => (100 * value).toFixed(1) + "%";
     const money = value => "$" + value.toFixed(2);
@@ -102,16 +101,38 @@ function econTooltip(row, col) {
     const adjusted = assessed || (!tile._incomeOwner && Number.isFinite(tile._econ)) ? money(tile._econ) : "pending";
     const lines = [
         tile.color + " · " + cellTypeId(tile.type) + " (" + row + ", " + col + ")",
-        "Real output " + money(assessed ? tile._realIncome : factors.real) + " · Last adjusted tax " + adjusted,
-        "Current expected base " + money(factors.base) + " · Population ×" + factors.populationFactor.toFixed(2) +
-            " · Economic terrain ×" + factors.terrain.toFixed(2),
-        civ.culture + " population " + percent(share) + " · Building utilization " + percent(Military.getBuildingUtilization(row, col)),
-        "Current regional tax efficiency " + percent(regions_taxEff(civ, tile.color, row, col)),
-        "Current tax modifiers: government " + percent(civ.gov?.mods?.EGRVG || 0) +
-            " · Reserves " + percent(-(civ.imodDueToReserve || 0))
+        "GDP " + money(assessed ? tile._realIncome : factors.real) + " · Tax " + adjusted,
+        "Population " + Math.round(population).toLocaleString()
     ];
+    if (g_bycountry) lines.push("Country GDP " + money(realIncomeOf(civ)) + " · Tax " + money(civ.income || 0));
+    const divider = "=".repeat(24);
+    const use = Military.getBuildingUtilization(row, col, true);
+    lines.push(divider, "Building utilization  " + percent(use.value));
+    if (use.penalty != null) {
+        lines.push("Ruling culture: national " + percent(use.nationalShare) + " · local " + percent(use.share),
+            use.nationalShare > 0.5 ? "Base utilization " + percent(use.base) : "No national majority · full utilization",
+            "Base penalty " + percent(use.penalty),
+            "Advisor relief " + percent(use.relief) + " · Final penalty " + percent(1 - use.value));
+    }
+    lines.push(divider, "GDP and tax",
+        "Expected base " + money(factors.base) + " × population " + factors.populationFactor.toFixed(2) +
+            " × terrain " + factors.terrain.toFixed(2),
+        "Regional tax efficiency " + percent(regions_taxEff(civ, tile.color, row, col)),
+        "Government modifier " + percent(civ.gov?.mods?.EGRVG || 0) + " · Reserves " + percent(-(civ.imodDueToReserve || 0)));
     if (assessed && tile._taxBaseRoll != null) lines.push("Last building roll " + money(tile._taxBaseRoll * (1 - (civ.gdpIncomeMod ?? INCOMEMOD))));
-    if (g_bycountry) lines.push("Country real output " + money(realIncomeOf(civ)) + " · Adjusted tax " + money(civ.income || 0));
+    lines.push(divider, "Population and culture", "Population terrain ×" + res_pop_mod(row, col).toFixed(2));
+    if (Number.isFinite(tile.growth)) lines.push("Growth rate before capacity and migration " + percent(tile.growth - 1));
+    if (tile._militaryGrowth) lines.push("Recruits from growth " + Math.round(tile._militaryGrowth).toLocaleString());
+    for (const [culture, count] of Object.entries(local?.pop || {}).sort((a, b) => b[1] - a[1])) {
+        if (count > 0) lines.push(culture + (culture === civ.culture ? " (ruling)" : "") + "  " +
+            Math.round(count).toLocaleString() + " · " + percent(count / Math.max(1, population)));
+    }
+    const resource = Military.getHeavyResource(row, col);
+    if (resource.potential || resource.factory) {
+        lines.push(divider, "Heavy equipment", "Land output " + resource.output.toFixed(2) + " / turn");
+        if (resource.factory) lines.push("Factory capacity " +
+            (10 * use.value * Military.getTaxEfficiency(tile.color, row, col)).toFixed(2) + " / turn");
+    }
     return lines.join("\n");
 }
 
@@ -124,9 +145,10 @@ function updateDiplomacyTooltip(event) {
         canvas.title = "";
         return;
     }
-    var mapTooltip = econMapVisible ? econTooltip(cell.row, cell.col) : gpem ? heavyResourceTooltip(cell.row, cell.col) : diplomacyTooltip(cell.row, cell.col);
+    const tooltip = gpem ? heavyResourceTooltip : diplomacyViewCiv ? diplomacyTooltip : econTooltip;
+    const mapTooltip = tooltip(cell.row, cell.col);
     var battleTooltip = typeof MilitaryUI != "undefined" ? MilitaryUI.battleTooltip(cell.row, cell.col) : "";
-    const title = [mapTooltip, battleTooltip].filter(Boolean).join("\n");
+    const title = [battleTooltip, mapTooltip].filter(Boolean).join("\n" + "=".repeat(24) + "\n");
     if (canvas.title !== title) canvas.title = title;
 }
 

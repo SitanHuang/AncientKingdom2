@@ -1136,17 +1136,17 @@ test('ruling-culture minorities contribute proportionally and share changes refr
   assert.equal(ctx.Military.getHeavyResource(0,0).output,0);
 });
 
-test('foreign-majority factories retain mature occupation output alongside free cultural production', () => {
+test('foreign-majority factories use the local culture share alongside free cultural production', () => {
   const ctx=world();ctx.res_pop_mod=(row,col)=>row===0&&col===0?0.08:0.8;ctx.res_econ_mod=()=>2;
   ctx.popv2.map[0][0].pop={a:250,b:750};
   ctx.data[0][0].type=ctx.types.factory;
   const production=ctx.Military.processEquipment('A');
   assert.equal(production.free,2.5);
-  assert.equal(production.factory,7.375);
-  assert.equal(ctx.civs.A.heavyEquipmentStock,9.875);
+  assert.ok(Math.abs(production.factory - 6.875) < 1e-10);
+  assert.equal(ctx.civs.A.heavyEquipmentStock,2.5 + production.factory);
   ctx.turn++;ctx.popv2.map[0][0].pop={a:750,b:250};
   assert.equal(ctx.Military.processEquipment('A').free,7.5);
-  assert.equal(ctx.civs.A.heavyEquipmentStock,26.5);
+  assert.ok(Math.abs(ctx.civs.A.heavyEquipmentStock - (10 + 6.875 + 10)) < 1e-10);
 });
 
 test('right-click orders return battle snapshots only when combat actually executes', () => {
@@ -1233,8 +1233,8 @@ test('battle markers show recent player and AI attacks across turn changes', () 
   assert.deepEqual(centers, [[60, 12], [36, 60]]);
   assert.deepEqual(colors.filter(color => color !== '#402d29'), [ctx.civs.B.color, ctx.civs.A.color]);
   assert.ok(markers[0][1][0] - markers[0][0][0] > markers[1][1][0] - markers[1][0][0]);
-  assert.equal(ctx.MilitaryUI.battleTooltip(0, 2), `A ${playerBattle.attackerCasualties.toLocaleString()} losses vs. B ${playerBattle.defenderCasualties.toLocaleString()} losses`);
-  assert.equal(ctx.MilitaryUI.battleTooltip(2, 1), `B ${aiBattle.attackerCasualties.toLocaleString()} losses vs. A ${aiBattle.defenderCasualties.toLocaleString()} losses`);
+  assert.equal(ctx.MilitaryUI.battleTooltip(0, 2), `Attacker · A ${playerBattle.attackerCasualties.toLocaleString()} losses\nDefender · B ${playerBattle.defenderCasualties.toLocaleString()} losses`);
+  assert.equal(ctx.MilitaryUI.battleTooltip(2, 1), `Attacker · B ${aiBattle.attackerCasualties.toLocaleString()} losses\nDefender · A ${aiBattle.defenderCasualties.toLocaleString()} losses`);
   assert.equal(ctx.Military.getBattleLossReference(), playerLosses);
 
   ctx.turn++;
@@ -1351,19 +1351,29 @@ test('levies exhaust only connected eligible civilians and disband in their enli
   assert.equal(ctx.popv2.map[0][1].pop.b, 10000);
 });
 
-test('foreign occupation recovers output with tenure and responds to advisors and ruling culture', () => {
+test('utilization follows ruling-culture share and advisors independently of tenure', () => {
   const ctx = world();
   ctx.civOrders = ['A', 'B'];
   ctx.popv2.map[0][0].pop = { b: 10000 };
   ctx.data[0][0].acquiredTurn = ctx.turn;
   const utilization = () => ctx.Military.getBuildingUtilization(0, 0);
-  assert.equal(utilization(), 0.35);
-  ctx.turn += 80;
-  assert.equal(utilization(), 0.5);
+  const expectUtilization = expected => assert.ok(Math.abs(utilization() - expected) < 1e-10);
+  expectUtilization(0);
+  ctx.turn += 160;
+  expectUtilization(0);
+  ctx.popv2.map[0][0].pop = { a: 1000, b: 9000 };
+  expectUtilization(0.309375);
+  ctx.popv2.map[0][0].pop = { a: 2000, b: 8000 };
+  expectUtilization(0.55);
   ctx.civs.A.gov.mods.PADMN = 0.25;
-  assert.equal(utilization(), 0.5375);
-  ctx.turn += 80;
-  assert.equal(utilization(), 0.65);
+  expectUtilization(0.6625);
+  ctx.popv2.map[0][0].pop = { a: 5000, b: 5000 };
+  expectUtilization(1);
+  // The other five owned cells each contain 10,000 ruling-culture residents.
+  ctx.popv2.map[0][0].pop = { b: 50000 };
+  expectUtilization(1);
+  ctx.popv2.map[0][0].pop.b++;
+  expectUtilization(1);
   ctx.civs.A.culture = 'b';
   assert.equal(utilization(), 1);
 });

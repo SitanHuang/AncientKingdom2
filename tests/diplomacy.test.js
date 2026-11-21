@@ -36,6 +36,11 @@ test('diplomacy hover clears outside territory and mode, and identifies neutral 
   ctx.updateDiplomacyTooltip({ clientX: 50, clientY: 10 });
   assert.equal(ctx.canvas.title, '');
   ctx.diplomacyViewCiv = null;
+  ctx.econTooltip = () => "Tile details";
   ctx.updateDiplomacyTooltip({ clientX: 30, clientY: 10 });
-  assert.equal(ctx.canvas.title, '');
+  assert.equal(ctx.canvas.title, 'Tile details');
+  ctx.gpem = 1;
+  ctx.heavyResourceTooltip = () => 'Equipment details';
+  ctx.updateDiplomacyTooltip({ clientX: 30, clientY: 10 });
+  assert.equal(ctx.canvas.title, 'Equipment details');
 });

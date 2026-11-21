@@ -507,28 +507,57 @@ var Military = (function (api) {
     var scale = 1 + Math.pow(owned(civName).length / balance.sizeScale, 2);
     return { construction: balance.factoryPrice * (1 + Math.pow(owned(civName).length / balance.constructionSizeScale, 2)), upkeep: balance.factoryUpkeep * scale };
   }
-  function utilization(row, col) {
+  function nationalCultureShare(civName) {
+    var culture = civs[civName].culture;
+    var ruling = 0, total = 0;
+    data.forEach(function (line, row) {
+      line.forEach(function (tile, col) {
+        if (!tile || tile.color !== civName) return;
+        var cell = popv2?.map?.[row]?.[col];
+        if (!cell?.pop) return;
+        ruling += cell.pop[culture] || 0;
+        total += cell.totPop ?? Object.values(cell.pop).reduce((sum, n) => sum + n, 0);
+      });
+    });
+    return total ? ruling / total : 0;
+  }
+  api.getNationalCultureShare = nationalCultureShare;
+
+  function utilization(row, col, details, nationalShare) {
     var tile = data[row][col];
     var owner = civs[tile.color];
-    if (!owner || typeof POPV2_FLAG_USE_UNI_CULTURE !== 'undefined' && POPV2_FLAG_USE_UNI_CULTURE) return 1;
+    if (!owner || typeof POPV2_FLAG_USE_UNI_CULTURE !== 'undefined' && POPV2_FLAG_USE_UNI_CULTURE) return details ? { value: 1 } : 1;
     var cell = typeof popv2 === "object" && popv2?.map?.[row]?.[col];
     var populations = cell?.pop || {};
     var total = cell?.totPop ?? Object.values(populations).reduce((sum, n) => sum + n, 0);
     var share = total ? (populations[owner.culture] || 0) / total : 0;
-    var years = tile.acquiredTurn == null ? Infinity : Math.max(0, turn - tile.acquiredTurn) / (4 * civOrders.length);
-    var speed = 1 + api.clamp(owner.gov?.mods?.PADMN || 0, -0.25, 0.25);
-    var integrated = Math.min(0.65, 0.35 + years * 0.015 * speed);
-    return integrated + (1 - integrated) * share;
+    share = api.clamp(share, 0, 1);
+    nationalShare ??= nationalCultureShare(tile.color);
+    var base = 1;
+    if (nationalShare > 0.5 && share < 0.5) {
+      // Match the slope of the saturation curve at 20% local share.
+      if (share < 0.2) {
+        var t = share / 0.2;
+        base = t * (0.875 - 0.7 * t + 0.375 * t * t);
+      } else {
+        base = 1 - 0.45 * Math.pow((0.5 - share) / 0.3, 2);
+      }
+    }
+    var penalty = 1 - base;
+    var relief = api.clamp(owner.gov?.mods?.PADMN || 0, -0.25, 0.25);
+    var value = api.clamp(1 - penalty * (1 - relief), 0, 1);
+    return details ? { value, base, share, nationalShare, penalty, relief } : value;
   }
   api.getBuildingUtilization = utilization;
 
   function production(civName) {
     var free = 0, factory = 0, factories = [], price = costs(civName);
+    var nationalShare = nationalCultureShare(civName);
     owned(civName).forEach(function (point) {
       var r = resource(point[0], point[1]);
       free += r.output;
       if (r.factory) {
-        var output = balance.factoryOutput * utilization(point[0], point[1]) * api.getTaxEfficiency(civName, point[0], point[1]);
+        var output = balance.factoryOutput * utilization(point[0], point[1], false, nationalShare) * api.getTaxEfficiency(civName, point[0], point[1]);
         factory += output;
         factories.push({ row: point[0], col: point[1], output: output });
       }

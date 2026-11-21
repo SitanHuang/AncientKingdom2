@@ -545,6 +545,7 @@ endTurn = function () {
     let oldpop = civ.pop || (civ.pop = 0);
     civ.pop = 0;
 
+    const nationalCultureShare = Military.getNationalCultureShare(civName);
     poptable_hook(civ);
 
     civ.pm = 0;
@@ -788,7 +789,7 @@ endTurn = function () {
             let _oldhap = civ.happiness + 0;
 
             d.type.income(civ);
-            const utilization = Military.getBuildingUtilization(row, col);
+            const utilization = Military.getBuildingUtilization(row, col, false, nationalCultureShare);
 
             let change = civ.money - _oldmoney;
 

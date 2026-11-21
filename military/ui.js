@@ -1268,9 +1268,9 @@
                 if (destroyed) label += ", " + destroyed + (destroyed === 1 ? " division" : " divisions") + " destroyed";
                 return label;
             }
-            return side(battle.attacker, battle.attackerCasualties, battle.attackerDestroyed) + " vs. " +
+            return "Attacker · " + side(battle.attacker, battle.attackerCasualties, battle.attackerDestroyed) + "\nDefender · " +
                 side(battle.defender, battle.defenderCasualties, battle.defenderDestroyed);
-        }).join("\n");
+        }).join("\n" + "=".repeat(24) + "\n");
     }
 
     function drawOverlay(context, blockSize) {
