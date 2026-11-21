@@ -19,6 +19,10 @@ function gov_exec(civ, civName) {
   gov_refresh(civ, civName);
 
   const leader = gov.persons[gov.leader];
+  if (POPV2_FLAG_USE_UNI_CULTURE) {
+    leader.culture = civ.culture = POPV2_UNI_CULTURE;
+    return;
+  }
   if (civ.culture) {
     leader.culture = leader.culture ?? civ.culture;
   }

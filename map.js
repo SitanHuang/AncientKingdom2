@@ -160,7 +160,9 @@ function findNearbyCitiesOfLargestCiv(source, color, target) {
 
     const popResults = poptable_gen_table(popTable);
 
-    if (popResults.length) {
+    if (POPV2_FLAG_USE_UNI_CULTURE) {
+        civs[color].culture = POPV2_UNI_CULTURE;
+    } else if (popResults.length) {
         if (popResults.find(x => x.culture == color)?.percent > 0.10) {
             civs[color].culture = color;
         } else if (popResults.find(x => x.culture == civs[color].culture)?.percent > 0.10) {

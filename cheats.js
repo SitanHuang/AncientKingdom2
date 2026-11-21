@@ -77,6 +77,8 @@ addCulture = function (name, color, targetCivs='') {
 };
 
 applyCulture = function (name, targetCivs) {
+    if (POPV2_FLAG_USE_UNI_CULTURE) return;
+
     targetCivs.split(',').forEach(civName => {
         civs[civName].culture = name;
         Object.values(civs[civName].gov.persons).forEach(x => x.culture = name);
@@ -84,6 +86,8 @@ applyCulture = function (name, targetCivs) {
 }
 
 function forceHistory(civ, old, _new, retain = 0.0) {
+    if (POPV2_FLAG_USE_UNI_CULTURE) return;
+
     popv2.map.forEach((row, ri) => row.forEach((col, ci) => {
         if (col && data[ri][ci]?.color == civ) {
             if (col.pop[old] > 1000) {
@@ -115,6 +119,7 @@ addCiv = function (name, ai, color) {
         technology: -1,
         politic: -1
     }
+    if (POPV2_FLAG_USE_UNI_CULTURE) civ.culture = POPV2_UNI_CULTURE;
     civs[name] = civ;
     civOrders = Object.keys(civs).sort();
     ai && (civs[name].ai = true);

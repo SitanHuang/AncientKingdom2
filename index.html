@@ -357,7 +357,7 @@
 <button onclick="MilitaryUI.setUnitMarkersVisible(!MilitaryUI.areUnitMarkersVisible())">units?</button>
 <button onclick="BLOCK_SIZE --;drawCanvas()">-</button>
 <button onclick="BLOCK_SIZE ++;drawCanvas()">+</button>
-<button onclick="alert('POPV2_FLAG_USE_UNI_CULTURE:=' + (POPV2_FLAG_USE_UNI_CULTURE=!POPV2_FLAG_USE_UNI_CULTURE))">culture?</button>
+<button onclick="alert('POPV2_FLAG_USE_UNI_CULTURE:=' + popv2_set_uni_culture(!POPV2_FLAG_USE_UNI_CULTURE))">culture?</button>
 <div id="takeControls">
 </div>
 <button onclick="download(prompt('File name', 'scenario') + '.json',

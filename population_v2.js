@@ -41,7 +41,13 @@ function popv2_init() {
 
       return obj;
     }));
- }
+  }
+
+  if (POPV2_FLAG_USE_UNI_CULTURE) {
+    if (popv2.map !== popv2UnifiedMap) popv2_unify_cultures();
+  } else {
+    popv2UnifiedMap = null;
+  }
 }
 
 function popv2_record_history(row, col) {
@@ -92,7 +98,9 @@ function popv2_apply_delta(row, col, delta, opts={}) {
   const tile = data[row][col];
   if (!tile || !delta) return;
 
-  const ownerCul = tile.color ? popv2_culture_get_or_create_civ(tile.color) : null;
+  const ownerCul = tile.color
+    ? popv2_culture_get_or_create_civ(tile.color)
+    : (POPV2_FLAG_USE_UNI_CULTURE ? POPV2_UNI_CULTURE : null);
 
   let obj = popv2.map[row][col];
 
@@ -220,10 +228,56 @@ function popv2_get_tothist(row, col) {
 }
 
 POPV2_FLAG_USE_UNI_CULTURE = false;
+const POPV2_UNI_CULTURE = 'DefaultCulture';
+let popv2UnifiedMap = null;
+
+function popv2_set_uni_culture(enabled) {
+  POPV2_FLAG_USE_UNI_CULTURE = enabled;
+  popv2UnifiedMap = null;
+  if (enabled && data?.length) popv2_init();
+  return enabled;
+}
+
+function popv2_unify_cultures() {
+  popv2_culture_reinit_culture(POPV2_UNI_CULTURE);
+
+  for (const civ of Object.values(civs)) {
+    civ.culture = POPV2_UNI_CULTURE;
+    for (const person of Object.values(civ.gov?.persons || {})) {
+      person.culture = POPV2_UNI_CULTURE;
+    }
+    popv2_unify_poptable(civ);
+  }
+
+  if (typeof averageData !== 'undefined') popv2_unify_poptable(averageData);
+
+  data.forEach((tiles, row) => tiles.forEach((tile, col) => {
+    if (!tile) return;
+
+    const cell = popv2.map[row][col] ??= {};
+    cell.pop = { [POPV2_UNI_CULTURE]: popv2_sum_culture_counts(cell.pop) };
+    cell.hist = { [POPV2_UNI_CULTURE]: popv2_sum_culture_counts(cell.hist) };
+    popv2_recompute_totals(row, col);
+  }));
+
+  popv2UnifiedMap = popv2.map;
+}
+
+function popv2_unify_poptable(table) {
+  if (!table._poptable) return;
+
+  const total = popv2_sum_culture_counts(table._poptable);
+  table._poptable = { [POPV2_UNI_CULTURE]: total };
+  table._poptable_tot = total;
+}
+
+function popv2_sum_culture_counts(counts) {
+  return Object.values(counts || {}).reduce((total, count) => total + count, 0);
+}
 
 function popv2_culture_get_or_create_civ(civName) {
   const civ = civs[civName];
-  civ.culture = POPV2_FLAG_USE_UNI_CULTURE ? 'DefaultCulture' : (civ.culture ?? civName);
+  civ.culture = POPV2_FLAG_USE_UNI_CULTURE ? POPV2_UNI_CULTURE : (civ.culture ?? civName);
   if (!civ.culture) {
     popv2_culture_reinit_culture(civ.culture);
   }

@@ -216,7 +216,9 @@ function person_add(civ, src) {
   const parent2 = parents[Math.floor(Math.random() * parents.length)];
 
   person.culture = null;
-  if (civ.culture && civ._poptable) {
+  if (POPV2_FLAG_USE_UNI_CULTURE) {
+    person.culture = POPV2_UNI_CULTURE;
+  } else if (civ.culture && civ._poptable) {
     const table = poptable_gen_table(civ)
       .map(x => ({
         culture: x.culture,
