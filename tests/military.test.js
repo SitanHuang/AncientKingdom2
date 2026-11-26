@@ -842,7 +842,7 @@ test('supplied equipment requests share stock, obey refill limits, and return or
   ctx.Military.setEquipmentCap(b, 10);
   ctx.Military.refillEquipment('A'); assert.equal(b.heavyEquipment, 0);
   ctx.Military.loseEquipment(a, 500); assert.equal(a.heavyEquipment, 0.5);
-  ctx.Military.disbandDivision(a.id); assert.equal(ctx.Military.getEquipmentStock('A'), 98.5);
+  ctx.Military.disbandDivision(a.id); assert.equal(ctx.Military.getEquipmentStock('A'), 98.125);
 });
 
 test('equipment survives queue deployment and saves, and scales upkeep and hardness', () => {
@@ -1068,7 +1068,7 @@ test('deployed equipment totals exclude national stock and queues and track cap 
   const militarySave=JSON.parse(JSON.stringify(ctx.military));
   ctx.civs=civSave;ctx.Military.init(militarySave);
   assert.equal(ctx.civs.A.deployedHeavyEquipment,3);
-  assert.equal(ctx.civs.A.heavyEquipmentStock,104);
+  assert.equal(ctx.civs.A.heavyEquipmentStock,102.5);
 });
 
 test('AI retains equipped formations despite a low cash cushion instead of returning their equipment to stock', () => {
@@ -1479,18 +1479,22 @@ for (const supplied of [true, false]) {
       return regions;
     };
     const army = ctx.Military._addDivision({ civ: 'A', row: 0, col: 2, manpower: 2000, maxHeavyEquipment: 20, heavyEquipment: 16.5 });
+    const depleted = ctx.Military._addDivision({ civ: 'A', row: 0, col: 2, manpower: 500, maxHeavyEquipment: 5, heavyEquipment: 2 });
     const queue = ctx.Military._addQueue({ civ: 'A', row: 0, col: 2, manpower: 500, maxHeavyEquipment: 5, heavyEquipment: 3.5 });
+    ctx.civs.A.heavyEquipmentStock = 10;
     ctx.civs.A.money = 0;
     ctx.Military.processUpkeep('A');
-    assert.equal(army.heavyEquipment, 10);
+    assert.equal(army.heavyEquipment, 8.25);
+    assert.equal(depleted.heavyEquipment, 0);
+    assert.equal(ctx.Military.getDivision(depleted.id), undefined);
     assert.equal(queue.heavyEquipment, 0);
-    assert.equal(ctx.Military.getEquipmentStock('A'), supplied ? 10 : 0);
+    assert.equal(ctx.Military.getEquipmentStock('A'), 10);
     ctx.Military.disbandDivision(army.id);
     ctx.Military.cancelQueue(queue.id);
-    assert.equal(ctx.Military.getEquipmentStock('A'), supplied ? 20 : 0);
+    assert.equal(ctx.Military.getEquipmentStock('A'), supplied ? 12.0625 : 10);
     const second = ctx.Military._addQueue({ civ: 'A', row: 0, col: 2, manpower: 500, maxHeavyEquipment: 5, heavyEquipment: 2.75 });
     ctx.Military.cancelQueue(second.id);
-    assert.equal(ctx.Military.getEquipmentStock('A'), supplied ? 22.75 : 0);
+    assert.equal(ctx.Military.getEquipmentStock('A'), supplied ? 12.75 : 10);
   });
 }
 

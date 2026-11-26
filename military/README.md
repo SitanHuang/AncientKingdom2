@@ -511,10 +511,11 @@ the same turn.
 After production, divisions and queues on owned territory in the capital's
 connected partition share stock proportionally to their requests. Each formation
 receives at most 25% of current equipment capacity per turn. Isolated or invading
-formations cannot refill. Cap reductions, disbanding, and queue cancellation
-return equipment only when supplied. Combat casualties, entry attrition, and
-desertion destroy equipment in proportion to manpower lost; destruction and
-encirclement lose the entire remaining load.
+formations cannot refill. Supplied formations return excess equipment when
+their cap is reduced and 25% of their remaining equipment when disbanded or
+cancelled. Combat casualties, entry attrition, and desertion destroy equipment
+in proportion to manpower lost. Destruction and encirclement lose the entire
+remaining load.
 
 Coverage is `equipment * 100 / manpower`, bounded to 0–1, and is also hardness.
 Equipment adds `base formation upkeep * 0.5 * coverage`, including queues.

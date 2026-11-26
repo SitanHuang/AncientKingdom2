@@ -1,5 +1,6 @@
 var Military = (function (api) {
   var growthRequests = {};
+  var disbandEquipmentShare = 0.25;
 
   function createRecruitQueue(civName, maxManpower, opts) {
     opts = opts || {};
@@ -143,7 +144,7 @@ var Military = (function (api) {
   function disbandDivision(id) {
     var division = api._removeDivision(id);
     if (!division) return { ok: false, reason: "missing-division" };
-    api.returnEquipment(division, division.heavyEquipment);
+    api.returnEquipment(division, division.heavyEquipment * disbandEquipmentShare);
     returnPopulation(division, division.manpower);
     resetGrowthRequests(division.civ);
     return { ok: true, manpower: division.manpower, division: division };
@@ -152,7 +153,7 @@ var Military = (function (api) {
   function cancelQueue(id) {
     var queue = api._removeQueue(id);
     if (!queue) return { ok: false, reason: "missing-queue" };
-    api.returnEquipment(queue, queue.heavyEquipment);
+    api.returnEquipment(queue, queue.heavyEquipment * disbandEquipmentShare);
     returnPopulation(queue, queue.manpower);
     resetGrowthRequests(queue.civ);
     return { ok: true, manpower: queue.manpower, queue: queue };
@@ -385,11 +386,10 @@ var Military = (function (api) {
         var loss = Math.min(formation.manpower, Math.round(
           Math.max(1000, formation.manpower * 0.1)
         ));
-        var equipment = formation.heavyEquipment;
+        api.loseEquipment(formation, loss);
         returnPopulation(formation, loss);
         formation.manpower -= loss;
         api.normalizeEquipment(formation);
-        api.returnEquipment(formation, equipment - formation.heavyEquipment);
         returned += loss;
       });
 
